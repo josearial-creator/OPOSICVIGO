@@ -34,7 +34,9 @@ try:
     categorias = obtener_sergas()
     if not categorias:
         raise ValueError("Catálogo SERGAS vacío")
-    for url, nombre in categorias.items():
+    for i, (url, nombre) in enumerate(categorias.items()):
+        if i % 10 != __import__("datetime").date.today().toordinal() % 10 and url not in sergas and (catalogo_anterior is None or url in catalogo_anterior):
+            continue
         try:
             plazo = obtener_plazo_sergas(url)
             estado = plazo["inscripcion"]
