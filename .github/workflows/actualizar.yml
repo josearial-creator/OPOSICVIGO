@@ -1,0 +1,43 @@
+name: Actualizar oposiciones
+
+on:
+  schedule:
+    - cron: '15 8 * * *'
+      timezone: 'Europe/Madrid'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Consultar fuentes oficiales
+        run: python actualizar_feed.py
+
+      - name: Preparar datos publicos
+        run: |
+          mkdir -p docs
+          cp importar_rumbo.json docs/importar_rumbo.json
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > docs/ultima_comprobacion.txt
+
+      - name: Guardar actualizaciones
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Actualizacion automatica de oposiciones"
+          git push
