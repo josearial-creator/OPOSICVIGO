@@ -360,7 +360,7 @@
     "fuente": "https://sede.vigo.org/expedientes/oposicions/buscador_plazas.jsp?lang=es"
   },
   {
-    "puesto": "Auxiliar de función administrativa",
+    "puesto": "Grupo auxiliar de la función administrativa",
     "organismo": "SERGAS",
     "ubicacion": "Galicia (destino por adjudicar)",
     "plazas": 84,
@@ -369,6 +369,11 @@
     "inscripcion": "Cerrada",
     "inicio": "05/09/2025",
     "fin": "15/10/2025",
-    "fuente": "https://extranet.sergas.es/OPEWB/OPE/ListadoAnexos.aspx?IdCategoria=3266"
+    "fuente": "https://extranet.sergas.es/OPEWB/OPE/ListadoAnexos.aspx?IdCategoria=3266",
+    "grupo": "Por verificar",
+    "tipo": "Acceso libre",
+    "estado": "Inscripción cerrada",
+    "discapacidad": "Si",
+    "prioridad": "Media"
   }
 ]
