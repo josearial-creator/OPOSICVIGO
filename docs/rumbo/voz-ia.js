@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 let token='',consent=false,voiceConsent=false,lastReply='',busy=false,recognizer=null;
-let endpoint='';try{endpoint=localStorage.getItem('rumbo-ai-endpoint')||'';}catch{}
+let endpoint='https://rumbo-entrenador.jose-arial.workers.dev';try{endpoint=localStorage.getItem('rumbo-ai-endpoint')||endpoint;}catch{}
 const el=(tag,text)=>{const x=document.createElement(tag);if(text)x.textContent=text;return x;};
 const button=(text,fn)=>{const b=el('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
 window.RumboAI={mount(box,d,skills,prompt){
