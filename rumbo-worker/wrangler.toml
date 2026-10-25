@@ -1,0 +1,15 @@
+name = "rumbo-entrenador"
+main = "worker.mjs"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://josearial-creator.github.io"
+# Fail closed until the owner verifies BOTH accounts have no billing enabled.
+FREE_TIER_CONFIRMED = "false"
+
+[observability]
+enabled = false
+
+# GEMINI_API_KEY and RUMBO_ACCESS_TOKEN: Worker secrets, never vars or GitHub files.
+# No cron triggers, paid resources, databases or automatic deployments.

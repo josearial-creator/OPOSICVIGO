@@ -1,0 +1,18 @@
+name: Comprobar backend privado Rumbo
+on:
+  pull_request:
+    paths: ['rumbo-worker/**', 'tests/worker.test.mjs', '.github/workflows/comprobar-rumbo.yml']
+  push:
+    branches: ['implementar-evolucion-gratis']
+    paths: ['rumbo-worker/**', 'tests/worker.test.mjs', '.github/workflows/comprobar-rumbo.yml']
+permissions:
+  contents: read
+jobs:
+  contrato-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/worker.test.mjs
