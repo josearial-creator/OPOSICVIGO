@@ -2,7 +2,10 @@ const {CLOUDFLARE_ACCOUNT_ID:account,CLOUDFLARE_API_TOKEN:cf,GEMINI_API_KEY:gemi
 function fail(message){console.log('::error::'+message);process.exit(1);}
 if(!/^[a-f0-9]{32}$/i.test(account||'')||!cf)fail('Falta la configuración Cloudflare.');
 if(!gemini||/\s/.test(gemini))fail('Falta GEMINI_API_KEY válida en GitHub Secrets.');
-if(!password||password.length<32||password.length>64||/\s/.test(password))fail('Añade RUMBO_ACCESS_TOKEN en GitHub Secrets: contraseña privada de 32–64 caracteres sin espacios. No la compartas en el chat.');
+if(!password)fail('No existe un secreto de repositorio accesible llamado RUMBO_ACCESS_TOKEN. Añádelo en OPOSICVIGO → Settings → Secrets and variables → Actions → Repository secrets.');
+if(password.length<32)fail('RUMBO_ACCESS_TOKEN está guardado, pero tiene menos de 32 caracteres. Edita ese secreto y usa una contraseña más larga.');
+if(password.length>64)fail('RUMBO_ACCESS_TOKEN está guardado, pero supera los 64 caracteres. Edita ese secreto para usar 32–64 caracteres.');
+if(/\s/.test(password))fail('RUMBO_ACCESS_TOKEN está guardado, pero contiene espacios o saltos de línea. Edita ese secreto y elimínalos.');
 if([gemini,cf,account].includes(password))fail('RUMBO_ACCESS_TOKEN debe ser una contraseña independiente, no una clave API o identificador.');
 if(process.env.CHECK_ONLY==='true'){console.log('::notice::Los secretos requeridos están presentes y tienen formato válido. No se muestran sus valores.');process.exit(0);}
 for(const [name,text] of [['GEMINI_API_KEY',gemini],['RUMBO_ACCESS_TOKEN',password]]){
