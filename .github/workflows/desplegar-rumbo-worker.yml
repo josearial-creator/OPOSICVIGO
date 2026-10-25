@@ -36,7 +36,10 @@ jobs:
         run: |
           node - <<'JS'
           if(!/^[a-f0-9]{32}$/i.test(process.env.CLOUDFLARE_ACCOUNT_ID||'')) throw Error('Falta la variable CLOUDFLARE_ACCOUNT_ID válida');
-          if(!process.env.CLOUDFLARE_API_TOKEN) throw Error('Falta el secreto CLOUDFLARE_API_TOKEN');
+          const token=process.env.CLOUDFLARE_API_TOKEN||'';
+          if(!token) throw Error('Falta el secreto CLOUDFLARE_API_TOKEN');
+          if(token===process.env.CLOUDFLARE_ACCOUNT_ID) throw Error('CLOUDFLARE_API_TOKEN contiene el Account ID, no el token API. Edita ese secreto en GitHub.');
+          if(/\s/.test(token)||/^Bearer /i.test(token)) throw Error('El secreto debe contener solo el token API, sin espacios, saltos de línea ni prefijo Bearer.');
           JS
       - run: npm ci --ignore-scripts
         working-directory: tests
