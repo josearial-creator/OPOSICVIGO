@@ -71,6 +71,7 @@ function render() {
     const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ state.favorites.has(key)?state.favorites.delete(key):state.favorites.add(key);save();render(); });
     const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right'; fragment.append(tr);
   }); $('rows').append(fragment);
+  if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); $('convocatorias').scrollIntoView({behavior:'smooth'}); }});
 }
 function openDetail(r) {
   const key=recordKey(r); $('dialog-title').textContent=r.puesto || 'Convocatoria'; const container=$('dialog-content'); container.replaceChildren(); const grid=node('div','detail-grid');

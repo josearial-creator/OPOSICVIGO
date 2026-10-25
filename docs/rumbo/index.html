@@ -7,6 +7,7 @@
   <meta name="description" content="Panel de seguimiento de empleo público en Vigo y Galicia">
   <title>Rumbo · Convocatorias</title>
   <link rel="stylesheet" href="styles.css">
+  <script defer src="hoy.js"></script>
   <script defer src="app.js"></script>
   <link rel="stylesheet" href="evolucion.css">
   <script defer src="voz-ia.js"></script>
@@ -37,6 +38,15 @@
           <article class="stat"><span>Inscripción abierta</span><strong id="count-open">—</strong><small>Solo si está confirmada</small></article>
           <article class="stat"><span>Con reserva discapacidad</span><strong id="count-disability">—</strong><small>General, cuando se identifica</small></article>
           <article class="stat"><span>Mis favoritas</span><strong id="count-favs">—</strong><small>Guardadas en este navegador</small></article>
+        </section>
+        <section class="panel today-panel" id="panel-hoy" aria-label="Mis siguientes pasos">
+          <div class="panel-head">
+            <div><div class="eyebrow">ENFOQUE DEL DÍA</div><h2>Hoy: qué revisar</h2><p class="lead">Hasta cuatro convocatorias que merecen atención, sin añadir tareas innecesarias.</p></div>
+            <a class="button secondary" href="#ev-diary">Anotar algo en el diario</a>
+          </div>
+          <div id="today-metrics" class="today-metrics" aria-label="Resumen de mis convocatorias"></div>
+          <div id="today-actions" class="today-actions" aria-live="polite"></div>
+          <p class="today-disclaimer">Los estados y plazos proceden del feed. Confirma cualquier fecha o inscripción en la convocatoria oficial.</p>
         </section>
         <section class="panel" id="convocatorias">
           <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
