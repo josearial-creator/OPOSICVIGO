@@ -18,7 +18,7 @@ const valid=d=>d&&d.version===1&&Array.isArray(d.items)&&d.items.length<=10000&&
 let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false;
 try{const saved=localStorage.getItem(KEY);if(saved){let p=JSON.parse(saved);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
 function note(s){$('assistant-message').textContent=s;}
-function save(){if(locked){note('Hay una copia incompatible guardada. No la sobrescribiré; exporta los datos antes de continuar.');return false;}try{localStorage.setItem(KEY,JSON.stringify(state));return true;}catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}}
+function save(){if(locked){note('Hay una copia incompatible guardada. No la sobrescribiré; exporta los datos antes de continuar.');return false;}try{localStorage.setItem(KEY,JSON.stringify(state));window.dispatchEvent(new Event('rumbo:assistant-changed'));return true;}catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}}
 function option(s,v){const x=el('option','',s);x.value=v===undefined?s:v;return x;}
 function selectAreas(id){AREAS.forEach(a=>$(id).add(option(a)));}
 function linkBtn(label,fn,style='secondary'){const x=el('button','button '+style,label);x.type='button';x.addEventListener('click',fn);return x;}
@@ -40,14 +40,14 @@ prod.innerHTML=[
 '<div class="assistant-head"><div><div class="eyebrow">SIN PRESIÓN POR COMPLETARLO TODO</div><h2>Productividad</h2><p>Registra lo que haces, cuenta también el descanso y termina cuando lo necesites.</p></div></div>',
 '<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card">',
 '<h3>Temporizador</h3><label>Actividad<input id="assistant-timer-title" maxlength="120" placeholder="Ej.: Preparar oposición"></label>',
-'<div class="assistant-inline"><label>Área<select id="assistant-timer-area"></select></label>',
+'<div class="assistant-inline"><label>Área<select id="assistant-timer-area"></select></label><label>Proyecto (opcional)<select id="assistant-project"><option value="">Sin proyecto</option></select></label>',
 '<label>Duración<select id="assistant-duration"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15" selected>15 minutos</option><option value="25">25 minutos</option><option value="45">45 minutos</option></select></label></div>',
 '<div id="assistant-clock" class="assistant-clock">00:00:00</div><div id="assistant-timer-state" class="assistant-timer-state">El cronómetro empieza cuando tú quieras.</div>',
 '<div class="assistant-button-row"><button id="assistant-start" class="button primary" type="button">Iniciar</button><button id="assistant-pause" class="button secondary" type="button">Pausar</button><button id="assistant-finish" class="button secondary" type="button">Finalizar</button><button id="assistant-park" class="button secondary" type="button">Aparcar actividad</button></div>',
 '<p class="assistant-muted">Se detiene al completar el intervalo y te ofrece guardar el siguiente paso. Si sales de la página, se contabiliza hasta el límite previsto, nunca más.</p></div>',
 '<div class="assistant-card"><h3>Añadir tiempo manualmente</h3><form id="assistant-manual">',
 '<label>Actividad<input name="title" required maxlength="120" placeholder="Ej.: Organización del hogar"></label>',
-'<div class="assistant-inline"><label>Área<select name="area" id="assistant-manual-area"></select></label><label>Fecha<input name="date" type="date" required></label><label>Minutos<input name="mins" type="number" min="1" max="1440" step="1" required></label></div>',
+'<div class="assistant-inline"><label>Área<select name="area" id="assistant-manual-area"></select></label><label>Proyecto (opcional)<select name="project" id="assistant-manual-project"><option value="">Sin proyecto</option></select></label><label>Fecha<input name="date" type="date" required></label><label>Minutos<input name="mins" type="number" min="1" max="1440" step="1" required></label></div>',
 '<button class="button primary" type="submit">Guardar actividad</button></form></div></div>',
 '<div class="assistant-inline" style="margin:18px 0 0"><label>Periodo<select id="assistant-period"><option value="day">Hoy</option><option value="week" selected>Esta semana</option><option value="month">Este mes</option></select></label></div>',
 '<div class="assistant-kpis"><article><strong id="assistant-total">0 min</strong><span>Tiempo registrado</span></article><article><strong id="assistant-activity">0 min</strong><span>Actividades</span></article><article><strong id="assistant-rest">0 min</strong><span>Descanso</span></article></div>',
@@ -59,6 +59,17 @@ prod.innerHTML=[
 '<p class="assistant-muted">Datos guardados solamente en este navegador. No se sincronizan entre dispositivos ni se envían a Gemini. No incluye los datos privados guardados en ChatGPT Sites.</p></div>'
 ].join('');
 selectAreas('assistant-timer-area');selectAreas('assistant-manual-area');
+function refreshProjectOptions(){
+ const options=window.RumboOrganization?.listProjects?.()||[];
+ for(const id of ['assistant-project','assistant-manual-project']){
+  const box=$(id),selected=box.value;
+  box.replaceChildren(option('Sin proyecto',''));
+  options.filter(p=>p.status!=='terminado').forEach(p=>box.add(option(p.name,p.id)));
+  if([...box.options].some(x=>x.value===selected))box.value=selected;
+ }
+}
+window.addEventListener('rumbo:projects-updated',refreshProjectOptions);
+refreshProjectOptions();
 $('assistant-manual').elements.date.value=localDay();
 $('assistant-date').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 $('assistant-energy').value=state.energy;
@@ -103,7 +114,7 @@ function renderTasks(){
    if(state.priorityIds.length>=3){note('Ya hay tres prioridades. Quita una antes de añadir otra.');return;}
    state.priorityIds.push(t.id);commitRender('Prioridad añadida.');
   }));
-  buttons.append(linkBtn('Hecha',()=>{t.done=true;state.priorityIds=state.priorityIds.filter(id=>id!==t.id);commitRender('Tarea marcada como hecha.');}));
+  buttons.append(linkBtn('Hecha',()=>{t.done=true;t.doneAt=new Date().toISOString();state.priorityIds=state.priorityIds.filter(id=>id!==t.id);commitRender('Tarea marcada como hecha.');}));
   buttons.append(linkBtn('Eliminar',()=>{if(confirm('¿Eliminar este elemento de la bandeja?')){state.items=state.items.filter(x=>x.id!==t.id);state.priorityIds=state.priorityIds.filter(id=>id!==t.id);commitRender('Elemento eliminado.');}}));
   row.append(label,buttons);inbox.append(row);
  });
@@ -124,8 +135,8 @@ function timerSeconds(t=state.timer){if(!t)return 0;return Math.min(t.target,t.e
 function pauseTimer(){const t=state.timer;if(!t||t.startedAt===null)return;t.elapsed=timerSeconds(t);t.startedAt=null;commitRender('Temporizador en pausa.');}
 function registerTimer(markDone){
  const t=state.timer,seconds=t?timerSeconds(t):0;
- if(t&&seconds>=60)state.sessions.push({id:uid(),title:t.title,area:t.area,date:localDay(),seconds,source:'temporizador'});
- if(t&&t.taskId&&markDone){const task=state.items.find(x=>x.id===t.taskId);if(task)task.done=true;state.priorityIds=state.priorityIds.filter(id=>id!==t.taskId);}
+ if(t&&seconds>=60)state.sessions.push({id:uid(),title:t.title,area:t.area,date:localDay(),seconds,source:'temporizador',...(t.projectId?{projectId:t.projectId}:{})});
+ if(t&&t.taskId&&markDone){const task=state.items.find(x=>x.id===t.taskId);if(task){task.done=true;task.doneAt=new Date().toISOString();}state.priorityIds=state.priorityIds.filter(id=>id!==t.taskId);}
  state.timer=null;commitRender(t&&seconds>=60?'Sesión guardada: '+minutes(seconds)+'.':'Actividad cerrada sin registrar minutos.');
 }
 function showStop(){
@@ -138,17 +149,17 @@ function parkActivity(){
  const title=$('stop-current').value.trim(),step=$('stop-next').value.trim();
  const t=state.timer,seconds=timerSeconds(t);
  if(!title&&!step){$('stop-current').focus();return;}
- if(t&&seconds>=60)state.sessions.push({id:uid(),title:t.title,area:t.area,date:localDay(),seconds,source:'temporizador'});
+ if(t&&seconds>=60)state.sessions.push({id:uid(),title:t.title,area:t.area,date:localDay(),seconds,source:'temporizador',...(t.projectId?{projectId:t.projectId}:{})});
  const existing=t?.taskId?state.items.find(x=>x.id===t.taskId):state.items.find(x=>!x.done&&x.text===title);
  if(existing){existing.done=false;if(step)existing.nextStep=step;}
  else{state.items.push({id:uid(),text:title||step,done:false,nextStep:step,createdAt:new Date().toISOString()});}
  state.timer=null;
- if(save()){render();$('assistant-stop-dialog').close();note('Actividad aparcada. El siguiente paso queda guardado.');}
+ if(save()){render();$('assistant-stop-dialog').close();window.dispatchEvent(new CustomEvent('rumbo:activity-parked',{detail:{title:title||t?.title||'',at:new Date().toISOString()}}));note('Actividad aparcada. El siguiente paso queda guardado.');}
 }
 $('stop-park').addEventListener('click',parkActivity);
 $('stop-done').addEventListener('click',()=>{
  const t=state.timer;
- if(!t){const a=state.items.find(x=>!x.done&&x.text===$('stop-current').value.trim());if(a){a.done=true;state.priorityIds=state.priorityIds.filter(id=>id!==a.id);commitRender('Tarea terminada.');}}
+ if(!t){const a=state.items.find(x=>!x.done&&x.text===$('stop-current').value.trim());if(a){a.done=true;a.doneAt=new Date().toISOString();state.priorityIds=state.priorityIds.filter(id=>id!==a.id);commitRender('Tarea terminada.');}}
  else registerTimer(true);
  $('assistant-stop-dialog').close();
 });
@@ -169,8 +180,8 @@ function renderTimer(){
  $('assistant-pause').disabled=locked||!running;
  $('assistant-finish').disabled=locked||!t;
  $('assistant-park').disabled=locked||!t;
- ['assistant-timer-title','assistant-timer-area','assistant-duration'].forEach(id=>$(id).disabled=!!t);
- if(t){$('assistant-timer-title').value=t.title;$('assistant-timer-area').value=t.area;$('assistant-duration').value=String(t.target/60);}
+ ['assistant-timer-title','assistant-timer-area','assistant-project','assistant-duration'].forEach(id=>$(id).disabled=!!t);
+ if(t){$('assistant-timer-title').value=t.title;$('assistant-timer-area').value=t.area;$('assistant-duration').value=String(t.target/60);$('assistant-project').value=t.projectId||'';}
 }
 $('assistant-start').addEventListener('click',()=>{
  if(state.timer){state.timer.startedAt=Date.now();commitRender('Temporizador reanudado.');return;}
@@ -178,7 +189,7 @@ $('assistant-start').addEventListener('click',()=>{
  if(!title||title.length>120){note('Escribe el nombre de la actividad o selecciona una prioridad.');return;}
  if(!AREAS.includes(area)||![300,600,900,1500,2700].includes(target))return;
  const matched=state.items.find(x=>!x.done&&x.text===title);
- state.timer={title,area,target,elapsed:0,startedAt:Date.now(),warned:false,taskId:matched?.id||null};
+ state.timer={title,area,target,elapsed:0,startedAt:Date.now(),warned:false,taskId:matched?.id||null,projectId:$('assistant-project').value||matched?.projectId||null};
  commitRender('Temporizador iniciado.');
 });
 $('assistant-pause').addEventListener('click',pauseTimer);
@@ -187,7 +198,7 @@ $('assistant-park').addEventListener('click',showStop);
 $('assistant-manual').addEventListener('submit',e=>{
  e.preventDefault();const f=e.target.elements,title=f.title.value.trim(),area=f.area.value,date=f.date.value,mins=Number(f.mins.value);
  if(!title||title.length>120||!AREAS.includes(area)||!validDate(date)||!Number.isInteger(mins)||mins<1||mins>1440){note('Revisa la actividad, fecha y duración.');return;}
- state.sessions.push({id:uid(),title,area,date,seconds:mins*60,source:'manual'});
+ state.sessions.push({id:uid(),title,area,date,seconds:mins*60,source:'manual',...(f.project.value?{projectId:f.project.value}:{})});
  if(save()){e.target.reset();e.target.elements.date.value=localDay();render();note('Tiempo añadido correctamente.');}
 });
 $('assistant-period').addEventListener('change',render);
@@ -223,6 +234,19 @@ function renderProductivity(){
  });
 }
 function render(){renderTasks();renderTimer();renderProductivity();updateAvailability();}
+window.RumboAssistant={
+ getSnapshot:()=>JSON.parse(JSON.stringify(state)),
+ addTask:(text,projectId)=>{
+  const title=String(text||'').trim();
+  if(locked||!title||title.length>1000)return false;
+  const item={id:uid(),text:title,done:false,nextStep:'',createdAt:new Date().toISOString()};
+  if(typeof projectId==='string'&&projectId)item.projectId=projectId;
+  state.items.push(item);
+  if(!save()){state.items.pop();return false;}
+  render();note('Siguiente paso añadido a tu bandeja.');
+  return true;
+ }
+};
 function download(filename,data,type){const b=new Blob([data],{type}),url=URL.createObjectURL(b),a=el('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 $('assistant-export-json').addEventListener('click',()=>download('rumbo-asistente.json',JSON.stringify(state,null,2),'application/json'));
 const csvCell=value=>{let s=String(value??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
