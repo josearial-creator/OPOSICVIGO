@@ -188,7 +188,7 @@ $('assistant-manual').addEventListener('submit',e=>{
  e.preventDefault();const f=e.target.elements,title=f.title.value.trim(),area=f.area.value,date=f.date.value,mins=Number(f.mins.value);
  if(!title||title.length>120||!AREAS.includes(area)||!validDate(date)||!Number.isInteger(mins)||mins<1||mins>1440){note('Revisa la actividad, fecha y duración.');return;}
  state.sessions.push({id:uid(),title,area,date,seconds:mins*60,source:'manual'});
- if(save()){f.reset();f.date.value=localDay();render();note('Tiempo añadido correctamente.');}
+ if(save()){e.target.reset();e.target.elements.date.value=localDay();render();note('Tiempo añadido correctamente.');}
 });
 $('assistant-period').addEventListener('change',render);
 function periodRange(){
