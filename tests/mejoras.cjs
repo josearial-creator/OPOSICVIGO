@@ -25,6 +25,29 @@ assert.equal(data.real.at(-1).felt,'');
 await page.reload();
 assert.equal(await page.locator('#today-metrics .today-metric strong').first().innerText(),'1');
 assert.match(await page.locator('#ev-diary').innerText(),/Una situación concreta/);
+assert.equal(await page.locator('[data-week-value="notes"]').innerText(),'1');
+assert.equal(await page.locator('[data-week-value="sessions"]').innerText(),'0');
+await page.evaluate(()=>{
+  const d=JSON.parse(localStorage.getItem('rumbo-evolucion-v1'));
+  const today=new Date(),monday=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  monday.setDate(monday.getDate()-(monday.getDay()+6)%7);
+  const before=new Date(monday);before.setDate(before.getDate()-3);
+  d.sessions.push({id:'semanal-test',date:today.toISOString(),seconds:600,completed:true,source:'manual',exercises:[{
+    id:'e-semanal',title:'Simulación de prueba',score:75,skills:{1:75},
+    before:{nerviosismo:7},after:{nerviosismo:6}
+  }]});
+  d.sessions.push({id:'semanal-previo',date:before.toISOString(),seconds:600,completed:true,source:'manual',exercises:[]});
+  d.real.push({id:'nota-anterior',date:before.toISOString(),context:'Semana anterior',response:'',felt:'',improve:''});
+  localStorage.setItem('rumbo-evolucion-v1',JSON.stringify(d));
+});
+await page.reload();
+assert.equal(await page.locator('[data-week-value="sessions"]').innerText(),'1');
+assert.equal(await page.locator('[data-week-value="exercises"]').innerText(),'1');
+assert.equal(await page.locator('[data-week-value="notes"]').innerText(),'1');
+assert.match(await page.locator('#ev-week-skill').innerText(),/Escucha activa/);
+assert.match(await page.locator('#ev-week-compare').innerText(),/1 sesión y 1 apunte/);
+assert.match(await page.locator('#ev-week-nervous').innerText(),/7,0 → 6,0/);
+
 assert.deepEqual(errors,[]);
 await browser.close();
 console.log('PASS: panel Hoy, ficha favorita, diario rápido y persistencia tras recarga.');
