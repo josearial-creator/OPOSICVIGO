@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "node --test worker.test.mjs && node evolucion.cjs && node voz-ia.cjs && node diario-tree.cjs"
+    "test": "node --test worker.test.mjs && node evolucion.cjs && node voz-ia.cjs && node diario-tree.cjs && node mejoras.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
