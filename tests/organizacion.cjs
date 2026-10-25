@@ -59,6 +59,7 @@ const exported=page.waitForEvent('download');await page.locator('#org-export').c
 assert.equal((await exported).suggestedFilename(),'rumbo-organizacion.json');
 const saved=await page.evaluate(()=>localStorage.getItem('rumbo-organizacion-v1'));
 await page.locator('#org-import').setInputFiles({name:'invalido.json',mimeType:'application/json',buffer:Buffer.from('{"version":1}')});
+await page.getByText('No se pudo importar:',{exact:false}).waitFor();
 assert.match(await page.locator('#org-status').innerText(),/No se pudo importar/);
 assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-organizacion-v1')),saved);
 await page.reload();
