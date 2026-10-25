@@ -22,11 +22,11 @@ export default {async fetch(request,env){
  if(!data||!text(data.response,4000)||!text(data.scenario,1500)||!text(data.skill,100)||!Array.isArray(data.criteria)||data.criteria.length!==2||!data.criteria.every(c=>text(c,250))||!Array.isArray(data.history)||data.history.length>6||!data.history.every(m=>m&&['user','model'].includes(m.role)&&text(m.text,3000)))return reply(400,{error:'Datos de entrenamiento no válidos'});
  try{
  // One request, fixed model, no tools, no automatic retries or paid-model fallback.
- const upstream=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM}]},contents:[{role:'user',parts:[{text:JSON.stringify({scenario:data.scenario,skill:data.skill,criteria:data.criteria,previousConversation:data.history,response:data.response})}]}],generationConfig:{temperature:0.3,maxOutputTokens:1800,responseMimeType:'application/json',responseSchema:schema,thinkingConfig:{thinkingBudget:0}}})});
+ const upstream=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM}]},contents:[{role:'user',parts:[{text:JSON.stringify({scenario:data.scenario,skill:data.skill,criteria:data.criteria,previousConversation:data.history,response:data.response})}]}],generationConfig:{temperature:0.3,maxOutputTokens:1800,responseMimeType:'application/json',responseSchema:schema,thinkingConfig:{thinkingBudget:0}}})});
  if(upstream.status===429)return reply(429,{error:'Límite gratuito alcanzado. Continúa en modo manual; no se reintenta ni se activa facturación.'});
  if(!upstream.ok)return reply(502,{error:'Gemini no está disponible. Continúa en modo manual.'});
  const payload=await upstream.json();const output=JSON.parse(payload.candidates?.[0]?.content?.parts?.filter(p=>!p.thought).map(p=>p.text||'').join('')||'null');
  if(!validResult(output))return reply(502,{error:'Respuesta de IA no válida. No se han guardado puntuaciones.'});
- return reply(200,{...output,provider:'Gemini',model:'gemini-2.5-flash'});
+ return reply(200,{...output,provider:'Gemini',model:'gemini-2.5-flash-lite'});
  }catch{return reply(502,{error:'No se pudo completar la consulta. Puedes entrenar en modo manual.'});}
 }};

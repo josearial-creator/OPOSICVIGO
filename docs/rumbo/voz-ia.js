@@ -27,7 +27,7 @@ window.RumboAI={mount(box,d,skills,prompt){
  const result=await res.json();if(!res.ok)throw Error(result.error||'Servicio no disponible');if(typeof result.evaluable!=='boolean'||!Array.isArray(result.criteria)||result.criteria.length!==2||!['positive','improve','alternative','practice','reply'].every(k=>typeof result[k]==='string'&&result[k].length<=5000)||!result.criteria.every(v=>result.evaluable?Number.isInteger(v)&&v>=0&&v<=4:v===null))throw Error('Respuesta de IA inválida');
  if(!result.evaluable){status.textContent='Gemini no encontró evidencia suficiente para puntuar: '+result.reply;return;}
  ['positive','improve','alternative','practice'].forEach(k=>form.elements[k].value=result[k]);result.criteria.forEach((v,i)=>form.elements['criterion'+i].value=String(v));
- d.aiEvaluation={provider:'Gemini',model:'gemini-2.5-flash',suggestedCriteria:result.criteria,reply:result.reply};d.aiConversation=[...(d.aiConversation||[]),{role:'user',text:d.response},{role:'model',text:result.reply}].slice(-6);lastReply=result.reply;
+ d.aiEvaluation={provider:'Gemini',model:'gemini-2.5-flash-lite',suggestedCriteria:result.criteria,reply:result.reply};d.aiConversation=[...(d.aiConversation||[]),{role:'user',text:d.response},{role:'model',text:result.reply}].slice(-6);lastReply=result.reply;
  form.dispatchEvent(new Event('input',{bubbles:true}));status.textContent='Evaluación recibida de Gemini. Revisa los campos y guarda para incorporarla al historial. Siguiente reto: '+result.reply;
  }catch(err){status.textContent='No se obtuvo evaluación de IA: '+err.message+'. Los campos manuales se mantienen.';}finally{busy=false;evaluate.disabled=false;}});
  form.prepend(evaluate);
