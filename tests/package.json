@@ -1,0 +1,9 @@
+{
+  "name": "rumbo-browser-checks",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test worker.test.mjs && node evolucion.cjs && node voz-ia.cjs"
+  },
+  "devDependencies": {"playwright": "1.62.1"}
+}

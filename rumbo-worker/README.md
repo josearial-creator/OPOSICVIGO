@@ -49,3 +49,11 @@ node tests/voz-ia.cjs
 ```
 
 Las pruebas de navegador interceptan tanto el feed como Gemini; no demuestran disponibilidad en producción. Incluyen conservación de favoritos/notas, ciclos de ejercicio, emociones, tendencias, copias, registros inválidos, XSS, móvil, consentimiento, secreto solo en memoria y seguimiento conversacional. No se han ejecutado despliegues ni activado servicios externos.
+
+### Continuación: pruebas reproducibles
+
+El repositorio público se verificó mediante los metadatos oficiales de su página GitHub (`repository_public=true`). El workflow usa únicamente el runner estándar `ubuntu-latest`, gratuito para repositorios públicos; no utiliza runners grandes ni publica artefactos o servicios. Ahora ejecuta las pruebas completas de backend e interfaz en cada cambio de esta rama o PR. No ejecuta llamadas reales a Gemini ni necesita secretos.
+
+Instalación reproducible de las pruebas: `npm ci --ignore-scripts --prefix tests`. El lockfile fija Playwright. Para Chromium instalado por Playwright usar `CHROMIUM_PATH=bundled`; para el Chromium del sistema usar `CHROMIUM_PATH=/usr/bin/chromium`. Con el servidor local en 8086, ejecutar `npm test --prefix tests`. El proveedor de voz se simula para comprobar transcripción editable, guardado del borrador y lectura del reto; esto no sustituye una prueba de micrófono real.
+
+No se pueden crear cuentas ni confirmar ausencia de facturación con el código del repositorio. Para continuar el despliegue falta el acceso del propietario a Cloudflare Workers Free y el proyecto Gemini gratuito. La red de Codex tampoco permite aún consultar la API de GitHub: se guardaron las ampliaciones necesarias en el borrador de configuración del entorno, preservando los dominios existentes. Ese borrador debe aplicarse para consultar estados y Pages desde la API.

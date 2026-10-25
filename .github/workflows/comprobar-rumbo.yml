@@ -1,18 +1,48 @@
-name: Comprobar backend privado Rumbo
+name: Comprobar Rumbo
 on:
   pull_request:
-    paths: ['rumbo-worker/**', 'tests/worker.test.mjs', '.github/workflows/comprobar-rumbo.yml']
+    paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', '.github/workflows/comprobar-rumbo.yml']
   push:
     branches: ['implementar-evolucion-gratis']
-    paths: ['rumbo-worker/**', 'tests/worker.test.mjs', '.github/workflows/comprobar-rumbo.yml']
+    paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', '.github/workflows/comprobar-rumbo.yml']
 permissions:
   contents: read
+concurrency:
+  group: comprobar-rumbo-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  contrato-backend:
+  contrato-e-interfaz:
+    # Standard runner on the verified PUBLIC repository; no paid or larger runners.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/worker.test.mjs
+          cache: 'npm'
+          cache-dependency-path: tests/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests
+      - name: Comprobar backend y navegador con proveedores simulados
+        env:
+          CHROMIUM_PATH: bundled
+        run: |
+          python3 -m http.server 8086 --bind 127.0.0.1 --directory docs/rumbo > /tmp/rumbo-http.log 2>&1 &
+          rumbo_server_pid=$!
+          trap 'kill "$rumbo_server_pid"' EXIT
+          python3 - <<'PY'
+          import time, urllib.request
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8086', timeout=1) as r:
+                      assert r.status == 200
+                  break
+              except OSError:
+                  time.sleep(0.2)
+          else:
+              raise RuntimeError('El servidor no inició')
+          PY
+          npm test --prefix tests
