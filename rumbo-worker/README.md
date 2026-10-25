@@ -57,3 +57,15 @@ El repositorio público se verificó mediante los metadatos oficiales de su pág
 Instalación reproducible de las pruebas: `npm ci --ignore-scripts --prefix tests`. El lockfile fija Playwright. Para Chromium instalado por Playwright usar `CHROMIUM_PATH=bundled`; para el Chromium del sistema usar `CHROMIUM_PATH=/usr/bin/chromium`. Con el servidor local en 8086, ejecutar `npm test --prefix tests`. El proveedor de voz se simula para comprobar transcripción editable, guardado del borrador y lectura del reto; esto no sustituye una prueba de micrófono real.
 
 No se pueden crear cuentas ni confirmar ausencia de facturación con el código del repositorio. Para continuar el despliegue falta el acceso del propietario a Cloudflare Workers Free y el proyecto Gemini gratuito. La red de Codex tampoco permite aún consultar la API de GitHub: se guardaron las ampliaciones necesarias en el borrador de configuración del entorno, preservando los dominios existentes. Ese borrador debe aplicarse para consultar estados y Pages desde la API.
+
+### Despliegue desde GitHub sin copiar código al editor móvil
+
+Workflow manual: `.github/workflows/desplegar-rumbo-worker.yml` (debe estar también en la rama por defecto para que aparezca el botón **Run workflow**).
+
+Requisitos en GitHub → Settings → Secrets and variables → Actions:
+- Secret `CLOUDFLARE_API_TOKEN`: token limitado al Worker `rumbo-entrenador`.
+- Variable `CLOUDFLARE_ACCOUNT_ID`: Account ID de 32 caracteres hexadecimales de Cloudflare. Es un identificador, no la clave API.
+
+El propietario inicia manualmente **Desplegar backend Rumbo (Free, IA desactivada)** y confirma que su cuenta es Workers Free. El workflow instala dependencias fijadas, ejecuta las pruebas completas, comprueba el empaquetado con Wrangler y solo entonces sube el backend al Worker existente. No cambia la web ni activa Gemini. Fuerza `FREE_TIER_CONFIRMED=false` y conserva los secretos existentes. Termina comprobando que un origen ajeno recibe 403 sin consultar Gemini. No instala recursos de pago ni bases de datos.
+
+Se retiraron las exportaciones auxiliares del módulo de producción: solo exporta el handler por defecto compatible con Workers. El arranque se probó con `wrangler dev --local`: devuelve 503 (configuración incompleta) para el origen permitido y 403 para otro origen. El empaquetado `wrangler deploy --dry-run` pasó. La llamada a Gemini real sigue pendiente.

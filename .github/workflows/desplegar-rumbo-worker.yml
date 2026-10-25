@@ -1,0 +1,97 @@
+name: Desplegar backend Rumbo (Free, IA desactivada)
+on:
+  workflow_dispatch:
+    inputs:
+      workers_free:
+        description: 'He comprobado que mi cuenta usa Workers Free y no requiere pago'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: desplegar-rumbo-worker
+  cancel-in-progress: false
+jobs:
+  comprobar-y-desplegar:
+    if: inputs.workers_free == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: implementar-evolucion-gratis
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            tests/package-lock.json
+            rumbo-worker/package-lock.json
+      - name: Comprobar requisitos sin mostrar credenciales
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node - <<'JS'
+          if(!/^[a-f0-9]{32}$/i.test(process.env.CLOUDFLARE_ACCOUNT_ID||'')) throw Error('Falta la variable CLOUDFLARE_ACCOUNT_ID válida');
+          if(!process.env.CLOUDFLARE_API_TOKEN) throw Error('Falta el secreto CLOUDFLARE_API_TOKEN');
+          JS
+      - run: npm ci --ignore-scripts
+        working-directory: tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests
+      - name: Pruebas de backend e interfaz antes de publicar
+        env:
+          CHROMIUM_PATH: bundled
+        run: |
+          python3 -m http.server 8086 --bind 127.0.0.1 --directory docs/rumbo > /tmp/rumbo-http.log 2>&1 &
+          rumbo_server_pid=$!
+          trap 'kill "$rumbo_server_pid"' EXIT
+          python3 - <<'PY'
+          import time, urllib.request
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8086', timeout=1) as r:
+                      assert r.status == 200
+                  break
+              except OSError:
+                  time.sleep(0.2)
+          else:
+              raise RuntimeError('El servidor no inició')
+          PY
+          npm test --prefix tests
+      - run: npm ci --ignore-scripts
+        working-directory: rumbo-worker
+      - name: Comprobar empaquetado del Worker sin desplegar
+        run: npx wrangler deploy --dry-run --outdir /tmp/rumbo-worker-bundle
+        working-directory: rumbo-worker
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+      - name: Desplegar únicamente backend bloqueado (no activa Gemini ni publica la web)
+        run: npx wrangler deploy --keep-vars --var FREE_TIER_CONFIRMED:false
+        working-directory: rumbo-worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WRANGLER_SEND_METRICS: 'false'
+      - name: Comprobar respuesta pública sin llamar a Gemini
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
+          url='https://rumbo-entrenador.jose-arial.workers.dev/chat'
+          # Wrong origin must be refused, independently of secret configuration.
+          for attempt in range(6):
+              try:
+                  req=urllib.request.Request(url, data=b'{}', headers={'Origin':'https://origen-no-autorizado.invalid','Content-Type':'application/json'})
+                  with urllib.request.urlopen(req,timeout=15) as r:
+                      raise RuntimeError('El Worker no rechazó el origen')
+              except urllib.error.HTTPError as err:
+                  if err.code == 403 and json.loads(err.read()).get('error') == 'Origen no autorizado':
+                      print('Backend desplegado: origen ajeno rechazado; Gemini no se ha llamado.')
+                      break
+                  if attempt == 5:
+                      raise RuntimeError('Respuesta inesperada del Worker') from None
+                  time.sleep(3)
+          PY

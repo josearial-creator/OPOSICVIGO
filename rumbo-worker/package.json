@@ -1,0 +1,6 @@
+{
+  "name": "rumbo-private-worker",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": { "wrangler": "4.152.0" }
+}
