@@ -1,0 +1,43 @@
+name: Verificar backend Rumbo sin Gemini
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verificar origen, configuración y preflight sin usar secretos
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error
+          failed=False
+          tests=[('origen ajeno','POST','https://origen-no-autorizado.invalid',403),('origen permitido sin activar IA','POST','https://josearial-creator.github.io',503),('preflight','OPTIONS','https://josearial-creator.github.io',204)]
+          for name,method,origin,expected in tests:
+              req=urllib.request.Request('https://rumbo-entrenador.jose-arial.workers.dev/chat',method=method,data=b'{}' if method=='POST' else None,headers={'Origin':origin,'Content-Type':'application/json','User-Agent':'Rumbo-Smoke-Test/1.0'})
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r:
+                      status=r.status
+                      body=r.read(1000).decode(errors='replace')
+              except urllib.error.HTTPError as e:
+                  status=e.code
+                  body=e.read(1000).decode(errors='replace')
+              except Exception as e:
+                  print('::error::'+name+': '+type(e).__name__)
+                  failed=True
+                  continue
+              message=f'{name}: HTTP {status}, esperado {expected}; respuesta {body[:400]}'
+              message=message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              valid=status==expected
+              if method=='POST' and valid:
+                  try:
+                      obj=json.loads(body)
+                      valid=obj.get('error')==('Origen no autorizado' if expected==403 else 'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.')
+                  except ValueError:
+                      valid=False
+              print(('::notice::' if valid else '::error::')+message)
+              failed=failed or not valid
+          if failed:
+              raise SystemExit(1)
+          PY
