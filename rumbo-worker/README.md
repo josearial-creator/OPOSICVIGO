@@ -1,6 +1,6 @@
 # Rumbo: Pages + Workers Free + Gemini gratuito
 
-Estado: implementación y pruebas locales; **no desplegado**. No se ha activado facturación, contratado servidores ni creado claves. No se ha llamado a Gemini real.
+Estado actual (25/10/2026): backend desplegado en Cloudflare Workers Free; Gemini 3.5 Flash-Lite conectado y verificado con una prueba real de navegador. No se ha activado facturación ni contratado servidores. El propietario aporta las claves mediante GitHub Secrets; nunca se publican sus valores. Las secciones históricas documentan los estados anteriores.
 
 ## Revisión del repositorio
 
@@ -33,7 +33,7 @@ GitHub Pages solo sirve HTML/CSS/JS: no puede guardar una clave privada ni ejecu
 
 - Entrenamiento manual funciona sin cuentas externas: ocho habilidades, simulaciones, rúbrica, autoinformes separados, objetivos, situaciones reales, tendencias de seis sesiones, historial y copias. Sesión inicial aportada conservada sin inventar fecha/duración/desglose.
 - IA: una petición explícita por evaluación; contexto de hasta seis mensajes. Pregunta de seguimiento aplicada al siguiente ejercicio. JSON validado en servidor y cliente; se conserva procedencia Gemini y criterios sugeridos, con revisión del usuario. Nunca puntuaciones inventadas si falla el servicio.
-- Modelo fijo gemini-2.5-flash, sin búsqueda, herramientas, audio Gemini, reintentos ni fallback a modelos de pago. Agotar la cuota devuelve 429 y ofrece modo manual.
+- Modelo fijo gemini-3.5-flash-lite, sin búsqueda, herramientas, audio Gemini, reintentos ni fallback a modelos de pago. Agotar la cuota devuelve 429 y ofrece modo manual.
 - Acceso privado con contraseña independiente y comprobación de origen. CORS no es autenticación; la contraseña sí se comprueba en servidor mediante hashes. No compartir esa contraseña ni configurar un proxy público sin autenticación.
 - Voz: reconocimiento Web Speech del navegador, permiso y consentimiento explícitos; transcripción editable; síntesis de voz del dispositivo. Compatibilidad dependiente del navegador. No se validó micrófono físico ni un proveedor real de reconocimiento en este entorno.
 - Los progresos, respuestas, evaluaciones y borradores quedan en localStorage; no hay sincronización entre dispositivos. Las credenciales no se guardan allí. Cambiar de origen exige exportar/restaurar los datos del módulo.
@@ -75,3 +75,10 @@ Se retiraron las exportaciones auxiliares del módulo de producción: solo expor
 El propietario guardó el token limitado al Worker en GitHub Secrets y facilitó su Account ID público. GitHub Actions completó pruebas, empaquetado y despliegue del backend. La primera comprobación inmediata falló; la verificación independiente posterior pasó en https://github.com/josearial-creator/OPOSICVIGO/actions/runs/40205260099 : POST con origen ajeno → 403 y JSON esperado; POST desde origen permitido → 503 «Servicio sin configurar»; OPTIONS desde origen permitido → 204. Se añade un User-Agent explícito a la comprobación del despliegue, igual al de la verificación que pasó.
 
 URL del backend: https://rumbo-entrenador.jose-arial.workers.dev (API, no interfaz de Rumbo). Gemini continúa DESACTIVADO. No se han enviado respuestas ni claves Gemini al proveedor, y no se ha publicado el frontend. Falta crear/verificar una clave Gemini gratuita en un proyecto sin facturación antes de conectar la IA.
+
+
+### Activación comprobada y menú Diario
+
+Prueba real completa superada en https://github.com/josearial-creator/OPOSICVIGO/actions/runs/40209376250 : navegador con origen de Pages, contraseña protegida, Worker, Gemini y evaluación conservada en historial. El modelo activo es gemini-3.5-flash-lite, con nivel gratuito confirmado en la documentación oficial y en el proyecto mostrado por el propietario. No hay cambio automático de modelo ni activación de facturación. El micrófono físico sigue necesitando permiso y comprobación en el dispositivo del usuario; su transcripción y síntesis se probaron con proveedores de navegador simulados.
+
+El menú desplegable **Diario** contiene tres accesos: **Diario** (situaciones y observaciones), **Mi evolución** (gráficos, resultados y objetivos), **Entrenamiento** (sesiones guiadas). Conserva las claves de almacenamiento y todos los registros previos. Se verificaron sus destinos, estado activo, apertura/cierre y acceso móvil. La contraseña de acceso admite 32–256 caracteres y se transmite en UTF-8 codificado en una cabecera ASCII para conservar acentos; no se guarda en localStorage. Esto no convierte la codificación en cifrado: HTTPS protege el transporte y el Worker valida la contraseña.
