@@ -1,0 +1,22 @@
+name: Comprobar Gemini real (sin publicar)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: implementar-evolucion-gratis
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/worker.test.mjs
+      - name: Consulta real con ejemplo ficticio sin cambiar cuentas ni servicios
+        run: node scripts/check-gemini.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
