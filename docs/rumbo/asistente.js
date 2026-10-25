@@ -64,7 +64,7 @@ $('assistant-date').textContent=new Date().toLocaleDateString('es-ES',{weekday:'
 $('assistant-energy').value=state.energy;
 $('assistant-event-at').value=state.event.at;
 $('assistant-event-title').value=state.event.title;
-function activeItem(){return state.items.find(x=>state.priorityIds.includes(x.id)&&!x.done)||state.items.find(x=>!x.done);}
+function activeItem(){return state.priorityIds.map(id=>state.items.find(x=>x.id===id&&!x.done)).find(Boolean)||state.items.find(x=>!x.done);}
 function updateAvailability(){
  const at=state.event.at,when=at?new Date(at).getTime():NaN,n=Math.ceil((when-Date.now())/60000);
  const output=$('assistant-time-available');
@@ -132,14 +132,14 @@ function showStop(){
  const t=state.timer,current=t?.title||activeItem()?.text||'';
  $('stop-current').value=current.slice(0,120);
  $('stop-next').value=t?.taskId?state.items.find(x=>x.id===t.taskId)?.nextStep||'':'';
- $('assistant-stop-dialog').showModal();
+ if(!$('assistant-stop-dialog').open)$('assistant-stop-dialog').showModal();
 }
 function parkActivity(){
  const title=$('stop-current').value.trim(),step=$('stop-next').value.trim();
  const t=state.timer,seconds=timerSeconds(t);
  if(!title&&!step){$('stop-current').focus();return;}
  if(t&&seconds>=60)state.sessions.push({id:uid(),title:t.title,area:t.area,date:localDay(),seconds,source:'temporizador'});
- const existing=t?.taskId?state.items.find(x=>x.id===t.taskId):null;
+ const existing=t?.taskId?state.items.find(x=>x.id===t.taskId):state.items.find(x=>!x.done&&x.text===title);
  if(existing){existing.done=false;if(step)existing.nextStep=step;}
  else{state.items.push({id:uid(),text:title||step,done:false,nextStep:step,createdAt:new Date().toISOString()});}
  state.timer=null;
@@ -148,7 +148,7 @@ function parkActivity(){
 $('stop-park').addEventListener('click',parkActivity);
 $('stop-done').addEventListener('click',()=>{
  const t=state.timer;
- if(!t){const a=activeItem();if(a){a.done=true;state.priorityIds=state.priorityIds.filter(id=>id!==a.id);commitRender('Tarea terminada.');}}
+ if(!t){const a=state.items.find(x=>!x.done&&x.text===$('stop-current').value.trim());if(a){a.done=true;state.priorityIds=state.priorityIds.filter(id=>id!==a.id);commitRender('Tarea terminada.');}}
  else registerTimer(true);
  $('assistant-stop-dialog').close();
 });
