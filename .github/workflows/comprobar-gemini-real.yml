@@ -1,6 +1,11 @@
 name: Comprobar Gemini real (sin publicar)
 on:
   workflow_dispatch:
+    inputs:
+      list_models_only:
+        description: 'Consultar solo modelos disponibles, sin generar texto'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -20,3 +25,4 @@ jobs:
         run: node scripts/check-gemini.mjs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LIST_MODELS_ONLY: ${{ inputs.list_models_only }}
