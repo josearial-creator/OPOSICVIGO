@@ -70,7 +70,20 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
       - name: Desplegar únicamente backend bloqueado (no activa Gemini ni publica la web)
-        run: npx wrangler deploy --keep-vars --var FREE_TIER_CONFIRMED:false
+        run: |
+          python3 - <<'PYDEPLOY'
+          import os, re, subprocess, sys
+          result=subprocess.run(['npx','wrangler','deploy','--keep-vars','--var','FREE_TIER_CONFIRMED:false'], capture_output=True, text=True)
+          output=re.sub(r'\x1b\[[0-9;]*m','',result.stdout+'\n'+result.stderr)
+          secret=os.environ.get('CLOUDFLARE_API_TOKEN','')
+          if secret:
+              output=output.replace(secret,'[REDACTED]')
+          print(output)
+          if result.returncode:
+              summary=output[-5000:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              print('::error title=Cloudflare deploy::'+summary)
+          sys.exit(result.returncode)
+          PYDEPLOY
         working-directory: rumbo-worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '2bc103e4dec32961305599da77b877f6' }}
