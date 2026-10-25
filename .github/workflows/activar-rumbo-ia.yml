@@ -1,0 +1,72 @@
+name: Activar Rumbo IA gratuito y verificar
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desplegar-rumbo-worker
+  cancel-in-progress: false
+jobs:
+  activar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: implementar-evolucion-gratis
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar secretos sin mostrarlos
+        run: node scripts/worker-secrets.mjs
+        env:
+          CHECK_ONLY: 'true'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RUMBO_ACCESS_TOKEN: ${{ secrets.RUMBO_ACCESS_TOKEN }}
+      - run: npm ci --ignore-scripts
+        working-directory: tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests
+      - name: Pruebas locales antes de activar
+        env:
+          CHROMIUM_PATH: bundled
+        run: |
+          python3 -m http.server 8086 --bind 127.0.0.1 --directory docs/rumbo > /tmp/rumbo-http.log 2>&1 &
+          rumbo_server_pid=$!
+          trap 'kill "$rumbo_server_pid"' EXIT
+          sleep 1
+          npm test --prefix tests
+      - name: Prueba previa de Gemini real sin datos personales
+        run: node scripts/check-gemini.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - run: npm ci --ignore-scripts
+        working-directory: rumbo-worker
+      - name: Guardar secretos privados en Cloudflare
+        run: node scripts/worker-secrets.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RUMBO_ACCESS_TOKEN: ${{ secrets.RUMBO_ACCESS_TOKEN }}
+      - name: Activar solo modalidad gratuita comprobada
+        id: activate
+        run: npx wrangler deploy --keep-vars --var FREE_TIER_CONFIRMED:true
+        working-directory: rumbo-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Prueba real de navegador y backend privado
+        env:
+          CHROMIUM_PATH: bundled
+          RUMBO_ACCESS_TOKEN: ${{ secrets.RUMBO_ACCESS_TOKEN }}
+        run: node tests/live-ia.cjs
+      - name: Desactivar IA si la activación o verificación falla
+        if: failure() && steps.activate.outcome != 'skipped'
+        run: npx wrangler deploy --keep-vars --var FREE_TIER_CONFIRMED:false
+        working-directory: rumbo-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
