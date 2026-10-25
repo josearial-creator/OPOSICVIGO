@@ -13,7 +13,13 @@ export default {async fetch(request,env){
  if(new URL(request.url).pathname!='/chat'||request.method!=='POST')return reply(404,{error:'Ruta no disponible'});
  if(env.FREE_TIER_CONFIRMED!=='true'||!env.GEMINI_API_KEY||!env.RUMBO_ACCESS_TOKEN||env.RUMBO_ACCESS_TOKEN.length<32)return reply(503,{error:'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.'});
  const auth=request.headers.get('Authorization')||'';
- if(!auth.startsWith('Bearer ')||auth.length>300||!await equalSecret(auth.slice(7),env.RUMBO_ACCESS_TOKEN))return reply(401,{error:'Acceso no autorizado'});
+ let supplied='';
+ try {
+  if(auth.startsWith('Rumbo ')&&auth.length<=2048){
+   supplied=new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(auth.slice(6)),c=>c.charCodeAt(0)));
+  }else if(auth.startsWith('Bearer ')&&auth.length<=300){supplied=auth.slice(7);}
+ }catch{return reply(401,{error:'Acceso no autorizado'});}
+ if(!supplied||!await equalSecret(supplied,env.RUMBO_ACCESS_TOKEN))return reply(401,{error:'Acceso no autorizado'});
  if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply(415,{error:'Se requiere JSON'});
  const reader=request.body?.getReader();if(!reader)return reply(400,{error:'Solicitud vacía'});
  let size=0,chunks=[];for(;;){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BODY){await reader.cancel();return reply(413,{error:'Solicitud demasiado grande'});}chunks.push(value);}
