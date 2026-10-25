@@ -24,11 +24,18 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: tests
-      - run: npx playwright install --with-deps chromium
+      - name: Seleccionar navegador de pruebas
         working-directory: tests
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+            echo "CHROMIUM_PATH=bundled" >> "$GITHUB_ENV"
+          fi
       - name: Comprobar backend y navegador con proveedores simulados
-        env:
-          CHROMIUM_PATH: bundled
         run: |
           python3 -m http.server 8086 --bind 127.0.0.1 --directory docs/rumbo > /tmp/rumbo-http.log 2>&1 &
           rumbo_server_pid=$!
