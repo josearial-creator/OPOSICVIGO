@@ -11,6 +11,7 @@ await page.getByRole('button',{name:'Alternar favorito'}).first().click();
 const oldStore=await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1'));
 await page.locator('#assistant-capture input').fill('Preparar la entrevista');
 await page.locator('#assistant-capture button').click();
+await page.locator('.assistant-inbox-details summary').click();
 await page.locator('#assistant-inbox').getByRole('button',{name:'Priorizar'}).first().click();
 assert.match(await page.locator('#assistant-priorities').innerText(),/Preparar la entrevista/);
 await page.getByRole('button',{name:'¿Qué hago ahora?'}).click();
