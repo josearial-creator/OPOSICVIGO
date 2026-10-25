@@ -32,6 +32,7 @@ await page.locator('#assistant-manual [name=title]').fill('Repaso de oposiciones
 await page.locator('#assistant-manual [name=area]').selectOption('Estudio y oposiciones');
 await page.locator('#assistant-manual [name=mins]').fill('30');
 await page.locator('#assistant-manual button').click();
+console.log('DIAG manual',await page.evaluate(()=>({message:document.getElementById('assistant-message').textContent,values:Object.fromEntries(new FormData(document.getElementById('assistant-manual'))),formValid:document.getElementById('assistant-manual').checkValidity(),stored:JSON.parse(localStorage.getItem('rumbo-asistente-v1')).sessions})));
 assert.match(await page.locator('#assistant-total').innerText(),/30 min/);
 assert.match(await page.locator('#assistant-chart').innerText(),/Estudio y oposiciones/);
 const exportEvent=page.waitForEvent('download');
