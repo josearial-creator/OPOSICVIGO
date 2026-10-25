@@ -69,3 +69,9 @@ Requisitos en GitHub → Settings → Secrets and variables → Actions:
 El propietario inicia manualmente **Desplegar backend Rumbo (Free, IA desactivada)** y confirma que su cuenta es Workers Free. El workflow instala dependencias fijadas, ejecuta las pruebas completas, comprueba el empaquetado con Wrangler y solo entonces sube el backend al Worker existente. No cambia la web ni activa Gemini. Fuerza `FREE_TIER_CONFIRMED=false` y conserva los secretos existentes. Termina comprobando que un origen ajeno recibe 403 sin consultar Gemini. No instala recursos de pago ni bases de datos.
 
 Se retiraron las exportaciones auxiliares del módulo de producción: solo exporta el handler por defecto compatible con Workers. El arranque se probó con `wrangler dev --local`: devuelve 503 (configuración incompleta) para el origen permitido y 403 para otro origen. El empaquetado `wrangler deploy --dry-run` pasó. La llamada a Gemini real sigue pendiente.
+
+### Backend ya desplegado y comprobado (25/10/2026)
+
+El propietario guardó el token limitado al Worker en GitHub Secrets y facilitó su Account ID público. GitHub Actions completó pruebas, empaquetado y despliegue del backend. La primera comprobación inmediata falló; la verificación independiente posterior pasó en https://github.com/josearial-creator/OPOSICVIGO/actions/runs/40205260099 : POST con origen ajeno → 403 y JSON esperado; POST desde origen permitido → 503 «Servicio sin configurar»; OPTIONS desde origen permitido → 204. Se añade un User-Agent explícito a la comprobación del despliegue, igual al de la verificación que pasó.
+
+URL del backend: https://rumbo-entrenador.jose-arial.workers.dev (API, no interfaz de Rumbo). Gemini continúa DESACTIVADO. No se han enviado respuestas ni claves Gemini al proveedor, y no se ha publicado el frontend. Falta crear/verificar una clave Gemini gratuita en un proyecto sin facturación antes de conectar la IA.

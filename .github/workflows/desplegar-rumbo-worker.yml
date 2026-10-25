@@ -100,7 +100,7 @@ jobs:
           # Wrong origin must be refused, independently of secret configuration.
           for attempt in range(6):
               try:
-                  req=urllib.request.Request(url, data=b'{}', headers={'Origin':'https://origen-no-autorizado.invalid','Content-Type':'application/json'})
+                  req=urllib.request.Request(url, data=b'{}', headers={'Origin':'https://origen-no-autorizado.invalid','Content-Type':'application/json','User-Agent':'Rumbo-Smoke-Test/1.0'})
                   with urllib.request.urlopen(req,timeout=15) as r:
                       raise RuntimeError('El Worker no rechazó el origen')
               except urllib.error.HTTPError as err:
