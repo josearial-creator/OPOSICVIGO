@@ -1,0 +1,12 @@
+.rs-panel{max-width:960px}
+.rs-panel h3{margin:0 0 .6rem}
+.rs-panel p{line-height:1.5}
+.rs-panel label{display:block;margin:.75rem 0;font-weight:500}
+.rs-panel input[type=password],.rs-panel input[type=file],.rs-panel textarea{display:block;box-sizing:border-box;width:100%;max-width:720px;margin-top:.3rem;padding:.7rem;border:1px solid #b6c5cf;border-radius:8px;background:var(--surface,#fff);color:inherit}
+.rs-panel textarea{font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;resize:vertical}
+.rs-panel .rs-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0}
+.rs-panel #rs-status{padding:.75rem 0}
+.rs-panel .rs-error{color:#9a2828}
+.rs-panel .rs-privacy{font-size:.88rem;color:var(--muted,#62717d)}
+.rs-panel details{margin:1rem 0}
+.rs-panel details summary{cursor:pointer}
