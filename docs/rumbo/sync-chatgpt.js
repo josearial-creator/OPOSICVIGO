@@ -37,9 +37,9 @@
       const backup={type:'rumbo-sync-recovery',version:1,keyId,publicSpki,salt:base64(salt),iv:base64(iv),encryptedPrivate:b64array(sealed)};
       // Solo una CryptoKey no exportable permanece en IndexedDB. La copia descargada va cifrada.
       const privateKey=await crypto.subtle.importKey('pkcs8',der,rsa,false,['decrypt']);
-      await writeKey({keyId,publicSpki,privateKey});
+      await writeKey({keyId,publicSpki,privateKey,backup});
       $('rs-pass').value='';
-      showKey({keyId,publicSpki,privateKey});
+      showKey({keyId,publicSpki,privateKey,backup});
       download('rumbo-recuperacion-'+keyId+'.json',backup);
       message('Clave creada. Guarda el archivo de recuperación y su frase por separado. Copia la clave pública para ChatGPT.');
     }catch(e){message('No se pudo crear la conexión: '+e.message,true);}
@@ -66,8 +66,8 @@
       if(dec.decode(await crypto.subtle.decrypt({name:'RSA-OAEP'},privateKey,cipher))!=='Rumbo: prueba de clave')throw Error('La clave no coincide.');
       const old=await readKey();
       if(old&&old.keyId!==b.keyId){message('Ya existe otra clave. No se ha sustituido para evitar perder acceso a notas antiguas.',true);return;}
-      await writeKey({keyId:b.keyId,publicSpki:b.publicSpki,privateKey});
-      $('rs-restore-pass').value='';showKey({keyId:b.keyId,publicSpki:b.publicSpki,privateKey});message('Clave restaurada. Ya puedes incorporar tus registros cifrados.');
+      await writeKey({keyId:b.keyId,publicSpki:b.publicSpki,privateKey,backup:b});
+      $('rs-restore-pass').value='';showKey({keyId:b.keyId,publicSpki:b.publicSpki,privateKey,backup:b});message('Clave restaurada. Ya puedes incorporar tus registros cifrados.');
     }catch(e){message('No se pudo restaurar (¿frase o archivo incorrectos?): '+e.message,true);}
     finally{state.busy=false;}
   }
@@ -115,12 +115,13 @@
    '<p>Permite recibir en el diario los registros que pidas guardar desde ChatGPT, sin publicar su contenido. Primero vincula este dispositivo una sola vez.</p>'+
    '<div id="rs-pair"><label>Frase para la copia de recuperación (mínimo 12 caracteres)<input id="rs-pass" type="password" autocomplete="new-password" placeholder="Guárdala en un lugar seguro"></label> <button type="button" class="button primary" id="rs-generate">Crear vínculo seguro</button>'+
    '<details><summary>Ya tengo una copia de recuperación</summary><label>Archivo cifrado <input type="file" id="rs-file" accept=".json,application/json"></label><label>Frase de recuperación <input type="password" id="rs-restore-pass" autocomplete="off"></label> <button type="button" class="button secondary" id="rs-restore">Restaurar clave</button></details></div>'+
-   '<div id="rs-active" hidden><p>Vinculación local: <code id="rs-id"></code></p><label>Clave pública (puedes compartirla; nunca envíes la copia de recuperación)<textarea id="rs-public" readonly rows="4" spellcheck="false"></textarea></label><div class="rs-actions"><button type="button" class="button secondary" id="rs-copy">Copiar clave pública</button><button type="button" class="button primary" id="rs-fetch">Incorporar registros de ChatGPT</button></div></div>'+
+   '<div id="rs-active" hidden><p>Vinculación local: <code id="rs-id"></code></p><label>Clave pública (puedes compartirla; nunca envíes la copia de recuperación)<textarea id="rs-public" readonly rows="4" spellcheck="false"></textarea></label><div class="rs-actions"><button type="button" class="button secondary" id="rs-copy">Copiar clave pública</button><button type="button" class="button secondary" id="rs-backup">Descargar copia de recuperación</button><button type="button" class="button primary" id="rs-fetch">Incorporar registros de ChatGPT</button></div></div>'+
    '<p id="rs-status" role="status">Comprobando claves de este dispositivo...</p>'+
    '<p class="rs-privacy">La bandeja de GitHub es pública pero contiene únicamente datos cifrados; la actividad y el número de registros pueden ser visibles. La clave privada permanece en este dispositivo y la copia descargable está cifrada. No se sincroniza el resto de tu diario.</p>';
   $('rs-generate').addEventListener('click',generate);
   $('rs-restore').addEventListener('click',restore);
   $('rs-fetch').addEventListener('click',()=>sync(false));
+  $('rs-backup').addEventListener('click',()=>{if(!state.key?.backup){message('No hay copia disponible: usa la copia descargada al crear la clave.',true);return;}download('rumbo-recuperacion-'+state.key.keyId+'.json',state.key.backup);message('Copia cifrada descargada. Guarda la frase por separado.');});
   $('rs-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state.publicBlob);message('Clave pública copiada. Pégala en ChatGPT para terminar la vinculación.');}catch{ $('rs-public').focus();$('rs-public').select();message('Selecciona el texto y usa Copiar.');}});
   (async()=>{try{
     if(!window.isSecureContext||!crypto?.subtle||!window.indexedDB)throw Error('Se requiere HTTPS y un navegador compatible.');
