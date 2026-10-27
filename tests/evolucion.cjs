@@ -51,7 +51,7 @@ for(let attempt=0;attempt<2;attempt++){
 }
 await restoreEvolutionStorage();await page.locator('#ev-end').click();await page.reload();
 let data=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')));
-assert.equal(data.sessions.length,2);assert.equal(data.sessions[1].completed,true);assert.equal(data.sessions[1].exercises[0].skills[1],87.5);assert.equal(data.sessions[1].exercises[0].before.nerviosismo,7);assert.equal(data.sessions[1].exercises[0].after.nerviosismo,7);
+assert.equal(data.sessions.length,2);assert.equal(data.sessions[1].exercises.length,1);assert.equal(data.sessions[1].completed,true);assert.equal(data.sessions[1].exercises[0].skills[1],87.5);assert.equal(data.sessions[1].exercises[0].before.nerviosismo,7);assert.equal(data.sessions[1].exercises[0].after.nerviosismo,7);
 const current=JSON.parse(await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1'))), prior=JSON.parse(original);delete current.lastSuccess;delete prior.lastSuccess;assert.deepEqual(current,prior);
 await page.locator('#ev-real-form [name=context]').fill('<img src=x onerror=alert(1)>');for(const name of ['response','felt','improve'])await page.locator(`#ev-real-form [name=${name}]`).fill('Registro personal');await page.locator('#ev-real-form button').click();assert.equal(await page.locator('#mi-evolucion img').count(),0);
 await page.locator('#ev-goal-form input').fill('Practicar dos semanas');await page.locator('#ev-goal-form button').click();await page.locator('[data-goal]').last().check();await page.reload();assert.equal(await page.locator('[data-goal]').last().isChecked(),true);
