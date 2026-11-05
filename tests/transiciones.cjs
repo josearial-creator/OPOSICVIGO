@@ -49,7 +49,22 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#transition-stop').isDisabled(), true);
     assert.match(await page.locator('#transition-status').innerText(), /no se sobrescribirán/i);
     assert.equal(await page.evaluate(() => localStorage.getItem('rumbo-transiciones-v1')), '{"version":999,"records":[]}');
-    console.log('PASS: parada y comida, guardado, recarga, exportación, aislamiento y copia incompatible.');
+    const failingPage = await browser.newPage();
+    await failingPage.addInitScript(() => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === 'rumbo-transiciones-v1') throw new Error('simulación: almacenamiento lleno');
+        return original.call(this, key, value);
+      };
+    });
+    await failingPage.route('https://raw.githubusercontent.com/**', route => route.fulfill({json: []}));
+    await failingPage.goto('http://127.0.0.1:8086');
+    await failingPage.locator('#transition-stop').click();
+    assert.match(await failingPage.locator('#transition-status').innerText(), /no se pudo guardar/i);
+    assert.equal(await failingPage.locator('#transition-stop').isEnabled(), true);
+    assert.equal(await failingPage.evaluate(() => localStorage.getItem('rumbo-transiciones-v1')), null);
+    await failingPage.close();
+    console.log('PASS: parada y comida, recarga, exportación, aislamiento y errores de almacenamiento.');
   } finally {
     await browser.close();
   }
