@@ -1,0 +1,17 @@
+/* Rutina sencilla de transición: controles accesibles en Mi día. */
+.transition-panel{margin:0 24px 24px;display:grid;gap:12px}
+.transition-panel h3{margin:0;font-size:17px;color:#29445d}
+.transition-panel p{margin:0}
+.transition-actions{display:flex;flex-wrap:wrap;gap:10px}
+.transition-actions .button{min-height:48px}
+.transition-panel .button:disabled{cursor:default;opacity:.55}
+.transition-difficulty{max-width:310px}
+.transition-difficulty select{width:100%;min-height:44px}
+.transition-status{font-size:13px;min-height:24px;color:#23658c;line-height:1.5}
+.transition-summary{font-size:12px;background:#f3f7fd;border-radius:9px;padding:11px 13px;color:#385875}
+.transition-panel #transition-export{justify-self:start}
+@media(max-width:600px){
+  .transition-panel{margin:0 14px 18px}
+  .transition-actions{display:grid;grid-template-columns:1fr}
+  .transition-actions .button{white-space:normal}
+}
