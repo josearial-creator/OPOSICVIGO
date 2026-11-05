@@ -3,8 +3,6 @@ const assert=require('node:assert/strict');
 (async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
   const page=await browser.newPage({acceptDownloads:true});
-  page.on('framenavigated',frame=>console.error('DEBUG navigated',frame.url()));
-  page.on('pageerror',e=>console.error('DEBUG page error',e.message));
   let inbox={version:1,items:[]};
   await page.route('https://raw.githubusercontent.com/**',route=>{
     if(route.request().url().includes('/rumbo-sync/inbox.json'))return route.fulfill({json:inbox});
