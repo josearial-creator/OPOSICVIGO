@@ -19,6 +19,8 @@
   <script defer src="asistente.js"></script>
   <link rel="stylesheet" href="organizacion.css">
   <script defer src="organizacion.js"></script>
+  <link rel="stylesheet" href="panel-personal.css">
+  <script defer src="panel-personal.js"></script>
 </head>
 <body>
   <div class="shell">
@@ -27,6 +29,7 @@
       <p class="side-heading">ESPACIO DE TRABAJO</p>
       <nav aria-label="Secciones">
         <details class="ev-nav-tree" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mi evolución"><span aria-hidden="true">↗</span> Mi evolución</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◎</span> Entrenamiento</a></div></details>
+        <a class="nav-link" href="#panel-personal" data-nav="panel-personal"><span>▦</span> Mi panel</a>
         <a class="nav-link active" href="#inicio" data-nav="inicio"><span>◫</span> Vista general</a>
         <a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span>▤</span> Convocatorias</a>
         <a class="nav-link" href="#favoritos" data-nav="favoritos"><span>☆</span> Favoritos</a>
@@ -43,6 +46,7 @@
         <nav class="assistant-mobile-nav" aria-label="Asistente móvil"><a href="#mi-dia">Mi día</a><a href="#productividad">Productividad</a><a href="#proyectos">Proyectos</a><a href="#ev-diary">Diario</a></nav>
         <div class="eyebrow">TU CENTRO DE SEGUIMIENTO</div>
         <div class="hero-line"><div><h1>Tu rumbo profesional</h1><p class="lead">Convocatorias públicas, en un solo lugar. Consulta plazos, revisa tus favoritas y accede siempre a la fuente oficial.</p></div><button class="button primary" id="refresh" type="button">↻ Actualizar ahora</button></div>
+        <section id="panel-personal" class="panel rumbo-dashboard" aria-label="Mi panel de seguimiento"></section>
         <section id="mi-dia" class="assistant-home panel" aria-label="Mi día"></section>
         <div class="status" id="status" role="status" aria-live="polite">Conectando con la fuente de datos…</div>
         <section class="stats" aria-label="Resumen">
