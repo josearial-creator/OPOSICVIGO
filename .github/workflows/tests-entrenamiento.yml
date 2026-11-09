@@ -1,0 +1,22 @@
+name: Tests Mi entrenamiento Rumbo
+on:
+  pull_request:
+    paths:
+      - 'docs/rumbo/entrenamiento*'
+      - 'docs/rumbo/index.html'
+      - 'tests/entrenamiento.cjs'
+  workflow_dispatch:
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tests del importador Garmin
+        run: node --test tests/entrenamiento.cjs
+      - name: Comprobar sintaxis de los módulos
+        run: |
+          node --check docs/rumbo/entrenamiento-data.js
+          node --check docs/rumbo/entrenamiento.js
