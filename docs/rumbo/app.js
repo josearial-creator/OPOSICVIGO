@@ -15,7 +15,7 @@ function recordKey(r) {
   return fields.map(escapeKey).join('¦');
 }
 function distinct(data) { const seen = new Map(); for (const raw of data) { if (!raw || typeof raw !== 'object' || !raw.puesto) continue; const r = {...raw}; seen.set(recordKey(r), r); } return [...seen.values()]; }
-function save() { try { localStorage.setItem(STORE, JSON.stringify({ records: state.records, favorites: [...state.favorites], notes: state.notes, previousKeys: [...state.previousKeys], lastSuccess: state.lastSuccess })); } catch (_) { /* Private browsing may disable storage */ } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ records: state.records, favorites: [...state.favorites], notes: state.notes, previousKeys: [...state.previousKeys], lastSuccess: state.lastSuccess })); return true; } catch (_) { return false; } }
 function loadSaved() { try { const data = JSON.parse(localStorage.getItem(STORE) || '{}'); state.records = distinct(data.records || []); state.favorites = new Set(data.favorites || []); state.previousKeys = new Set(data.previousKeys || []); state.lastSuccess = data.lastSuccess || null; state.notes = data.notes || {}; } catch (_) { /* Ignore invalid caches */ } }
 function statusType(r) {
   const explicit = escapeKey(r.inscripcion);
@@ -57,6 +57,7 @@ function badge(label, css) { return node('span','badge '+css,label); }
 function cell(tr, content) { const td=node('td'); if (typeof content==='string' || typeof content==='number') td.textContent=String(content); else if (content) td.append(content); tr.append(td); return td; }
 function render() {
   updateStats(); updateSourceOptions();
+  window.dispatchEvent(new Event('rumbo:study-updated'));
   const data=filtered(); $('result-label').textContent = `${data.length} convocatoria${data.length===1?'':'s'} encontrada${data.length===1?'':'s'}`; $('rows').replaceChildren(); $('empty').classList.toggle('hidden', Boolean(data.length));
   const fragment=document.createDocumentFragment();
   data.forEach(r=>{
@@ -116,4 +117,15 @@ function setup(){
   $('dialog-close').addEventListener('click',()=>$('detail-dialog').close());$('dialog-done').addEventListener('click',()=>$('detail-dialog').close());
   window.addEventListener('hashchange',applyHash);applyHash();loadRemote();setInterval(loadRemote,30*60*1000);
 }
+window.RumboStudyStore = {
+ snapshot: () => ({records:state.records.map(r=>({key:recordKey(r),title:r.puesto,organismo:r.organismo})),notes:{...state.notes}}),
+ write: (key,text) => {
+  if(typeof key!=='string'||!key||typeof text!=='string'||text.length>20000)return false;
+  const existed=Object.prototype.hasOwnProperty.call(state.notes,key),old=state.notes[key];
+  state.notes[key]=text;
+  if(!save()){if(existed)state.notes[key]=old;else delete state.notes[key];return false;}
+  window.dispatchEvent(new Event('rumbo:study-updated'));return true;
+ }
+};
 window.addEventListener('DOMContentLoaded',setup);
+
