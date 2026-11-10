@@ -14,7 +14,8 @@ export default {async fetch(request,env){
  const route=new URL(request.url).pathname;
  if(route!=='/chat'&&!route.startsWith('/notes'))return reply(404,{error:'Ruta no disponible'});
  if(route==='/chat'&&request.method!=='POST')return reply(404,{error:'Ruta no disponible'});
- if(env.FREE_TIER_CONFIRMED!=='true'||!env.GEMINI_API_KEY||!env.RUMBO_ACCESS_TOKEN||env.RUMBO_ACCESS_TOKEN.length<32)return reply(503,{error:'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.'});
+ if(!env.RUMBO_ACCESS_TOKEN||env.RUMBO_ACCESS_TOKEN.length<32)return reply(503,{error:'Autenticación no configurada'});
+ if(route==='/chat'&&(env.FREE_TIER_CONFIRMED!=='true'||!env.GEMINI_API_KEY))return reply(503,{error:'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.'});
  const auth=request.headers.get('Authorization')||'';
  let supplied='';
  try {
