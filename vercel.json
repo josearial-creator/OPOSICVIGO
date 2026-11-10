@@ -3,7 +3,6 @@
   "services": {
     "app": {
       "root": "docs",
-      "buildCommand": "",
       "outputDirectory": "."
     },
     "rumbo-ia": {
