@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}});
+ page.on('dialog',d=>d.accept());
  const notes=new Map();
  await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[]}));
  await page.route('https://rumbo-entrenador.jose-arial.workers.dev/notes**',async route=>{
@@ -27,7 +28,6 @@ const assert=require('node:assert/strict');
  await page.locator('#esp-private').waitFor({state:'visible'});
  await page.locator('#esp-text').fill('Esta es una nota del diario');
  await page.getByText('Borrador conservado.',{exact:true}).waitFor({timeout:15000});
- page.once('dialog',d=>d.accept());
  await page.reload();
  await page.locator('#esp-password').fill('contraseña privada de prueba 1234567890123456');
  await page.locator('#esp-connect').click();
@@ -44,7 +44,6 @@ const assert=require('node:assert/strict');
  await page.getByText('Anotación guardada',{exact:true}).waitFor();
  assert.equal([...notes.values()][0].text,'Nota editada');
  await page.waitForFunction(()=>!document.querySelector('#esp-save').disabled);
- page.once('dialog',d=>d.accept());
  await page.locator('.esp-note').getByRole('button',{name:'Borrar'}).click();
  await page.getByText('Anotación borrada.').waitFor();
  assert.equal(notes.size,0);

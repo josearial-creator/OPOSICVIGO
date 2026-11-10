@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": "docs",
+      "outputDirectory": "."
+    },
+    "rumbo-ia": {
+      "root": "rumbo-ia",
+      "runtime": "python",
+      "framework": "flask",
+      "entrypoint": "main:app"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/rumbo/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}

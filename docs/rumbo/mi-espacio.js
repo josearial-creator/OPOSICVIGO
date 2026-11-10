@@ -28,8 +28,9 @@ root.innerHTML=`
  <div class="esp-actions"><button id="esp-export" type="button" class="button secondary">Exportar mis anotaciones</button><button id="esp-delete-all" type="button" class="button secondary">Eliminar todas mis anotaciones</button></div>
 </div>
 <p id="esp-status" role="status" aria-live="polite"></p>`;
-const endpoint=(()=>{try{const s=localStorage.getItem('rumbo-ai-endpoint')||endpointDefault;const u=new URL(s);return u.protocol==='https:'?u.origin:endpointDefault;}catch{return endpointDefault;}window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+const endpoint=(()=>{try{const s=localStorage.getItem('rumbo-ai-endpoint')||endpointDefault;const u=new URL(s);return u.protocol==='https:'?u.origin:endpointDefault;}catch{return endpointDefault;}
 })();
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 const auth=()=> 'Rumbo '+btoa(String.fromCharCode(...enc.encode(token)));
 async function api(path='',method='GET',body) {
  const r=await fetch(endpoint+'/notes'+path,{method,headers:{Authorization:auth(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(15000)});
