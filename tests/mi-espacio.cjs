@@ -4,19 +4,21 @@ const assert=require('node:assert/strict');
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}});
  const notes=new Map();
- await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[]}));
+ await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({headers:cors,json:[]}));
  await page.route('https://rumbo-entrenador.jose-arial.workers.dev/notes**',async route=>{
   const req=route.request(),url=new URL(req.url()),id=url.pathname.slice('/notes/'.length);
-  if(!req.headers().authorization){await route.fulfill({status:401,json:{error:'Sin autorización'}});return;}
+  const cors={'access-control-allow-origin':'http://127.0.0.1:8086','access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
+  if(req.method()==='OPTIONS'){await route.fulfill({status:204,headers:cors,body:''});return;}
+  if(!req.headers().authorization){await route.fulfill({status:401,headers:cors,json:{error:'Sin autorización'}});return;}
   let body={};try{body=req.postDataJSON()||{};}catch{}
   const type=req.method();
-  if(type==='GET'){await route.fulfill({json:id?{note:notes.get(id)}:{notes:[...notes.values()]}});return;}
+  if(type==='GET'){await route.fulfill({headers:cors,json:id?{note:notes.get(id)}:{notes:[...notes.values()]}});return;}
   if(type==='POST'||type==='PUT'){
    const now=new Date().toISOString(),old=notes.get(id);
    const note={id:type==='POST'?'11111111-1111-4111-8111-111111111111':id,text:body.text,mood:body.mood??null,createdAt:old?.createdAt||now,updatedAt:now};
-   notes.set(note.id,note);await route.fulfill({status:type==='POST'?201:200,json:{note}});return;
+   notes.set(note.id,note);await route.fulfill({status:type==='POST'?201:200,headers:cors,json:{note}});return;
   }
-  if(type==='DELETE'){if(id)notes.delete(id);else notes.clear();await route.fulfill({json:{deleted:true}});return;}
+  if(type==='DELETE'){if(id)notes.delete(id);else notes.clear();await route.fulfill({headers:cors,json:{deleted:true}});return;}
  });
  await page.goto('http://127.0.0.1:8086');
  assert.equal(await page.locator('#mi-espacio').count(),1);
