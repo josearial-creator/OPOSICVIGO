@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}});
  const notes=new Map();
- await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({headers:cors,json:[]}));
+ await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[]}));
  await page.route('https://rumbo-entrenador.jose-arial.workers.dev/notes**',async route=>{
   const req=route.request(),url=new URL(req.url()),id=url.pathname.slice('/notes/'.length);
   const cors={'access-control-allow-origin':'http://127.0.0.1:8086','access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
