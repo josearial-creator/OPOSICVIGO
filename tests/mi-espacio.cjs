@@ -25,7 +25,7 @@ const assert=require('node:assert/strict');
  await page.locator('#esp-password').fill('contraseña privada de prueba 1234567890123456');
  await page.locator('#esp-connect').click();
  await page.locator('#esp-text').fill('Esta es una nota del diario');
- await page.waitForTimeout(550);
+ await page.getByText('Borrador conservado.',{exact:true}).waitFor({timeout:15000});
  await page.reload();
  await page.locator('#esp-password').fill('contraseña privada de prueba 1234567890123456');
  await page.locator('#esp-connect').click();
