@@ -32,7 +32,7 @@ const assert=require('node:assert/strict');
     },{pub,note});
     inbox={version:1,items:[envelope]};
     assert.equal(JSON.stringify(inbox).includes(note.context),false);
-    await page.locator('#rs-fetch').click();
+    await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.locator('#rs-fetch').click()]);
     await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')||'{}').real?.some(x=>x.id==='chatgpt-notatest123456'));
     let real=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')).real);
     assert.equal(real.filter(x=>x.id==='chatgpt-notatest123456').length,1);
