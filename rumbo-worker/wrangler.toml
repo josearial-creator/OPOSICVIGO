@@ -10,6 +10,9 @@ FREE_TIER_CONFIRMED = "false"
 
 [observability]
 enabled = false
-
+[[d1_databases]]
+binding = "db"
+database_name = "rumbo-db"
+database_id = "7752c042-d26f-4a4b-8b81-5bdbf17ff0fd"
 # GEMINI_API_KEY and RUMBO_ACCESS_TOKEN: Worker secrets, never vars or GitHub files.
 # No cron triggers, paid resources, databases or automatic deployments.
