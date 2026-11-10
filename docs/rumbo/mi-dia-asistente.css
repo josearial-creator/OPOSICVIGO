@@ -1,0 +1,13 @@
+/* Integración aditiva: solo clases rumbo-companion. */
+.rumbo-companion{margin:18px 0;display:block}
+.rumbo-companion-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.rumbo-companion-head h3{margin:.3rem 0}
+.rumbo-companion-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.rumbo-companion-summary>div{padding:13px;border-radius:10px;border:1px solid #d9e2e7;background:#f7f9fa;min-width:0}
+.rumbo-companion-summary strong,.rumbo-companion-summary span{display:block;overflow-wrap:anywhere}
+.rumbo-companion-summary strong{font-size:.85rem;margin-bottom:5px}
+.rumbo-companion-summary span{font-size:.87rem}
+.rumbo-companion-actions{display:flex;gap:9px;flex-wrap:wrap}
+.rumbo-companion-actions .button{min-height:38px}
+@media(max-width:760px){.rumbo-companion-summary{grid-template-columns:1fr}.rumbo-companion-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.rumbo-companion-actions .button{text-align:center;white-space:normal}}
+@media(max-width:380px){.rumbo-companion-actions{grid-template-columns:1fr}}
