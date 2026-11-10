@@ -139,7 +139,7 @@ $('esp-export').addEventListener('click',()=>{
 });
 $('esp-delete-all').addEventListener('click',async()=>{
  if(!confirm('¿Eliminar DEFINITIVAMENTE todas tus anotaciones del servidor? Esta operación no se puede deshacer.'))return;
- try{await api('','DELETE');notes=[];editing=null;render();mark('Anotaciones eliminadas del servidor.');}
+ try{await api('','DELETE');notes=[];editing=null;$('esp-text').value='';$('esp-mood').hidden=true;$('esp-new').hidden=true;await persistDraft('');render();mark('Anotaciones y borrador eliminados.');}
  catch(e){mark('No se pudieron eliminar todas: '+e.message);}
 });
 const Recognizer=window.SpeechRecognition||window.webkitSpeechRecognition;
