@@ -10,6 +10,8 @@ await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({js
 ]}));
 // Sembrar 131 registros previos: la fuente remota solo devolverá 2.
 await page.addInitScript(()=>{
+  if(sessionStorage.getItem('rumbo-test-seeded'))return;
+  sessionStorage.setItem('rumbo-test-seeded','1');
   const records=Array.from({length:131},(_,i)=>({
     puesto:'Convocatoria histórica '+i,organismo:'Concello de Vigo',grupo:'C2',tipo:'Turno libre',
     plazas:1,inscripcion:'Abierta',fuente:'https://sede.vigo.org'
