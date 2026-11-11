@@ -67,7 +67,7 @@
   async function latest(){
     const snapshots=await allSnapshots();
     if(!snapshots.length)return null;
-    snapshots.sort((a,b)=>b.savedAt.localeCompare(a.savedAt));
+    snapshots.sort((a,b)=>b.count-a.count||b.savedAt.localeCompare(a.savedAt));
     const snap=snapshots[0];
     if(typeof snap.json!=='string'||typeof snap.hash!=='string'||await hashJson(snap.json)!==snap.hash)throw Error('El archivo guardado no supera la verificación de integridad. Conserva la copia externa.');
     let obj;try{obj=JSON.parse(snap.json);}catch{throw Error('La copia guardada está dañada.');}
