@@ -17,6 +17,8 @@ await page.locator('#historic-files').setInputFiles(file);
 await page.locator('#historic-import').click();
 await page.getByText(/Importación completada: 4 nuevos registros/).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
+await page.getByText(/Copias archivadas: 1/).waitFor();
+assert.equal(await page.evaluate(async()=>{const s=await window.RumboHistoryVault.status();return s.current===4&&s.archived===4;}),true);
 assert.equal(await page.locator('#historic-reflections').innerText(),'2');
 assert.equal(await page.locator('#historic-situations').innerText(),'1');
 assert.equal(await page.locator('#historic-quick').innerText(),'1');
@@ -32,6 +34,24 @@ assert.equal(await page.locator('.historic-record').count(),1);
 await page.locator('#historic-search').fill('');
 const download=page.waitForEvent('download');await page.locator('#historic-export').click();
 assert.equal((await download).suggestedFilename(),'rumbo-historial-recuperado.json');
+// La actualización de estilos o la eliminación accidental de la clave local no borra el archivo separado.
+await page.evaluate(()=>localStorage.removeItem('rumbo-historial-importado-v1'));
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+await page.getByText(/historial está archivado/).waitFor();
+assert.equal(await page.locator('#historic-total').innerText(),'0');
+await page.locator('#historic-vault-restore').click();
+await page.getByText(/Recuperación verificada: 4 entradas restauradas/).waitFor();
+assert.equal(await page.locator('#historic-total').innerText(),'4');
+const preserved=await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1'));
+const altered=await page.evaluate(async()=>{
+ const value=JSON.parse(localStorage.getItem('rumbo-historial-importado-v1'));
+ value.entries[0].title='Sustitución destructiva';
+ try{await window.RumboHistoryVault.mergeStore(value);return false;}catch{return true;}
+});
+assert.equal(altered,true);
+assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),preserved);
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+assert.equal(await page.locator('#historic-total').innerText(),'4');
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 assert.deepEqual(errors,[]);
 console.log('PASS historial: importa reflexiones, situaciones y apunte, deduplica, persiste, exporta, busca y evita XSS.');
