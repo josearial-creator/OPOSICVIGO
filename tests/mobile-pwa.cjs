@@ -1,4 +1,4 @@
-const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs/promises');
 (async()=>{
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox'],headless:true});
 try{
@@ -21,6 +21,16 @@ await page.locator('#backup-pass').fill('frase-muy-segura-123');
 await page.locator('#backup-repeat').fill('frase-muy-segura-123');
 const download=page.waitForEvent('download');await page.locator('#backup-export').click();
 const file=await download;assert.match(file.suggestedFilename(),/rumbo-copia-cifrada/);
+const saved=await fs.readFile(await file.path(),'utf8');
+assert.equal(saved.includes('Auxiliar'),false);
+await page.locator('#backup-file').setInputFiles({name:'copia.json',mimeType:'application/json',buffer:Buffer.from(saved)});
+await page.locator('#backup-pass').fill('contrasena-equivocada');
+await page.locator('#backup-import').click();
+assert.match(await page.locator('#backup-status').innerText(),/No se recuperó la copia/);
+await page.locator('#backup-pass').fill('frase-muy-segura-123');
+page.once('dialog',dialog=>dialog.dismiss());
+await page.locator('#backup-import').click();
+assert.match(await page.locator('#backup-status').innerText(),/Recuperación cancelada sin cambios/);
 assert.equal(await page.locator('#backup-status').innerText(),'Copia cifrada creada. Guarda el archivo y la frase por separado.');
 const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'manifest.webmanifest');
 const resp=await page.request.get('http://127.0.0.1:8086/sw.js');assert.equal(resp.status(),200);
