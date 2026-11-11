@@ -18,6 +18,8 @@ function distinct(data) { const seen = new Map(); for (const raw of data) { if (
 function save() { try { localStorage.setItem(STORE, JSON.stringify({ records: state.records, favorites: [...state.favorites], notes: state.notes, previousKeys: [...state.previousKeys], lastSuccess: state.lastSuccess })); return true; } catch (_) { return false; } }
 function loadSaved() { try { const data = JSON.parse(localStorage.getItem(STORE) || '{}'); state.records = distinct(data.records || []); state.favorites = new Set(data.favorites || []); state.previousKeys = new Set(data.previousKeys || []); state.lastSuccess = data.lastSuccess || null; state.notes = data.notes || {}; } catch (_) { /* Ignore invalid caches */ } }
 function statusType(r) {
+  // Un registro antiguo no publicado en el feed actual no acredita un plazo abierto.
+  if (r._rumboFeedMissing) return 'verificar';
   const explicit = escapeKey(r.inscripcion);
   if (explicit === 'abierta') return 'abierta';
   if (explicit === 'cerrada') return 'cerrada';
@@ -96,9 +98,19 @@ async function loadRemote() {
     const cleaned=distinct(incoming);
     if(!cleaned.length) throw Error('No se encontraron registros válidos');
     const oldKeys=new Set(state.records.map(recordKey));
-    state.newKeys= new Set(state.records.length?cleaned.map(recordKey).filter(k=>!oldKeys.has(k)):[]);
-    state.records=cleaned;state.previousKeys=new Set(cleaned.map(recordKey));state.lastSuccess=new Date().toISOString();save();render();
-    renderStatus(`Sincronizado: ${cleaned.length} convocatorias · ${formatTime(state.lastSuccess)}${state.newKeys.size?' · '+state.newKeys.size+' nuevas':''}`,'good');
+    const currentKeys=new Set(cleaned.map(recordKey));
+    state.newKeys=new Set(state.records.length?cleaned.map(recordKey).filter(k=>!oldKeys.has(k)):[]);
+    // La fuente pública puede contener menos registros que una copia/importación anterior.
+    // Conservar los anteriores y actualizar los coincidentes; nunca borrarlos al refrescar.
+    state.records=distinct([...state.records,...cleaned]).map(r=>({
+      ...r,_rumboFeedMissing:!currentKeys.has(recordKey(r))
+    }));
+    state.previousKeys=new Set(state.records.map(recordKey));
+    state.lastSuccess=new Date().toISOString();
+    const persisted=save();render();
+    const historical=state.records.length-cleaned.length;
+    const warning=historical>0?` · ${historical} conservadas de tu historial (plazos por verificar)`:'';
+    renderStatus(`Fuente: ${cleaned.length} · Total conservado: ${state.records.length}${warning} · ${formatTime(state.lastSuccess)}${persisted?'':' · Atención: no se pudo guardar en este navegador'}`,persisted?'good':'warning');
   } catch(err) {
     renderStatus('No se pudo consultar GitHub ('+err.message+'). Se muestran los últimos datos guardados en este navegador.','warning');render();
   } finally { $('refresh').disabled=false; }
