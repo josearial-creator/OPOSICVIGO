@@ -49,6 +49,11 @@ $('backup-export').addEventListener('click',async()=>{
   const pass=$('backup-pass').value;
   if(pass.length<12||pass!==$('backup-repeat').value){status('La frase debe tener al menos 12 caracteres y coincidir en ambos campos.');return;}
   try{
+    if(window.RumboHistoryVault){
+      const safeguard=await window.RumboHistoryVault.status();
+      if(safeguard.archived>safeguard.current)throw Error('Hay registros archivados que no están en la pantalla. Recupéralos desde Diario antes de descargar la copia.');
+      await window.RumboHistoryVault.protectCurrent();
+    }
     const data=inspect();if(!Object.keys(data.stores).length)throw Error('No hay datos locales que exportar.');
     const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
     const key=await keyFor(pass,salt);
