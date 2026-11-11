@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const root=document.getElementById('copias-rumbo');if(!root)return;
-const KEYS=['rumbo-replica-v1','rumbo-asistente-v1','rumbo-organizacion-v1','rumbo-evolucion-v1'];
+const KEYS=['rumbo-replica-v1','rumbo-asistente-v1','rumbo-organizacion-v1','rumbo-evolucion-v1','rumbo-historial-importado-v1'];
 const enc=new TextEncoder(),dec=new TextDecoder();
 root.innerHTML=`<h2>Copias privadas y aplicación instalable</h2>
 <p>Guarda una copia cifrada de las convocatorias favoritas, notas, tareas, proyectos y registros de evolución de este navegador. Puedes trasladarla manualmente a otro dispositivo. No hay sincronización automática con la nube.</p>
@@ -41,6 +41,7 @@ function validData(d){
     if(k==='rumbo-asistente-v1'&&(v.version!==1||!Array.isArray(v.items)||!Array.isArray(v.sessions)))return false;
     if(k==='rumbo-organizacion-v1'&&(v.version!==1||!Array.isArray(v.projects)))return false;
     if(k==='rumbo-evolucion-v1'&&(v.version!==1||!Array.isArray(v.sessions)||!Array.isArray(v.real)))return false;
+    if(k==='rumbo-historial-importado-v1'&&(v.version!==1||!Array.isArray(v.entries)||v.entries.some(e=>!e||typeof e.id!=='string'||!['reflection','situation','quick'].includes(e.kind)||!e.payload||typeof e.payload!=='object')))return false;
   }
   return true;
 }
