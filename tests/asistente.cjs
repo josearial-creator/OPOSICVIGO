@@ -65,7 +65,7 @@ const captured=await page.locator('#assistant-capture input');
 await captured.fill('<img src=x onerror=alert(1)>');await page.locator('#assistant-capture button').click();
 assert.equal(await page.locator('#mi-dia img').count(),0);
 await page.setViewportSize({width:390,height:844});
-assert.equal(await page.locator('.assistant-mobile-nav').isVisible(),true);
+assert.equal(await page.locator('.mobile-tabbar').isVisible(),true);
 assert.equal(await page.locator('#need-stop').isVisible(),true);
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
 assert.deepEqual(errors,[]);
