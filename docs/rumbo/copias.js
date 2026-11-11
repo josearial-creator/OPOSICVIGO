@@ -13,7 +13,7 @@ root.innerHTML=`<h2>Copias privadas y aplicación instalable</h2>
 <p>El archivo descargado contiene datos personales cifrados. Conserva la frase por separado; sin ella no se puede recuperar. No incluye contraseñas ni claves privadas.</p></section>
 <section><h3>Recuperar en otro dispositivo</h3>
 <label>Archivo de copia cifrada<input type="file" id="backup-file" accept=".json,application/json"></label>
-<p>Usa la frase anterior. La recuperación sustituye los datos locales únicamente tras tu confirmación. Guarda primero otra copia de los datos actuales.</p>
+<p>Usa la frase anterior. La recuperación sustituye los conjuntos de datos incluidos en el archivo tras tu confirmación. Guarda primero otra copia de los datos actuales.</p>
 <button class="button secondary" type="button" id="backup-import">Verificar y recuperar copia</button>
 </section>
 </div>
@@ -71,7 +71,7 @@ $('backup-import').addEventListener('click',async()=>{
     const restored=JSON.parse(dec.decode(plain));if(!validData(restored))throw Error('Estructura de los datos no válida.');
     const raw=Object.fromEntries(Object.entries(restored.stores).map(([k,v])=>[k,JSON.stringify(v)]));
     if(Object.values(raw).some(x=>x.length>4000000))throw Error('Datos demasiado grandes.');
-    if(!confirm('¿Sustituir los datos de este navegador por los de la copia? Guarda primero una copia de tus datos actuales.')){status('Recuperación cancelada sin cambios.');return;}
+    if(!confirm('¿Sustituir los conjuntos incluidos en esta copia? Guarda primero una copia de los datos actuales de este navegador.')){status('Recuperación cancelada sin cambios.');return;}
     const previous=Object.fromEntries(KEYS.map(k=>[k,localStorage.getItem(k)]));
     try{for(const [k,v] of Object.entries(raw))localStorage.setItem(k,v);}
     catch(e){for(const [k,v] of Object.entries(previous)){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch{}}throw Error('Falló la escritura; se intentó restaurar la copia local anterior.');}
