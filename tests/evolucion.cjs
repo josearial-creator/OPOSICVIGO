@@ -29,7 +29,7 @@ await page.locator('#ev-goal-form input').fill('Practicar dos semanas');await pa
 await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('rumbo-evolucion-v1'));const template=d.sessions[1];for(let i=0;i<5;i++)d.sessions.push({...template,id:'test-'+i,date:new Date(2026,9,18+i).toISOString(),exercises:[{...template.exercises[0],skills:{1:i<2?65:90}}]});localStorage.setItem('rumbo-evolucion-v1',JSON.stringify(d));});await page.reload();assert.match(await page.locator('#mi-evolucion').innerText(),/Últimas 3 frente a 3 anteriores/);
 await page.locator('#ev-period').selectOption('week');assert.match(await page.locator('#mi-evolucion').innerText(),/semanales/);
 const download=page.waitForEvent('download');await page.locator('#ev-export').click();assert.equal((await download).suggestedFilename(),'rumbo-mi-evolucion.json');
-await page.setViewportSize({width:390,height:844});assert.equal(await page.locator('.ev-mobile-link').isVisible(),true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+await page.setViewportSize({width:390,height:844});assert.equal(await page.locator('.mobile-dock a[href="#ev-diary"]').isVisible(),true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 const snapshot=await page.evaluate(()=>localStorage.getItem('rumbo-evolucion-v1'));
 await page.locator('#ev-import').setInputFiles({name:'copia.json',mimeType:'application/json',buffer:Buffer.from(snapshot)});
 await page.getByText('Copia incorporada sin reemplazar', {exact:false}).waitFor();
