@@ -39,6 +39,13 @@ await page.evaluate(()=>localStorage.removeItem('rumbo-historial-importado-v1'))
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
 await page.getByText(/historial está archivado/).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'0');
+// Una copia cifrada no debe ocultar que existen cuatro registros archivados.
+await page.locator('[data-mobile-tab="mas"]').click();
+await page.locator('#backup-pass').fill('frase-segura-de-prueba');
+await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
+await page.locator('#backup-export').click();
+await page.getByText(/Hay registros archivados que no están en la pantalla/).waitFor();
+await page.locator('[data-mobile-tab="diario"]').click();
 await page.locator('#historic-vault-restore').click();
 await page.getByText(/Recuperación verificada: 4 entradas restauradas/).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
@@ -50,8 +57,30 @@ const altered=await page.evaluate(async()=>{
 });
 assert.equal(altered,true);
 assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),preserved);
+// Una copia cifrada antigua puede recuperar otros módulos, pero no borrar
+// un registro añadido después al historial.
+await page.locator('[data-mobile-tab="mas"]').click();
+await page.locator('#backup-pass').fill('frase-segura-de-prueba');
+await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
+const pendingDownload=page.waitForEvent('download');
+await page.locator('#backup-export').click();
+const encryptedFile=await pendingDownload;
+const fs=require('node:fs');
+const encrypted=fs.readFileSync(await encryptedFile.path());
+await page.evaluate(async()=>{
+ const current=JSON.parse(localStorage.getItem('rumbo-historial-importado-v1'));
+ current.entries.push({id:'reflection:posterior',kind:'reflection',date:'2026-11-11',title:'Entrada posterior',payload:{title:'Entrada posterior',summary:'Debe sobrevivir'}});
+ await window.RumboHistoryVault.mergeStore(current);
+});
+await page.locator('#backup-file').setInputFiles({name:'copia-antigua.json',mimeType:'application/json',buffer:encrypted});
+page.once('dialog',dialog=>dialog.accept());
+await page.locator('#backup-pass').fill('frase-segura-de-prueba');
+await page.locator('#backup-import').click();
+await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rumbo-historial-importado-v1')||'{}').entries?.length===5);
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
-assert.equal(await page.locator('#historic-total').innerText(),'4');
+assert.equal(await page.locator('#historic-total').innerText(),'5');
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+assert.equal(await page.locator('#historic-total').innerText(),'5');
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 assert.deepEqual(errors,[]);
 console.log('PASS historial: importa reflexiones, situaciones y apunte, deduplica, persiste, exporta, busca y evita XSS.');
