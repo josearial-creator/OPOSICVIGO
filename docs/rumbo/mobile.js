@@ -11,9 +11,7 @@
     for(const [screen,ids] of Object.entries(paths))if(ids.has(hash))return screen;
     return 'hoy';
   }
-  function update() {
-    const id = decodeURIComponent(location.hash.slice(1));
-    const screen = screenFor(id);
+  function showScreen(screen) {
     document.body.dataset.mobileView = screen;
     document.body.dataset.mobileReady = mobile.matches ? 'true' : 'false';
     for(const link of links){
@@ -21,6 +19,11 @@
       else link.removeAttribute('aria-current');
     }
   }
+  function update() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    showScreen(screenFor(id));
+  }
+  for(const link of links)link.addEventListener('click',()=>showScreen(link.dataset.mobileTab));
   window.addEventListener('hashchange',update);
   mobile.addEventListener('change',update);
   update();
