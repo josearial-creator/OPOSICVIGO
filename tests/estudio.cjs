@@ -22,7 +22,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  assert.equal(await page.locator('#study-list script').count(),0);
  const download=page.waitForEvent('download');await page.locator('#study-export').click();assert.equal((await download).suggestedFilename(),'rumbo-apuntes-estudio.json');
  await page.setViewportSize({width:390,height:844});
- await page.locator('.ev-mobile-tree.study-nav').getByRole('link',{name:'Apuntes de estudio',exact:true}).click();
+ await page.locator('.mobile-dock').getByRole('link',{name:'Estudio',exact:true}).click();
  assert.equal(await page.evaluate(()=>location.hash),'#apuntes-estudio');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  console.log('PASS Estudio: menú, notas existentes, guardado, recarga, exportación, texto seguro y móvil.');
