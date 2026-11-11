@@ -8,8 +8,26 @@ await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({js
 {puesto:'Administrativa/o',organismo:'Concello de Vigo',plazas:2,grupo:'C1',tipo:'Turno libre',estado:'En fase de presentación de solicitudes',inscripcion:'Abierta',fin:'31/12/2099',fuente:'https://sede.vigo.org'},
 {puesto:'Auxiliar',organismo:'SERGAS',plazas:5,grupo:'C2',tipo:'Turno libre',estado:'Plazo por verificar',inscripcion:'Por verificar',fin:'31/02/2026',fuente:'https://sergas.es'}
 ]}));
+// Sembrar 131 registros previos: la fuente remota solo devolverá 2.
+await page.addInitScript(()=>{
+  const records=Array.from({length:131},(_,i)=>({
+    puesto:'Convocatoria histórica '+i,organismo:'Concello de Vigo',grupo:'C2',tipo:'Turno libre',
+    plazas:1,inscripcion:'Abierta',fuente:'https://sede.vigo.org'
+  }));
+  localStorage.setItem('rumbo-replica-v1',JSON.stringify({
+    records,favorites:[],notes:{},previousKeys:[],lastSuccess:null
+  }));
+});
 await page.goto('http://127.0.0.1:8086');
 await page.locator('#rows tr').first().waitFor();
+await page.getByText('Total conservado: 133',{exact:false}).waitFor();
+assert.equal(await page.locator('#count-total').innerText(),'133');
+assert.match(await page.locator('#status').innerText(),/131 conservadas de tu historial/);
+assert.equal(await page.locator('#count-open').innerText(),'1');
+await page.locator('#refresh').click();
+await page.getByText('Total conservado: 133',{exact:false}).waitFor();
+assert.equal(await page.locator('#count-total').innerText(),'133');
+assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-replica-v1')).records.length),133);
 assert.match(await page.locator('#today-actions').innerText(),/Marca con ☆/);
 await page.locator('#rows tr').filter({hasText:'Administrativa/o'}).getByRole('button',{name:'Alternar favorito'}).click();
 assert.match(await page.locator('#today-metrics').innerText(),/Favoritas abiertas según fuente/);
