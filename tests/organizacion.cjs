@@ -76,7 +76,7 @@ assert.equal(await page.locator('#mi-evolucion').count(),1);
 await page.locator('#org-period').selectOption('day');
 assert.match(await page.locator('#org-metrics').innerText(),/20 min/);
 await page.setViewportSize({width:390,height:844});
-assert.equal(await page.locator('.assistant-mobile-nav a[href="#proyectos"]').isVisible(),true);
+await page.locator('[data-mobile-tab="mas"]').click();await page.locator('#proyectos').waitFor({state:'visible'});
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 await page.evaluate(()=>{const a=JSON.parse(localStorage.getItem('rumbo-organizacion-v1'));a.projects[0].name='<img src=x onerror=alert(1)>';localStorage.setItem('rumbo-organizacion-v1',JSON.stringify(a));});
 await page.reload();assert.equal(await page.locator('#proyectos img').count(),0);

@@ -69,8 +69,12 @@ function render() {
     cell(tr,disability(r) ? (Number.isFinite(dis) && dis>0 ? `${dis} general` : 'Reserva indicada') : 'No indicada');
     cell(tr,badge(statusLabel[statusType(r)],statusClass[statusType(r)]));
     cell(tr,badge(r.prioridad || 'Por verificar', r.prioridad==='Alta'?'high':r.prioridad==='Media'?'medium':'low'));
+    cell(tr,r.fin ? String(r.fin) : 'Por verificar');
     const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ state.favorites.has(key)?state.favorites.delete(key):state.favorites.add(key);save();render(); });
-    const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right'; fragment.append(tr);
+    const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right';
+    const labels=['Puesto / grupo','Organismo','Plazas','Discapacidad','Situación','Prioridad','Fin del plazo','Acciones'];
+    Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
+    fragment.append(tr);
   }); $('rows').append(fragment);
   if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); $('convocatorias').scrollIntoView({behavior:'smooth'}); }});
 }
