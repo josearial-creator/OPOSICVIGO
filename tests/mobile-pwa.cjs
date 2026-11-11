@@ -6,7 +6,7 @@ const page=await browser.newPage({viewport:{width:390,height:844},acceptDownload
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Auxiliar',organismo:'Vigo',plazas:3,grupo:'C2',fin:'30/11/2026',inscripcion:'Por verificar'}]}));
 await page.goto('http://127.0.0.1:8086/');
-await page.locator('#rows tr').first().waitFor();
+await page.locator('#rows tr').first().waitFor({state:'attached'});
 assert.equal(await page.locator('.mobile-tabbar a').count(),4);
 assert.equal(await page.locator('#mi-dia').isVisible(),true);
 await page.locator('[data-mobile-tab="oposiciones"]').click();
