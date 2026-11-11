@@ -31,3 +31,12 @@
 .historic-empty{color:#5a7186;font-size:14px;padding:15px}
 @media(max-width:700px){.historic-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.historic-body{padding:0 14px 18px}.historic-metrics{gap:9px}.historic-metrics article{padding:12px}.historic-metrics strong{font-size:23px}.historic-import{padding:15px}.historic-record summary{padding:13px}.historic-record summary strong{font-size:14px}}
+
+/* Archivo separado de las pantallas y del almacenamiento de otras funciones */
+.historic-vault{padding:18px 21px;margin:0 0 20px;background:#eff8fb;border:1px solid #cce3ea;border-radius:15px}
+.historic-vault h3{font-size:17px;color:#193c4b;margin:0 0 7px}
+.historic-vault p{color:#3e5e6d;font-size:13px;line-height:1.55}
+.historic-vault .historic-vault-warning{font-size:12px;margin:13px 0 0;color:#607486}
+#historic-vault-status{font-weight:700;overflow-wrap:anywhere}
+.historic-vault .button{min-height:44px;text-decoration:none}
+@media(max-width:560px){.historic-vault{padding:15px}.historic-vault .historic-toolbar>*{flex:1 1 185px;text-align:center}}

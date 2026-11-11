@@ -2,6 +2,7 @@
 'use strict';
 const root=document.getElementById('historial-rumbo'); if(!root)return;
 const KEY='rumbo-historial-importado-v1',MAX_FILE=8*1024*1024,MAX_RECORDS=5000;
+const vault=window.RumboHistoryVault;
 const $=id=>document.getElementById(id);
 const categories={reflection:'Reflexión de ChatGPT',situation:'Situación del diario',quick:'Apunte del diario'};
 const cleanText=v=>typeof v==='string'?v:'';
@@ -64,6 +65,16 @@ root.innerHTML=`<div class="panel-head"><div><div class="eyebrow">TUS DATOS ANTE
  <article><strong id="historic-situations">0</strong><span>Situaciones del diario</span></article>
  <article><strong id="historic-quick">0</strong><span>Apuntes rápidos</span></article>
  </div>
+ <section class="historic-vault" aria-label="Archivo protegido del historial">
+ <h3>Archivo de seguridad independiente</h3>
+ <p id="historic-vault-status" role="status">Comprobando copias guardadas en este navegador…</p>
+ <div class="historic-toolbar">
+  <button id="historic-vault-restore" class="button secondary" type="button">Recuperar desde bóveda</button>
+  <button id="historic-vault-persist" class="button secondary" type="button">Reforzar conservación</button>
+  <a class="button secondary" href="#copias-rumbo">Descargar copia cifrada</a>
+ </div>
+ <p class="historic-vault-warning">La bóveda conserva versiones anteriores incluso después de actualizar el diseño. Está en este mismo navegador: borrar los datos del sitio también puede borrarla. Conserva una copia cifrada en un lugar privado externo.</p>
+ </section>
  <div class="historic-import">
  <h3>Importar mis registros anteriores</h3>
  <p>Selecciona la copia preparada de 132 registros o los archivos originales <code>rumbo-reflexiones-chatgpt</code> y <code>rumbo-diario</code>. Puedes seleccionar más de un archivo. Se añaden únicamente las entradas nuevas: no se borran ni sustituyen las anteriores.</p>
@@ -133,10 +144,12 @@ $('historic-import').addEventListener('click',async()=>{
   if(!unique.size){message('No se añadieron registros: todos los identificadores ya estaban importados.');return;}
   const next={version:1,entries:[...state.entries,...unique.values()]};
   if(JSON.stringify(next).length>4000000)throw Error('La copia excede el espacio seguro de almacenamiento. Exporta tus datos.');
-  try{localStorage.setItem(KEY,JSON.stringify(next));}catch{throw Error('El navegador no pudo guardar. Comprueba el espacio disponible.');}
-  state=next;shown=20;paint();
+  if(!vault)throw Error('La bóveda independiente no está disponible; no se realizará ningún guardado.');
+  const saved=await vault.mergeStore(next);
+  state=saved.store;shown=20;paint();
+  await refreshVault();
   const dup=incoming.length-unique.size;
-  message('Importación completada: '+unique.size+' nuevos registros. '+dup+' duplicados omitidos. Total: '+state.entries.length+'.');
+  message('Importación completada: '+saved.added+' nuevos registros. '+dup+' duplicados omitidos. Total: '+state.entries.length+'. Guardado en el historial y en la bóveda independiente.');
   $('historic-files').value='';
  }catch(err){message('No se han importado registros: '+err.message);}
 });
@@ -149,6 +162,40 @@ $('historic-export').addEventListener('click',()=>{
 $('historic-search').addEventListener('input',()=>{shown=20;paint();});
 $('historic-filter').addEventListener('change',()=>{shown=20;paint();});
 $('historic-more').addEventListener('click',()=>{shown+=20;paint();});
+async function refreshVault(){
+ if(!vault)throw Error('Servicio de archivo independiente ausente.');
+ const v=await vault.status();
+ const label=v.persisted===true?' · conservación persistente concedida':v.persisted===false?' · conservación persistente no concedida':'';
+ $('historic-vault-status').textContent=
+  'Historial visible: '+v.current+' · Copias archivadas: '+v.snapshots+' · Última copia: '+v.archived+' registros'+
+  (v.hash?' · Huella SHA-256: '+v.hash.slice(0,12):'')+label+'.';
+ return v;
+}
+$('historic-vault-restore').addEventListener('click',async()=>{
+ if(locked){message('El historial actual está dañado o es incompatible. Para evitar pérdida de datos, no se modificará.');return;}
+ if(!vault){message('No se puede abrir la bóveda.');return;}
+ try{
+  const recovered=await vault.restore();
+  state=recovered.store;shown=20;paint();await refreshVault();
+  message('Recuperación verificada: '+recovered.added+' entradas restauradas sin borrar las existentes. Total: '+recovered.total+'.');
+ }catch(e){message('No se pudo recuperar: '+e.message);}
+});
+$('historic-vault-persist').addEventListener('click',async()=>{
+ if(!vault){message('No se puede abrir la bóveda.');return;}
+ try{
+  const granted=await vault.requestPersistence();
+  await refreshVault();
+  message(granted?'El navegador ha concedido almacenamiento persistente. No sustituye las copias externas.':'El navegador no ha concedido almacenamiento persistente. Guarda una copia cifrada fuera de la web.');
+ }catch(e){message(e.message);}
+});
 paint();
 if(locked)message('No se puede leer el historial guardado. No se sobrescribirá ningún registro.');
+(async()=>{
+ try{
+  if(!vault)throw Error('El archivo independiente no se ha cargado.');
+  if(!locked)await vault.protectCurrent();
+  const data=await refreshVault();
+  if(!locked&&data.current===0&&data.archived>0)message('Tu historial está archivado, pero no aparece en pantalla. Pulsa «Recuperar desde bóveda».');
+ }catch(e){$('historic-vault-status').textContent='Archivo de seguridad no disponible: '+e.message+' Mantén una copia externa antes de importar.';}
+})();
 })();
