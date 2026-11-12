@@ -95,6 +95,10 @@ function paint(){
  const counts={reflection:0,situation:0,quick:0};
  for(const item of state.entries)counts[item.kind]++;
  $('historic-total').textContent=state.entries.length;
+ const summary=document.getElementById('history-recovery-count');
+ if(summary)summary.textContent=state.entries.length
+  ?state.entries.length+' registros disponibles en este navegador'
+  :'Aún no hay registros importados en este navegador. Puedes recuperar tu copia JSON.';
  $('historic-reflections').textContent=counts.reflection;
  $('historic-situations').textContent=counts.situation;
  $('historic-quick').textContent=counts.quick;

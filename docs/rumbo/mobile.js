@@ -4,7 +4,7 @@
   const links = [...document.querySelectorAll('[data-mobile-tab]')];
   const paths = {
     oposiciones: new Set(['convocatorias','favoritos','apuntes-estudio']),
-    diario: new Set(['ev-diary','ev-training','mi-evolucion','rumbo-chatgpt-sync']),
+    diario: new Set(['ev-diary','ev-training','mi-evolucion','rumbo-chatgpt-sync','historial-rumbo','diario-menu']),
     mas: new Set(['productividad','proyectos','metricas-personales','copias-rumbo'])
   };
   function screenFor(hash) {
@@ -22,6 +22,10 @@
   function update() {
     const id = decodeURIComponent(location.hash.slice(1));
     showScreen(screenFor(id));
+    // Los enlaces directos a una pantalla oculta deben desplazarse después de mostrarla.
+    if(id==='historial-rumbo' && mobile.matches){
+      requestAnimationFrame(()=>document.getElementById('historial-rumbo')?.scrollIntoView({block:'start'}));
+    }
   }
   for(const link of links)link.addEventListener('click',()=>showScreen(link.dataset.mobileTab));
   window.addEventListener('hashchange',update);
