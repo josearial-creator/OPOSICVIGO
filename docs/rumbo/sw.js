@@ -1,6 +1,6 @@
 /* Aplicación pública: solo se guarda en caché el código estático, nunca datos personales o respuestas de API. */
-const CACHE='rumbo-shell-v7';
-const ASSETS=['./','./index.html','./styles.css','./redisenio.css','./historial-importado.css','./boveda-historial.js','./historial-importado.js','./asistente.css','./estudio.css','./evolucion.css','./organizacion.css','./sync-chatgpt.css','./hoy.js','./app.js','./estudio.js','./evolucion.js','./voz-ia.js','./balance-semanal.js','./sync-chatgpt.js','./asistente.js','./organizacion.js','./mobile.js','./copias.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
+const CACHE='rumbo-shell-v8';
+const ASSETS=['./','./index.html','./styles.css','./redisenio.css','./historial-importado.css','./boveda-historial.js','./historial-importado.js','./asistente.css','./estudio.css','./evolucion.css','./pausa-10s.css','./organizacion.css','./sync-chatgpt.css','./hoy.js','./app.js','./estudio.js','./evolucion.js','./pausa-10s.js','./voz-ia.js','./balance-semanal.js','./sync-chatgpt.js','./asistente.js','./organizacion.js','./mobile.js','./copias.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
 const paths=new Set(ASSETS.map(p=>new URL(p,self.registration.scope).pathname));
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('rumbo-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
