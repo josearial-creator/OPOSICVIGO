@@ -1,0 +1,45 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),headless:true,args:['--no-sandbox']});
+try{
+ const context=await browser.newContext({timezoneId:'Europe/Madrid'});
+ const page=await context.newPage();
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.clock.install({time:new Date('2026-11-16T08:00:00+01:00')});
+ await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Prueba',organismo:'Vigo'}]}));
+ await page.goto('http://127.0.0.1:8086');
+ await page.locator('#rumbo-pausa-10').waitFor();
+ assert.match(await page.locator('#rumbo-pausa-10').innerText(),/Semana 1: observar/);
+ const existing=await page.evaluate(()=>localStorage.getItem('rumbo-evolucion-v1'));
+ assert.ok(existing);
+ await page.locator('#rumbo-pausa-10 [data-action=start]').click();
+ await page.locator('#rumbo-pausa-10 [data-action=interrupt]').click();
+ await page.locator('#rumbo-pausa-10 [data-action=interrupt]').click();
+ await page.clock.fastForward(1500000);
+ await page.locator('#rumbo-pausa-10 [data-action=finish]').click();
+ let data=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-pausa-10s-v1')));
+ assert.equal(data.sessions.length,1);
+ assert.equal(data.sessions[0].interruptions,2);
+ assert.equal(data.sessions[0].phase,'observacion');
+ assert.equal(data.sessions[0].completed,true);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-evolucion-v1')),existing,'No modificar el historial previo.');
+ await page.clock.setFixedTime(new Date('2026-11-23T08:00:00+01:00'));
+ await page.reload();
+ assert.match(await page.locator('#rumbo-pausa-10').innerText(),/Semanas 2–4/);
+ await page.locator('#rumbo-pausa-10 [data-action=start]').click();
+ await page.locator('#rumbo-pausa-10 [data-action=pause]').click();
+ let data2=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-pausa-10s-v1')));
+ assert.equal(data2.draft.pauses,1);
+ await page.locator('#rumbo-pausa-10 [data-action=interrupt]').click();
+ await page.clock.setFixedTime(new Date('2026-11-23T08:25:00+01:00'));
+ await page.locator('#rumbo-pausa-10 [data-action=finish]').click();
+ data2=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-pausa-10s-v1')));
+ assert.equal(data2.sessions.length,2);
+ assert.equal(data2.sessions[1].interruptions,1);
+ assert.match(await page.locator('#rumbo-pausa-10').innerText(),/50\.0 %/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-evolucion-v1')),existing);
+ assert.deepEqual(errors,[]);
+ console.log('Pausa de 10 s: registro, comparación y conservación de historial verificados');
+}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});
