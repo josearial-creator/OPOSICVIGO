@@ -70,7 +70,7 @@ assert.equal(await page.locator('#historial-rumbo script').count(),0);
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-files').setInputFiles(file);await page.locator('#historic-import').click();
-await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/}).waitFor();
+await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/i}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-search').fill('Segundo resumen');
 assert.equal(await page.locator('.historic-record').count(),1);
