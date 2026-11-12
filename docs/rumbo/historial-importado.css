@@ -40,3 +40,14 @@
 #historic-vault-status{font-weight:700;overflow-wrap:anywhere}
 .historic-vault .button{min-height:44px;text-decoration:none}
 @media(max-width:560px){.historic-vault{padding:15px}.historic-vault .historic-toolbar>*{flex:1 1 185px;text-align:center}}
+
+/* Acceso visible al historial privado en la pantalla inicial, sin tocar sus datos. */
+.historic-home-access{display:flex;align-items:center;gap:15px;margin:0 0 18px;background:#fff;border:1px solid #cfe5e5;border-left:5px solid #38c5b4;border-radius:17px;padding:16px 18px;box-shadow:0 6px 20px rgba(27,47,65,.05)}
+.historic-home-icon{flex:none;display:grid;place-items:center;width:48px;height:48px;background:#e2f7f3;color:#0f716a;border-radius:13px;font-size:27px}
+.historic-home-copy{min-width:0;flex:1}
+.historic-home-copy strong{font-size:16px;color:#192d44}
+.historic-home-copy p{margin:3px 0 2px;color:#235d5b;font-size:13px;font-weight:700}
+.historic-home-copy small{font-size:12px;line-height:1.45;color:#6a7e8d}
+.historic-home-access .button{white-space:normal;text-align:center;background:#163a4b;border:0;min-height:46px}
+#historial-rumbo{scroll-margin-top:18px}
+@media(max-width:700px){.historic-home-access{flex-wrap:wrap;gap:12px}.historic-home-access .button{width:100%}}

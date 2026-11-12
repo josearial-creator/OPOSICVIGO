@@ -6,6 +6,10 @@ const page=await browser.newPage({viewport:{width:390,height:844},acceptDownload
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Auxiliar',organismo:'Vigo',plazas:2}]}));
 await page.goto('http://127.0.0.1:8086/');
+assert.match(await page.locator('#history-recovery-count').innerText(),/Aún no hay registros importados/);
+await page.goto('http://127.0.0.1:8086/#historial-rumbo');
+await page.locator('#historial-rumbo').waitFor({state:'visible'});
+assert.equal(await page.locator('[data-mobile-tab="diario"]').getAttribute('aria-current'),'page');
 await page.locator('[data-mobile-tab="diario"]').click();
 await page.locator('#historial-rumbo').waitFor({state:'visible'});
 const imported={type:'rumbo-migracion-local-v1',version:1,reflections:[
@@ -17,6 +21,7 @@ await page.locator('#historic-files').setInputFiles(file);
 await page.locator('#historic-import').click();
 await page.getByText(/Importación completada: 4 nuevos registros/).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
+assert.match(await page.locator('#history-recovery-count').innerText(),/4 registros disponibles/);
 await page.getByText(/Copias archivadas: 1/).waitFor();
 assert.equal(await page.evaluate(async()=>{const s=await window.RumboHistoryVault.status();return s.current===4&&s.archived===4;}),true);
 assert.equal(await page.locator('#historic-reflections').innerText(),'2');
