@@ -13,7 +13,11 @@ function validRecord(x){return x&&typeof x==='object'&&['reflection','situation'
 function validStore(x){return x?.version===1&&Array.isArray(x.entries)&&x.entries.length<=MAX_RECORDS&&x.entries.every(validRecord)&&new Set(x.entries.map(y=>y.id)).size===x.entries.length;}
 let state=empty(),locked=false;
 try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(!validStore(parsed))throw Error('Copia incompatible');state=parsed;}}catch{locked=true;}
-const message=s=>{$('historic-status').textContent=s;};
+const message=s=>{
+ $('historic-status').textContent=s;
+ const homeStatus=document.getElementById('history-home-status');
+ if(homeStatus)homeStatus.textContent=s;
+};
 const label=(tag,cl,content)=>{const e=document.createElement(tag);if(cl)e.className=cl;if(content!==undefined)e.textContent=String(content);return e;};
 function sourceHref(value){
  if(typeof value!=='string')return null;
@@ -133,10 +137,9 @@ function paint(){
  $('historic-more').hidden=filtered.length<=shown;
  $('historic-more').textContent='Mostrar 20 registros más · '+Math.max(0,filtered.length-shown)+' restantes';
 }
-$('historic-import').addEventListener('click',async()=>{
- if(locked){message('Existe un historial local incompatible. No se sobrescribirá. Conserva primero una copia de los datos originales.');return;}
- const files=Array.from($('historic-files').files||[]);
- if(!files.length){message('Selecciona tu archivo de recuperación o las copias JSON originales.');return;}
+async function importFiles(files,goToHistory=false){
+ if(locked){message('Existe un historial local incompatible. No se sobrescribirá. Conserva primero una copia de los datos originales.');return false;}
+ if(!files.length){message('Selecciona tu archivo de recuperación o las copias JSON originales.');return false;}
  try{
   if(files.some(f=>f.size>MAX_FILE))throw Error('Uno de los archivos supera los 8 MB.');
   const incoming=[];
@@ -145,7 +148,11 @@ $('historic-import').addEventListener('click',async()=>{
   const existing=new Set(state.entries.map(x=>x.id)),unique=new Map();
   for(const x of incoming)if(!existing.has(x.id))unique.set(x.id,x);
   if(state.entries.length+unique.size>MAX_RECORDS)throw Error('Superas el límite de 5.000 entradas.');
-  if(!unique.size){message('No se añadieron registros: todos los identificadores ya estaban importados.');return;}
+  if(!unique.size){
+    message('Todos los identificadores ya estaban importados. Historial conservado: '+state.entries.length+' registros.');
+    if(goToHistory)location.hash='#historial-rumbo';
+    return true;
+  }
   const next={version:1,entries:[...state.entries,...unique.values()]};
   if(JSON.stringify(next).length>4000000)throw Error('La copia excede el espacio seguro de almacenamiento. Exporta tus datos.');
   if(!vault)throw Error('La bóveda independiente no está disponible; no se realizará ningún guardado.');
@@ -154,8 +161,23 @@ $('historic-import').addEventListener('click',async()=>{
   await refreshVault();
   const dup=incoming.length-unique.size;
   message('Importación completada: '+saved.added+' nuevos registros. '+dup+' duplicados omitidos. Total: '+state.entries.length+'. Guardado en el historial y en la bóveda independiente.');
-  $('historic-files').value='';
- }catch(err){message('No se han importado registros: '+err.message);}
+  if(goToHistory)location.hash='#historial-rumbo';
+  return true;
+ }catch(err){
+  message('No se han importado registros: '+err.message);
+  return false;
+ }
+}
+$('historic-import').addEventListener('click',async()=>{
+ const input=$('historic-files');
+ await importFiles(Array.from(input.files||[]));
+ input.value='';
+});
+const homeInput=document.getElementById('history-home-file');
+homeInput?.addEventListener('change',async()=>{
+ const selected=Array.from(homeInput.files||[]);
+ if(selected.length)await importFiles(selected,true);
+ homeInput.value='';
 });
 $('historic-export').addEventListener('click',()=>{
  if(!state.entries.length){message('Todavía no hay registros para exportar.');return;}
