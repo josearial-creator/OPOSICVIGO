@@ -1,0 +1,15 @@
+.pausa-plan{border:1px solid #cad9e9;border-radius:14px;background:#f8fbff;padding:18px;margin-bottom:24px;color:#21334a}
+.pausa-header strong{font-size:18px}.pausa-plan p{margin:9px 0;font-size:14px;line-height:1.55}
+.pausa-phase{font-weight:700;color:#185bad}
+.pausa-clock{margin:16px 0;padding:13px;border-radius:10px;background:#fff;border:1px solid #e1e8f1;font-size:16px}
+.pausa-clock strong{font-size:23px}
+.pausa-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.pausa-actions button,.pausa-finish{min-height:44px}
+.pausa-counts{display:flex;gap:12px;flex-wrap:wrap}
+.pausa-counts span{padding:8px;background:white;border-radius:9px;border:1px solid #e1e8f1}
+.pausa-progress{margin-top:18px;padding-top:12px;border-top:1px solid #dce7f2}
+.pausa-progress h4{margin:5px 0}
+.pausa-plan .pausa-note{font-size:12px;color:#52677e}
+.pausa-error{color:#982727}
+.pausa-plan button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:580px){.pausa-plan{padding:14px}.pausa-actions button{width:100%}.pausa-clock strong{display:inline}}
