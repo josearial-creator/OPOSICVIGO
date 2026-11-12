@@ -32,7 +32,7 @@ try{
  let data2=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-pausa-10s-v1')));
  assert.equal(data2.draft.pauses,1);
  await page.locator('#rumbo-pausa-10 [data-action=interrupt]').click();
- await page.clock.fastForward(1500000);
+ await page.clock.setFixedTime(new Date('2026-11-23T08:25:00+01:00'));
  await page.locator('#rumbo-pausa-10 [data-action=finish]').click();
  data2=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-pausa-10s-v1')));
  assert.equal(data2.sessions.length,2);
