@@ -25,7 +25,8 @@ await preview.locator('#history-home-file').setInputFiles({
  name:'132-registros-ficticios.json',mimeType:'application/json',
  buffer:Buffer.from(JSON.stringify(importedFromHome))
 });
-await preview.getByText(/Importación completada: 132 nuevos registros/).first().waitFor();
+await preview.locator('#historic-status').waitFor({state:'visible'});
+assert.match(await preview.locator('#historic-status').innerText(),/Importación completada: 132 nuevos registros/);
 assert.equal(await preview.locator('#historic-total').innerText(),'132');
 assert.match(await preview.locator('#history-recovery-count').innerText(),/132 registros disponibles/);
 assert.equal(await preview.evaluate(()=>location.hash),'#historial-rumbo');
