@@ -57,7 +57,7 @@ const imported={type:'rumbo-migracion-local-v1',version:1,reflections:[
 const file={name:'recuperacion.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(imported))};
 await page.locator('#historic-files').setInputFiles(file);
 await page.locator('#historic-import').click();
-await page.getByText(/Importación completada: 4 nuevos registros/).waitFor();
+await page.locator('#historic-status').filter({hasText:/Importación completada: 4 nuevos registros/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 assert.match(await page.locator('#history-recovery-count').innerText(),/4 registros disponibles/);
 await page.getByText(/Copias archivadas: 1/).waitFor();
@@ -70,7 +70,7 @@ assert.equal(await page.locator('#historial-rumbo script').count(),0);
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-files').setInputFiles(file);await page.locator('#historic-import').click();
-await page.getByText(/todos los identificadores ya estaban importados/).waitFor();
+await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-search').fill('Segundo resumen');
 assert.equal(await page.locator('.historic-record').count(),1);
@@ -80,17 +80,17 @@ assert.equal((await download).suggestedFilename(),'rumbo-historial-recuperado.js
 // La actualización de estilos o la eliminación accidental de la clave local no borra el archivo separado.
 await page.evaluate(()=>localStorage.removeItem('rumbo-historial-importado-v1'));
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
-await page.getByText(/historial está archivado/).waitFor();
+await page.locator('#historic-status').filter({hasText:/historial está archivado/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'0');
 // Una copia cifrada no debe ocultar que existen cuatro registros archivados.
 await page.locator('[data-mobile-tab="mas"]').click();
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
 await page.locator('#backup-export').click();
-await page.getByText(/Hay registros archivados que no están en la pantalla/).waitFor();
+await page.locator('#backup-status').filter({hasText:/Hay registros archivados que no están en la pantalla/}).waitFor();
 await page.locator('[data-mobile-tab="diario"]').click();
 await page.locator('#historic-vault-restore').click();
-await page.getByText(/Recuperación verificada: 4 entradas restauradas/).waitFor();
+await page.locator('#historic-status').filter({hasText:/Recuperación verificada: 4 entradas restauradas/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 const preserved=await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1'));
 const altered=await page.evaluate(async()=>{
