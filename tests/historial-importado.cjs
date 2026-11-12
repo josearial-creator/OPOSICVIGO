@@ -7,6 +7,40 @@ const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Auxiliar',organismo:'Vigo',plazas:2}]}));
 await page.goto('http://127.0.0.1:8086/');
 assert.match(await page.locator('#history-recovery-count').innerText(),/Aún no hay registros importados/);
+// La portada debe aceptar directamente el archivo sin buscar el importador en el Diario.
+const importedFromHome={type:'rumbo-migracion-local-v1',version:1,
+ reflections:Array.from({length:121},(_,i)=>({
+  id:'registro-ficticio-'+i,date:'2026-11-10',title:'Reflexión ficticia '+i,
+  summary:'Texto ficticio de prueba '+i,reported:'Dato de prueba'
+ })),
+ psychology:{days:[{date:'2026-11-10',
+  situations:Array.from({length:10},(_,i)=>({id:'situacion-'+i,text:'Situación ficticia '+i})),
+  quick:{text:'Apunte ficticio'}
+ }]}
+};
+await page.locator('#history-home-file').setInputFiles({
+ name:'132-registros-ficticios.json',mimeType:'application/json',
+ buffer:Buffer.from(JSON.stringify(importedFromHome))
+});
+await page.getByText(/Importación completada: 132 nuevos registros/).first().waitFor();
+assert.equal(await page.locator('#historic-total').innerText(),'132');
+assert.match(await page.locator('#history-recovery-count').innerText(),/132 registros disponibles/);
+assert.equal(await page.evaluate(()=>location.hash),'#historial-rumbo');
+await page.reload();
+assert.equal(await page.locator('#historic-total').innerText(),'132');
+await page.evaluate(async()=>{
+ const db=await new Promise((resolve,reject)=>{
+  const q=indexedDB.open('rumbo-boveda-historial-v1',1);
+  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+ });
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('snapshots','readwrite');
+  tx.objectStore('snapshots').clear();
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });db.close();
+ localStorage.removeItem('rumbo-historial-importado-v1');
+});
+await page.reload();
 await page.goto('http://127.0.0.1:8086/#historial-rumbo');
 await page.locator('#historial-rumbo').waitFor({state:'visible'});
 assert.equal(await page.locator('[data-mobile-tab="diario"]').getAttribute('aria-current'),'page');

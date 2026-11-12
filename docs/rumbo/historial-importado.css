@@ -51,3 +51,11 @@
 .historic-home-access .button{white-space:normal;text-align:center;background:#163a4b;border:0;min-height:46px}
 #historial-rumbo{scroll-margin-top:18px}
 @media(max-width:700px){.historic-home-access{flex-wrap:wrap;gap:12px}.historic-home-access .button{width:100%}}
+
+/* Importador privado de un solo paso desde Inicio. El navegador solicita siempre el archivo. */
+.historic-home-access{flex-wrap:wrap}
+.historic-home-buttons{display:flex;flex:0 1 auto;gap:9px;align-items:center;flex-wrap:wrap}
+.historic-home-buttons .button{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;min-height:46px}
+.historic-home-status{flex:1 1 100%;margin:0;color:#176e60;font-size:12px;font-weight:700}
+.historic-home-status:empty{display:none}
+@media(max-width:700px){.historic-home-buttons{width:100%;display:grid;grid-template-columns:1fr}.historic-home-buttons .button{width:100%;text-align:center}}

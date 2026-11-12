@@ -77,7 +77,13 @@
             <p id="history-recovery-count">Comprobando el historial de este navegador…</p>
             <small>El historial privado se guarda en tu dispositivo; no se descarga automáticamente al publicar la web.</small>
           </div>
-          <a class="button primary" href="#historial-rumbo">Ver o recuperar registros</a>
+          <div class="historic-home-buttons">
+            <label class="button primary historic-home-upload" for="history-home-file">Importar mi copia JSON
+              <input id="history-home-file" type="file" accept=".json,application/json" hidden>
+            </label>
+            <a class="button secondary" href="#historial-rumbo">Ver mis registros</a>
+          </div>
+          <p id="history-home-status" class="historic-home-status" role="status" aria-live="polite"></p>
         </section>
         <section id="mi-dia" data-mobile-screen="hoy" class="assistant-home panel" aria-label="Mi día"></section>
         <div class="status" data-mobile-screen="oposiciones" id="status" role="status" aria-live="polite">Conectando con la fuente de datos…</div>
