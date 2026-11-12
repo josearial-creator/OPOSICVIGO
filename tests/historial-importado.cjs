@@ -8,6 +8,9 @@ await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{pue
 await page.goto('http://127.0.0.1:8086/');
 assert.match(await page.locator('#history-recovery-count').innerText(),/Aún no hay registros importados/);
 // La portada debe aceptar directamente el archivo sin buscar el importador en el Diario.
+const preview=await browser.newPage({viewport:{width:390,height:844}});
+await preview.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Auxiliar',organismo:'Vigo',plazas:2}]}));
+await preview.goto('http://127.0.0.1:8086/');
 const importedFromHome={type:'rumbo-migracion-local-v1',version:1,
  reflections:Array.from({length:121},(_,i)=>({
   id:'registro-ficticio-'+i,date:'2026-11-10',title:'Reflexión ficticia '+i,
@@ -18,16 +21,16 @@ const importedFromHome={type:'rumbo-migracion-local-v1',version:1,
   quick:{text:'Apunte ficticio'}
  }]}
 };
-await page.locator('#history-home-file').setInputFiles({
+await preview.locator('#history-home-file').setInputFiles({
  name:'132-registros-ficticios.json',mimeType:'application/json',
  buffer:Buffer.from(JSON.stringify(importedFromHome))
 });
-await page.getByText(/Importación completada: 132 nuevos registros/).first().waitFor();
-assert.equal(await page.locator('#historic-total').innerText(),'132');
-assert.match(await page.locator('#history-recovery-count').innerText(),/132 registros disponibles/);
-assert.equal(await page.evaluate(()=>location.hash),'#historial-rumbo');
-await page.reload();
-assert.equal(await page.locator('#historic-total').innerText(),'132');
+await preview.getByText(/Importación completada: 132 nuevos registros/).first().waitFor();
+assert.equal(await preview.locator('#historic-total').innerText(),'132');
+assert.match(await preview.locator('#history-recovery-count').innerText(),/132 registros disponibles/);
+assert.equal(await preview.evaluate(()=>location.hash),'#historial-rumbo');
+await preview.reload();
+assert.equal(await preview.locator('#historic-total').innerText(),'132');
 await page.evaluate(async()=>{
  const db=await new Promise((resolve,reject)=>{
   const q=indexedDB.open('rumbo-boveda-historial-v1',1);
@@ -40,7 +43,7 @@ await page.evaluate(async()=>{
  });db.close();
  localStorage.removeItem('rumbo-historial-importado-v1');
 });
-await page.reload();
+await preview.reload();await preview.close();
 await page.goto('http://127.0.0.1:8086/#historial-rumbo');
 await page.locator('#historial-rumbo').waitFor({state:'visible'});
 assert.equal(await page.locator('[data-mobile-tab="diario"]').getAttribute('aria-current'),'page');
