@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "node --test worker.test.mjs && node evolucion.cjs && node voz-ia.cjs && node diario-tree.cjs && node mejoras.cjs && node asistente.cjs && node organizacion.cjs && node estudio.cjs && node sync-chatgpt.cjs && node mobile-pwa.cjs"
+    "test": "node --test worker.test.mjs && node conservacion-unit.cjs && node evolucion.cjs && node voz-ia.cjs && node diario-tree.cjs && node mejoras.cjs && node conservacion.cjs && node asistente.cjs && node organizacion.cjs && node estudio.cjs && node sync-chatgpt.cjs && node mobile-pwa.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
