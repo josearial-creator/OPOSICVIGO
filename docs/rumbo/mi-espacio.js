@@ -49,7 +49,7 @@ function persistDraft(value){
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},sessionKey,enc.encode(payload));
   const salt=bytesTo64(sessionSalt);
-  localStorage.setItem('rumbo-mi-espacio-draft-v1',JSON.stringify({salt,iv:bytesTo64(iv),cipher:bytesTo64(cipher)}));
+  localStorage.setItem('rumbo-mi-espacio-draft-v1',JSON.stringify({format:2,salt,iv:bytesTo64(iv),cipher:bytesTo64(cipher)}));
  });
  return saveQueue;
 }
@@ -60,7 +60,7 @@ async function unlockDraft() {
  key=await makeKey(token,activeSalt);
  if(existing?.iv&&existing?.cipher){
    try{const text=dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(existing.iv)},key,from64(existing.cipher)));let draft;try{draft=JSON.parse(text);}catch{}
-   const structured=draft?.version===2&&typeof draft.text==='string';
+   const structured=existing.format===2&&draft?.version===2&&typeof draft.text==='string';
    $('esp-text').value=structured?draft.text:text;
    createId=structured&&/^[a-f0-9-]{36}$/.test(draft.createId||'')?draft.createId:null;
    editing=structured&&/^[a-f0-9-]{36}$/.test(draft.editing||'')?draft.editing:null;
