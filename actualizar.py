@@ -1,5 +1,6 @@
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
+from urllib.parse import urljoin, urlparse, parse_qs
 import json
 import re
 from datetime import datetime
@@ -51,12 +52,17 @@ def obtener_vigo():
     soup = BeautifulSoup(r.text, "html.parser")
 
     lineas = []
+    nodos = []
 
-    for texto in soup.stripped_strings:
-        texto = limpiar(texto)
-
+    # Conservamos el nodo de origen: así el enlace corresponde a la plaza exacta
+    # y no al buscador genérico ni a otra convocatoria con nombre parecido.
+    for nodo in soup.descendants:
+        if type(nodo) is not NavigableString or nodo.find_parent(["script", "style", "template"]):
+            continue
+        texto = limpiar(str(nodo))
         if texto:
             lineas.append(texto)
+            nodos.append(nodo)
 
     resultados = []
 
@@ -210,7 +216,20 @@ def obtener_vigo():
         else:
             prioridad = "Baja"
 
-        resultados.append({
+        # Solo aceptar el enlace real de la plaza situado en el nombre de la ficha.
+        # Nunca construir IDs por posición ni adivinar el enlace.
+        ficha = None
+        anchor = nodos[i - 1].find_parent("a")
+        if anchor:
+            candidate = urljoin(URL, anchor.get("href", ""))
+            parsed = urlparse(candidate)
+            ids = parse_qs(parsed.query).get("id", [])
+            if (parsed.scheme == "https" and parsed.netloc == "sede.vigo.org"
+                    and parsed.path == "/expedientes/oposicions/plaza.jsp"
+                    and len(ids) == 1 and ids[0].isdigit()):
+                ficha = candidate
+
+        registro = {
             "puesto": puesto,
             "grupo": grupo.replace("(", "").replace(")", ""),
             "organismo": "Concello de Vigo",
@@ -221,7 +240,11 @@ def obtener_vigo():
             "discapacidad": discapacidad,
             "prioridad": prioridad,
             "fuente": URL
-        })
+        }
+        if ficha:
+            # Campo nuevo: la clave estable anterior sigue usando fuente y NO cambia.
+            registro["fuente_detalle"] = ficha
+        resultados.append(registro)
 
         i += 1
 
