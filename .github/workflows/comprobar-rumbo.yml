@@ -35,6 +35,10 @@ jobs:
             npx playwright install --with-deps chromium
             echo "CHROMIUM_PATH=bundled" >> "$GITHUB_ENV"
           fi
+      - name: Comprobar captura de enlaces oficiales con HTML ficticio
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 -m unittest discover -s tests -p 'test_actualizar_*.py'
       - name: Comprobar backend y navegador con proveedores simulados
         run: |
           python3 -m http.server 8086 --bind 127.0.0.1 --directory docs/rumbo > /tmp/rumbo-http.log 2>&1 &
