@@ -3,7 +3,7 @@
 const root=document.getElementById('mi-espacio');if(!root)return;
 const endpointDefault='https://rumbo-entrenador.jose-arial.workers.dev';
 const $=id=>document.getElementById(id), enc=new TextEncoder(),dec=new TextDecoder();
-let token='',key=null,notes=[],editing=null,recognition=null,dirty=false;
+let token='',key=null,notes=[],editing=null,recognition=null,dirty=false,createId=null;
 const mark=t=>{$('esp-status').textContent=t;};
 root.innerHTML=`
 <div class="esp-header"><div><div class="eyebrow">PERSONAL Y PRIVADO</div><h2>Mi espacio</h2><p>Escribe lo que necesites, sin categorías obligatorias.</p></div></div>
@@ -44,9 +44,10 @@ let draftWritable=false,saveQueue=Promise.resolve();
 function persistDraft(value){
  if(!draftWritable||!key)return Promise.reject(Error('Borrador bloqueado'));
  const sessionKey=key,sessionSalt=activeSalt;
+ const payload=JSON.stringify({version:2,text:value,createId:value?createId:null,editing:value?editing:null});
  saveQueue=saveQueue.catch(()=>{}).then(async()=>{
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},sessionKey,enc.encode(value));
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},sessionKey,enc.encode(payload));
   const salt=bytesTo64(sessionSalt);
   localStorage.setItem('rumbo-mi-espacio-draft-v1',JSON.stringify({salt,iv:bytesTo64(iv),cipher:bytesTo64(cipher)}));
  });
@@ -58,7 +59,12 @@ async function unlockDraft() {
  activeSalt=existing?.salt?from64(existing.salt):crypto.getRandomValues(new Uint8Array(16));
  key=await makeKey(token,activeSalt);
  if(existing?.iv&&existing?.cipher){
-   try{const text=dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(existing.iv)},key,from64(existing.cipher)));$('esp-text').value=text;dirty=!!text;}
+   try{const text=dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(existing.iv)},key,from64(existing.cipher)));let draft;try{draft=JSON.parse(text);}catch{}
+   const structured=draft?.version===2&&typeof draft.text==='string';
+   $('esp-text').value=structured?draft.text:text;
+   createId=structured&&/^[a-f0-9-]{36}$/.test(draft.createId||'')?draft.createId:null;
+   editing=structured&&/^[a-f0-9-]{36}$/.test(draft.editing||'')?draft.editing:null;
+   dirty=!!$('esp-text').value;}
    catch {draftWritable=false;mark('El borrador anterior no se pudo recuperar. No se sobrescribirá.');return;}
  }
  draftWritable=true;$('esp-draft-status').textContent='El borrador se conserva cifrado automáticamente.';
@@ -81,8 +87,8 @@ function render(){
   const excerpt=document.createElement('p');excerpt.textContent=n.text.length>220?n.text.slice(0,220)+'…':n.text;card.append(excerpt);
   const actions=document.createElement('div');actions.className='esp-actions';
   for(const [name,fn] of [
-   ['Abrir',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();mark('Anotación abierta. Puedes modificarla y guardar.');}],
-   ['Editar',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();}],
+   ['Abrir',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();mark('Anotación abierta. Puedes modificarla y guardar.');}],
+   ['Editar',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();}],
    ['Borrar',async()=>{if(!confirm('¿Borrar definitivamente esta anotación?'))return;try{await api('/'+n.id,'DELETE');notes=notes.filter(x=>x.id!==n.id);if(editing===n.id)editing=null;render();mark('Anotación borrada.');}catch(e){mark('No se pudo borrar: '+e.message);}}]
   ]){const btn=document.createElement('button');btn.type='button';btn.className='button secondary';btn.textContent=name;btn.addEventListener('click',fn);actions.append(btn);}
   card.append(actions);list.append(card);
@@ -93,7 +99,7 @@ $('esp-connect').addEventListener('click',async()=>{
  const pass=$('esp-password').value;
  if(!pass){mark('Introduce la contraseña privada.');return;}
  token=pass;lock(true);
- try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-disconnect').hidden=false;$('esp-password').value='';mark('Acceso autorizado.');}
+ try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');}
  catch(e){token='';mark('No se pudo acceder: '+e.message);}
  finally{lock(false);}
 });
@@ -101,7 +107,7 @@ $('esp-disconnect').addEventListener('click',async()=>{
  if(busy)return;clearTimeout(timer);stopDictation();lock(true);
  try{if(dirty)await persistDraft($('esp-text').value);await saveQueue;}
  catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return;}
- token='';key=null;draftWritable=false;notes=[];editing=null;dirty=false;
+ token='';key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
  $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-disconnect').hidden=true;$('esp-text').value='';mark('Sesión cerrada.');lock(false);
 });
 $('esp-save').addEventListener('click',async()=>{
@@ -110,9 +116,10 @@ $('esp-save').addEventListener('click',async()=>{
  if(!text.trim()){mark('Escribe primero una anotación.');return;}
  clearTimeout(timer);stopDictation();lock(true);mark('Guardando anotación…');
  try{
+  if(!editing&&!createId)createId=crypto.randomUUID();
   await persistDraft(text);
-  const data=await api(editing?'/'+editing:'',editing?'PUT':'POST',{text});
-  editing=data.note.id;dirty=false;
+  const data=await api(editing?'/'+editing:'',editing?'PUT':'POST',{text,...(!editing?{createId}:{})});
+  editing=data.note.id;createId=null;dirty=false;
   const index=notes.findIndex(x=>x.id===data.note.id);
   if(index>=0)notes[index]=data.note;else notes.unshift(data.note);
   notes.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));render();
@@ -122,7 +129,7 @@ $('esp-save').addEventListener('click',async()=>{
  }catch(e){mark('No se ha confirmado el guardado: '+e.message+' Conserva el texto y vuelve a intentarlo.');}
  finally{lock(false);}
 });
-$('esp-new').addEventListener('click',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);dirty=false;editing=null;$('esp-text').value='';$('esp-new').hidden=true;$('esp-mood').hidden=true;persistDraft('').catch(()=>{});$('esp-text').focus();mark('Nueva anotación.');});
+$('esp-new').addEventListener('click',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);dirty=false;editing=null;createId=null;$('esp-text').value='';$('esp-new').hidden=true;$('esp-mood').hidden=true;persistDraft('').catch(()=>{});$('esp-text').focus();mark('Nueva anotación.');});
 $('esp-mood').addEventListener('click',async e=>{
  const mood=e.target.dataset?.mood;if(mood===undefined)return;
  if(!editing){$('esp-mood').hidden=true;return;}

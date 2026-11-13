@@ -25,3 +25,16 @@ test('Mi espacio: entradas vacías e ids inválidos rechazados',async()=>{
  assert.equal((await call('POST','/notes',{text:'   '})).status,400);
  assert.equal((await call('DELETE','/notes/../../bad')).status,404);
 });
+test('reintento conserva una sola nota y rechaza contenido distinto sin sobrescribir',async()=>{
+ records.clear();const createId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ assert.equal((await call('POST','/notes',{text:'Nota sintética',createId})).status,201);
+ assert.equal((await call('POST','/notes',{text:'Nota sintética',createId})).status,200);assert.equal(records.size,1);
+ assert.equal((await call('POST','/notes',{text:'Otro contenido',createId})).status,409);
+ assert.equal((await (await call('GET','/notes/'+createId)).json()).note.text,'Nota sintética');
+ assert.equal((await call('POST','/notes',{text:'x',createId:'../bad'})).status,400);
+});
+test('reintentos con lectura KV retrasada reutilizan una sola clave',async()=>{
+ records.clear();const createId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const stale={...kv,get:async()=>null};
+ for(let i=0;i<2;i++)await notesApi(req('POST','/notes',{text:'Nota sintética',createId}),{NOTES_KV:stale},'/notes');
+ assert.equal(records.size,1);
+});

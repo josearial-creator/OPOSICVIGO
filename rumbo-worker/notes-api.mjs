@@ -48,6 +48,14 @@ export async function notesApi(request,env,path) {
    catch{return reply(400,{error:'Contenido no válido'});}
    if(!validText(data?.text))return reply(400,{error:'Escribe una anotación (máximo 10.000 caracteres)'});
    if(data.mood!==null&&data.mood!==undefined&&(!['bien','regular','mal'].includes(data.mood)))return reply(400,{error:'Estado de ánimo no válido'});
+   if(method==='POST'&&data.createId!==undefined&&!idOk(data.createId))return reply(400,{error:'Identificador de guardado no válido'});
+   if(method==='POST'&&data.createId){
+     const existing=await env.NOTES_KV.get(prefix+data.createId,'json');
+     if(existing){
+       if(existing.text!==data.text||(existing.mood??null)!==(data.mood??null))return reply(409,{error:'Este guardado ya existe con otro contenido. Conserva el borrador y abre la nota guardada antes de editarla.'});
+       return reply(200,{note:existing});
+     }
+   }
    const now=new Date().toISOString();
    let note;
    if(method==='PUT'){
@@ -55,7 +63,7 @@ export async function notesApi(request,env,path) {
       if(!note)return reply(404,{error:'Anotación no encontrada'});
       note={...note,text:data.text,mood:data.mood??null,updatedAt:now};
    } else {
-      note={id:crypto.randomUUID(),text:data.text,mood:data.mood??null,createdAt:now,updatedAt:now};
+      note={id:data.createId||crypto.randomUUID(),text:data.text,mood:data.mood??null,createdAt:now,updatedAt:now};
    }
    await env.NOTES_KV.put(prefix+note.id,JSON.stringify(note));
    return reply(method==='POST'?201:200,{note});

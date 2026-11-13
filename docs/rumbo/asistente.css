@@ -59,3 +59,6 @@
 .assistant-mobile-nav{display:none}
 @media(max-width:900px){.assistant-grid{grid-template-columns:1fr}.assistant-body{padding:0 14px 18px}.assistant-head{padding:19px 14px 13px}}
 @media(max-width:560px){.assistant-mobile-nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.assistant-mobile-nav a{background:#eaf2ff;color:#1556a0;border-radius:9px;padding:10px 12px;font-size:12px;font-weight:700}.assistant-stop-button{bottom:14px;right:12px;padding:13px 16px}.assistant-kpis article{padding:10px}.assistant-kpis strong{font-size:20px}.assistant-inline>label{flex-basis:120px}.assistant-entry{align-items:flex-start;flex-direction:column}.assistant-entry-actions{width:100%;justify-content:flex-start}.assistant-body{padding-bottom:38px}}
+
+/* La navegación principal en móvil es la barra fija de cuatro destinos. */
+@media(max-width:560px){.assistant-mobile-nav{display:none}}

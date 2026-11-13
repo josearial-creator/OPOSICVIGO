@@ -3,7 +3,8 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}});
- page.on('dialog',d=>d.accept());
+ let confirmDelete=true;page.on('dialog',d=>confirmDelete?d.accept():d.dismiss());
+ let loseResponse=true;
  const notes=new Map();
  await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[]}));
  await page.route('https://rumbo-entrenador.jose-arial.workers.dev/notes**',async route=>{
@@ -15,13 +16,13 @@ const assert=require('node:assert/strict');
   const type=req.method();
   if(type==='GET'){await route.fulfill({headers:cors,json:id?{note:notes.get(id)}:{notes:[...notes.values()]}});return;}
   if(type==='POST'||type==='PUT'){
-   const now=new Date().toISOString(),old=notes.get(id);
-   const note={id:type==='POST'?'11111111-1111-4111-8111-111111111111':id,text:body.text,mood:body.mood??null,createdAt:old?.createdAt||now,updatedAt:now};
-   notes.set(note.id,note);await route.fulfill({status:type==='POST'?201:200,headers:cors,json:{note}});return;
+   const now=new Date().toISOString(),old=notes.get(type==='POST'?body.createId:id);
+   const note={id:type==='POST'?body.createId:id,text:body.text,mood:body.mood??null,createdAt:old?.createdAt||now,updatedAt:now};
+   notes.set(note.id,note);if(type==='POST'&&loseResponse){loseResponse=false;await route.abort('failed');return;}await route.fulfill({status:type==='POST'?201:200,headers:cors,json:{note}});return;
   }
   if(type==='DELETE'){if(id)notes.delete(id);else notes.clear();await route.fulfill({headers:cors,json:{deleted:true}});return;}
  });
- await page.goto('http://127.0.0.1:8086');
+ await page.goto('http://127.0.0.1:8086/#mi-espacio');
  assert.equal(await page.locator('#mi-espacio').count(),1);
  await page.locator('#esp-password').fill('contraseña privada de prueba 1234567890123456');
  await page.locator('#esp-connect').click();
@@ -34,7 +35,18 @@ const assert=require('node:assert/strict');
  await page.locator('#esp-private').waitFor({state:'visible'});
  assert.equal(await page.locator('#esp-text').inputValue(),'Esta es una nota del diario');
  await page.locator('#esp-save').click();
+ await page.getByText(/No se ha confirmado el guardado/).waitFor();
+ assert.equal(notes.size,1);const firstId=[...notes.keys()][0];
+ assert.match(firstId,/^[a-f0-9-]{36}$/);
+ assert.equal(await page.locator('#esp-text').inputValue(),'Esta es una nota del diario');
+ await page.waitForFunction(()=>!document.querySelector('#esp-save').disabled);
+ await page.reload();
+ await page.locator('#esp-password').fill('contraseña privada de prueba 1234567890123456');
+ await page.locator('#esp-connect').click();
+ await page.locator('#esp-private').waitFor({state:'visible'});
+ await page.locator('#esp-save').click();
  await page.getByText('Anotación guardada',{exact:true}).waitFor();
+ assert.equal([...notes.keys()][0],firstId);
  assert.equal(notes.size,1);
  await page.waitForFunction(()=>!document.querySelector('#esp-save').disabled);
  await page.locator('#esp-new').click();
@@ -44,6 +56,9 @@ const assert=require('node:assert/strict');
  await page.getByText('Anotación guardada',{exact:true}).waitFor();
  assert.equal([...notes.values()][0].text,'Nota editada');
  await page.waitForFunction(()=>!document.querySelector('#esp-save').disabled);
+ confirmDelete=false;
+ await page.locator('.esp-note').getByRole('button',{name:'Borrar'}).click();
+ assert.equal(notes.size,1);confirmDelete=true;
  await page.locator('.esp-note').getByRole('button',{name:'Borrar'}).click();
  await page.getByText('Anotación borrada.').waitFor();
  assert.equal(notes.size,0);

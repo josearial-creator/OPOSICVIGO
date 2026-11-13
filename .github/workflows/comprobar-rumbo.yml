@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', '.github/workflows/comprobar-rumbo.yml']
   push:
-    branches: ['implementar-evolucion-gratis']
+    branches: ['implementar-evolucion-gratis', 'corregir-perdida-convocatorias-20261111']
     paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', '.github/workflows/comprobar-rumbo.yml']
 permissions:
   contents: read

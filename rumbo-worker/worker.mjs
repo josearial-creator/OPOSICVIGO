@@ -5,7 +5,9 @@ const schema={type:'OBJECT',properties:{evaluable:{type:'BOOLEAN'},criteria:{typ
 function validResult(x){return x&&typeof x.evaluable==='boolean'&&Array.isArray(x.criteria)&&x.criteria.length===2&&x.criteria.every(n=>x.evaluable?Number.isInteger(n)&&n>=0&&n<=4:n===null)&&['positive','improve','alternative','practice','reply'].every(k=>typeof x[k]==='string'&&x[k].trim().length>0&&x[k].length<=5000);}
 async function equalSecret(a,b){const enc=new TextEncoder(),digest=x=>crypto.subtle.digest('SHA-256',enc.encode(x));const [x,y]=await Promise.all([digest(a),digest(b)]);return new Uint8Array(x).every((v,i)=>v===new Uint8Array(y)[i]);}
 export default {async fetch(request,env){
- const origin=request.headers.get('Origin'),allowed=env.ALLOWED_ORIGIN;
+ const origin=request.headers.get('Origin');
+ const origins=(env.ALLOWED_ORIGIN||'').split(',').map(x=>x.trim()).filter(Boolean);
+ const allowed=origins.includes(origin)?origin:null;
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers});
  if(!allowed||origin!==allowed)return reply(403,{error:'Origen no autorizado'});

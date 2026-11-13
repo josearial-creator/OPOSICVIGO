@@ -18,3 +18,14 @@ Sin binding, el servicio responde 503 y **no afirma guardar nada**.
 - Se mantiene la sección antigua «Diario»; no se migran ni borran registros.
 - No se llama a Gemini ni OpenAI con el texto de las notas; ninguna reflexión automática.
 - Workers KV tiene consistencia eventual; no debe utilizarse como diario multiusuario transaccional.
+
+## Revisión de reparación — 13/11/2026
+Se incorpora main conservando diseño móvil, historial recuperado, copias privadas y protección del feed de convocatorias. El reintento usa un UUID conservado dentro del borrador cifrado, también tras recargar. Si la nota ya existe con otro contenido se responde 409 sin sobrescribirla. Los borradores anteriores siguen siendo legibles.
+
+KV sigue teniendo consistencia eventual: esta corrección evita claves duplicadas al reintentar, pero no ofrece edición transaccional concurrente entre dispositivos ni protege frente a todas las carreras entre una edición y un reintento antiguo. Para esa garantía se requiere control transaccional de versiones; no anunciar todavía esa capacidad.
+
+El workflow manual toma el SHA seleccionado y bloquea el despliegue si no existe una configuración explícita de NOTES_KV. No crea ni cambia almacenes por sí solo. Antes de autorizarlo se deben comparar TODOS los bindings reales del Worker con la configuración (incluido D1 db), preservar secretos y establecer NOTES_KV privado. No se han leído ni modificado tablas D1.
+
+ALLOWED_ORIGIN admite únicamente los orígenes explícitos de GitHub Pages y ambos dominios Vercel conocidos. No hay comodines.
+
+Pendiente: verificación administrativa Cloudflare, configuración de NOTES_KV, prueba real del secreto existente, despliegue aprobado y almacenamiento real con notas sintéticas. No se han incluido datos personales ni secretos en estos cambios.
