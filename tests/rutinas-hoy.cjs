@@ -30,7 +30,8 @@ const {chromium}=require('playwright');
   // Una pestaña ajena modifica el registro; la abierta no debe pisarlo.
   await page.evaluate(()=>{const k='rumbo-rutinas-hoy-v1',v=JSON.parse(localStorage.getItem(k));v.external='otra pestaña';localStorage.setItem(k,JSON.stringify(v));});
   const remote=await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1'));
-  await page.locator('input[data-routine="estudiar"]').check();
+  await page.locator('input[data-routine="estudiar"]').click();
+  assert.equal(await page.locator('input[data-routine="estudiar"]').isChecked(),false,'Se revierte la marca cuando falla el guardado');
   assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1')),remote,'El conflicto de pestañas no sobrescribe');
   assert.match(await page.locator('#routine-message').innerText(),/Otra pestaña/);
   await page.evaluate(()=>localStorage.setItem('rumbo-rutinas-hoy-v1','{incompatible'));
