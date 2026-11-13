@@ -1,0 +1,61 @@
+
+/* Archivo privado local de migración; los datos son texto, no HTML. */
+.historic-panel{margin:24px 0;border-radius:20px}
+.historic-body{padding:0 27px 28px}
+.historic-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}
+.historic-metrics article{border-radius:14px;background:#f2f7fb;border:1px solid #dfebf3;padding:17px}
+.historic-metrics strong{font-size:28px;color:#182f4a;display:block;font-variant-numeric:tabular-nums}
+.historic-metrics span{font-size:12px;color:#536f82}
+.historic-import{padding:22px;border:1px solid #d9eae8;border-radius:15px;background:#f2fbf9;margin-bottom:24px}
+.historic-import h3{font-size:18px;margin:0 0 9px;color:#153e43}
+.historic-import p{font-size:13px;line-height:1.6;color:#4a656c}
+.historic-import label,.historic-searchbar label{font-size:13px;font-weight:750;color:#2d5062;display:flex;flex-direction:column;gap:8px;margin:15px 0}
+.historic-import input[type=file],.historic-searchbar input,.historic-searchbar select{font:inherit;max-width:100%;min-height:44px;background:white;border:1px solid #c8d9df;border-radius:10px;padding:10px}
+.historic-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.historic-toolbar .button{min-height:44px;font-size:13px}
+.historic-import .historic-privacy{color:#547078;font-size:12px}
+#historic-status{font-size:13px;font-weight:750;color:#14685e}
+.historic-searchbar{border-bottom:1px solid #e6edf3;padding-bottom:8px}
+.historic-searchbar label:first-child{flex:2;min-width:200px}
+.historic-searchbar label:last-child{flex:1;min-width:160px}
+.historic-record{border:1px solid #e2eaf0;border-radius:12px;background:#fff;margin:10px 0;overflow:hidden}
+.historic-record summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px;font-size:14px}
+.historic-record summary strong{color:#1b344b;flex:1;min-width:160px;overflow-wrap:anywhere}
+.historic-record summary time{font-size:12px;color:#758496}
+.historic-kind{font-size:11px;font-weight:800;border-radius:7px;background:#e6f8f4;color:#0b6865;padding:6px 9px}
+.historic-record:nth-child(3n + 2) .historic-kind{background:#eae8ff;color:#5b50ab}
+.historic-record-content{border-top:1px solid #e7edf2;padding:8px 17px 18px;background:#fbfdfe;overflow-wrap:anywhere}
+.historic-field{white-space:pre-wrap;line-height:1.65;font-size:13px;color:#435a6e}
+.historic-field strong{color:#21374d}
+.historic-source{font-size:13px;color:#186c8a;font-weight:750;text-decoration:underline}
+.historic-empty{color:#5a7186;font-size:14px;padding:15px}
+@media(max-width:700px){.historic-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.historic-body{padding:0 14px 18px}.historic-metrics{gap:9px}.historic-metrics article{padding:12px}.historic-metrics strong{font-size:23px}.historic-import{padding:15px}.historic-record summary{padding:13px}.historic-record summary strong{font-size:14px}}
+
+/* Archivo separado de las pantallas y del almacenamiento de otras funciones */
+.historic-vault{padding:18px 21px;margin:0 0 20px;background:#eff8fb;border:1px solid #cce3ea;border-radius:15px}
+.historic-vault h3{font-size:17px;color:#193c4b;margin:0 0 7px}
+.historic-vault p{color:#3e5e6d;font-size:13px;line-height:1.55}
+.historic-vault .historic-vault-warning{font-size:12px;margin:13px 0 0;color:#607486}
+#historic-vault-status{font-weight:700;overflow-wrap:anywhere}
+.historic-vault .button{min-height:44px;text-decoration:none}
+@media(max-width:560px){.historic-vault{padding:15px}.historic-vault .historic-toolbar>*{flex:1 1 185px;text-align:center}}
+
+/* Acceso visible al historial privado en la pantalla inicial, sin tocar sus datos. */
+.historic-home-access{display:flex;align-items:center;gap:15px;margin:0 0 18px;background:#fff;border:1px solid #cfe5e5;border-left:5px solid #38c5b4;border-radius:17px;padding:16px 18px;box-shadow:0 6px 20px rgba(27,47,65,.05)}
+.historic-home-icon{flex:none;display:grid;place-items:center;width:48px;height:48px;background:#e2f7f3;color:#0f716a;border-radius:13px;font-size:27px}
+.historic-home-copy{min-width:0;flex:1}
+.historic-home-copy strong{font-size:16px;color:#192d44}
+.historic-home-copy p{margin:3px 0 2px;color:#235d5b;font-size:13px;font-weight:700}
+.historic-home-copy small{font-size:12px;line-height:1.45;color:#6a7e8d}
+.historic-home-access .button{white-space:normal;text-align:center;background:#163a4b;border:0;min-height:46px}
+#historial-rumbo{scroll-margin-top:18px}
+@media(max-width:700px){.historic-home-access{flex-wrap:wrap;gap:12px}.historic-home-access .button{width:100%}}
+
+/* Importador privado de un solo paso desde Inicio. El navegador solicita siempre el archivo. */
+.historic-home-access{flex-wrap:wrap}
+.historic-home-buttons{display:flex;flex:0 1 auto;gap:9px;align-items:center;flex-wrap:wrap}
+.historic-home-buttons .button{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;min-height:46px}
+.historic-home-status{flex:1 1 100%;margin:0;color:#176e60;font-size:12px;font-weight:700}
+.historic-home-status:empty{display:none}
+@media(max-width:700px){.historic-home-buttons{width:100%;display:grid;grid-template-columns:1fr}.historic-home-buttons .button{width:100%;text-align:center}}
