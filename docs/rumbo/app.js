@@ -8,16 +8,78 @@ const state = { records: [], favorites: new Set(), previousKeys: new Set(), newK
 const node = (name, cls, value) => { const e = document.createElement(name); if (cls) e.className = cls; if (value !== undefined && value !== null) e.textContent = String(value); return e; };
 
 function escapeKey(s) { return String(s ?? '').trim().toLocaleLowerCase('es').replace(/\s+/g, ' '); }
-function recordKey(r) {
+function legacyRecordKey(r) {
   // Vigo usa una URL general para todas las fichas: no podemos usar solo 'fuente'.
   const fields = [r.organismo, r.puesto, r.grupo, r.tipo, r.plazas, r.discapacidad];
   if (r.organismo === 'SERGAS' && r.fuente?.includes('IdCategoria=')) return 'sergas:' + r.fuente.split('IdCategoria=')[1].split('&')[0];
   return fields.map(escapeKey).join('¦');
 }
-function distinct(data) { const seen = new Map(); for (const raw of data) { if (!raw || typeof raw !== 'object' || !raw.puesto) continue; const r = {...raw}; seen.set(recordKey(r), r); } return [...seen.values()]; }
-function save() { try { localStorage.setItem(STORE, JSON.stringify({ records: state.records, favorites: [...state.favorites], notes: state.notes, previousKeys: [...state.previousKeys], lastSuccess: state.lastSuccess })); return true; } catch (_) { return false; } }
-function loadSaved() { try { const data = JSON.parse(localStorage.getItem(STORE) || '{}'); state.records = distinct(data.records || []); state.favorites = new Set(data.favorites || []); state.previousKeys = new Set(data.previousKeys || []); state.lastSuccess = data.lastSuccess || null; state.notes = data.notes || {}; } catch (_) { /* Ignore invalid caches */ } }
+// Prefer an official process ID. A category or a generic listing URL is not a process ID.
+function recordKey(r) {
+  const official = r.convocatoria_id ?? r.expediente ?? r.id;
+  const edition = r.anio ?? r.año ?? r.ejercicio ?? '';
+  if (official !== undefined && official !== null && String(official).trim()) {
+    return 'v2:id:' + JSON.stringify([escapeKey(r.organismo), String(official).trim(), String(edition)]);
+  }
+  // Without an official ID, retain distinct versions rather than guess which process changed.
+  // Keep URLs case-sensitive, and include dates/edition so a later call cannot replace an earlier one.
+  return 'v2:legacy:' + JSON.stringify([
+    ...[r.organismo,r.puesto,r.grupo,r.tipo,r.plazas,r.discapacidad].map(escapeKey),
+    String(r.fuente ?? '').trim(), String(edition), String(r.inicio ?? ''), String(r.fin ?? '')
+  ]);
+}
+function distinct(data) {
+  const seen = new Map();
+  for (const raw of data) {
+    if (!raw || typeof raw !== 'object' || !raw.puesto) continue;
+    const key = recordKey(raw);
+    seen.set(key, {...seen.get(key), ...raw});
+  }
+  return [...seen.values()];
+}
+let savedSnapshot = null, storageUnreadable = false;
+function save() {
+  try {
+    // Another tab may have saved newer notes. Never replace its snapshot with stale memory.
+    if (storageUnreadable || localStorage.getItem(STORE) !== savedSnapshot) throw Error('Conflicto de almacenamiento');
+    const next = JSON.stringify({ records: state.records, favorites: [...state.favorites], notes: state.notes, previousKeys: [...state.previousKeys], lastSuccess: state.lastSuccess });
+    localStorage.setItem(STORE, next); savedSnapshot = next; return true;
+  } catch (_) { return false; }
+}
+function loadSaved() {
+  try {
+    savedSnapshot = localStorage.getItem(STORE);
+    const data = JSON.parse(savedSnapshot || '{}');
+    if (!data || typeof data !== 'object' || (data.records !== undefined && !Array.isArray(data.records)) ||
+        (data.favorites !== undefined && !Array.isArray(data.favorites)) ||
+        (data.previousKeys !== undefined && !Array.isArray(data.previousKeys)) ||
+        (data.notes !== undefined && (!data.notes || typeof data.notes !== 'object' || Array.isArray(data.notes)))) throw Error('Copia inválida');
+    const records = distinct(data.records || []), notes = {...data.notes}, favorites = new Set(data.favorites || []);
+    const migrations = new Map();
+    for (const r of records) {
+      const old = legacyRecordKey(r);
+      if (!migrations.has(old)) migrations.set(old, new Set());
+      migrations.get(old).add(recordKey(r));
+    }
+    for (const [old, keys] of migrations) {
+      // Ambiguous legacy associations remain archived, accessible in Apuntes de estudio and backups.
+      if (keys.size !== 1) continue;
+      const key = [...keys][0];
+      if (favorites.delete(old)) favorites.add(key);
+      if (Object.prototype.hasOwnProperty.call(notes, old) && !Object.prototype.hasOwnProperty.call(notes, key)) {
+        notes[key] = notes[old]; delete notes[old];
+      }
+    }
+    state.records = records; state.notes = notes; state.favorites = favorites;
+    state.previousKeys = new Set(data.previousKeys || []); state.lastSuccess = data.lastSuccess || null;
+  } catch (_) {
+    storageUnreadable = true;
+    renderStatus('No se pudo leer la copia local. Se conserva intacta; recupera una copia antes de guardar nuevos datos.', 'warning');
+  }
+}
 function statusType(r) {
+  // Un registro antiguo no publicado en el feed actual no acredita un plazo abierto.
+  if (r._rumboFeedMissing) return 'verificar';
   const explicit = escapeKey(r.inscripcion);
   if (explicit === 'abierta') return 'abierta';
   if (explicit === 'cerrada') return 'cerrada';
@@ -69,8 +131,8 @@ function render() {
     cell(tr,disability(r) ? (Number.isFinite(dis) && dis>0 ? `${dis} general` : 'Reserva indicada') : 'No indicada');
     cell(tr,badge(statusLabel[statusType(r)],statusClass[statusType(r)]));
     cell(tr,badge(r.prioridad || 'Por verificar', r.prioridad==='Alta'?'high':r.prioridad==='Media'?'medium':'low'));
-    cell(tr,r.fin ? String(r.fin) : 'Por verificar');
-    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ state.favorites.has(key)?state.favorites.delete(key):state.favorites.add(key);save();render(); });
+    cell(tr,r._rumboFeedMissing ? 'Por verificar (fecha histórica: '+(r.fin || 'no consta')+')' : (r.fin ? String(r.fin) : 'Por verificar'));
+    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ const was=state.favorites.has(key);was?state.favorites.delete(key):state.favorites.add(key);if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}render(); });
     const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right';
     const labels=['Puesto / grupo','Organismo','Plazas','Discapacidad','Situación','Prioridad','Fin del plazo','Acciones'];
     Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
@@ -78,15 +140,17 @@ function render() {
   }); $('rows').append(fragment);
   if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); $('convocatorias').scrollIntoView({behavior:'smooth'}); }});
 }
+function historicalDate(r,value) { return r._rumboFeedMissing ? 'Histórico, por verificar: '+(value || 'no consta') : (value || 'No verificado'); }
 function openDetail(r) {
   const key=recordKey(r); $('dialog-title').textContent=r.puesto || 'Convocatoria'; const container=$('dialog-content'); container.replaceChildren(); const grid=node('div','detail-grid');
-  const fields=[['Organismo',r.organismo],['Grupo',r.grupo],['Ubicación',r.ubicacion],['Plazas turno libre',r.plazas],['Estado',r.estado || statusLabel[statusType(r)]],['Prioridad',r.prioridad],['Discapacidad general',r.discapacidad_general ?? (disability(r)?'Reserva indicada; sin número':'No indicada')],['Discapacidad intelectual',r.discapacidad_intelectual ?? 'No informada'],['Inicio del plazo',r.inicio || 'No verificado'],['Fin del plazo',r.fin || 'No verificado']];
+  const fields=[['Organismo',r.organismo],['Grupo',r.grupo],['Ubicación',r.ubicacion],['Plazas turno libre',r.plazas],['Estado',r._rumboFeedMissing ? 'Por verificar · ausente de la fuente actual' : (r.estado || statusLabel[statusType(r)])],['Prioridad',r.prioridad],['Discapacidad general',r.discapacidad_general ?? (disability(r)?'Reserva indicada; sin número':'No indicada')],['Discapacidad intelectual',r.discapacidad_intelectual ?? 'No informada'],['Inicio del plazo',historicalDate(r,r.inicio)],['Fin del plazo',historicalDate(r,r.fin)]];
   fields.forEach(([label,value])=>{ const e=node('div','detail');e.append(node('span','',label),node('strong','',value ?? 'Por verificar'));grid.append(e); });container.append(grid);
-  const label=node('label','detail');label.style.display='block';label.style.marginTop='23px';label.textContent='Notas personales (solo en este navegador)'; const note=node('textarea');note.value=state.notes[key]||''; note.rows=3; note.style.cssText='width:100%;margin-top:8px;padding:12px;border:1px solid #d7e2ed;border-radius:8px;resize:vertical';note.addEventListener('input',()=>{state.notes[key]=note.value;save();});label.append(note);container.append(label);
+  const label=node('label','detail');label.style.display='block';label.style.marginTop='23px';label.textContent='Notas personales (solo en este navegador)'; const note=node('textarea');note.value=state.notes[key]||''; note.rows=3; note.style.cssText='width:100%;margin-top:8px;padding:12px;border:1px solid #d7e2ed;border-radius:8px;resize:vertical';note.addEventListener('input',()=>{state.notes[key]=note.value;if(!save())renderStatus('No se pudo guardar la nota. Copia el texto antes de recargar; puede haber cambios en otra pestaña.','warning');});label.append(note);container.append(label);
   const link=safeUrl(r.fuente); $('official-link').href=link || '#';$('official-link').hidden=!link;
   $('detail-dialog').showModal();
 }
 async function loadRemote() {
+  if(storageUnreadable)return;
   $('refresh').disabled=true; renderStatus('Comprobando las publicaciones del repositorio público…');
   try {
     const response=await fetch(FEED_URL + '?v=' + Date.now(),{cache:'no-store'});
@@ -96,9 +160,19 @@ async function loadRemote() {
     const cleaned=distinct(incoming);
     if(!cleaned.length) throw Error('No se encontraron registros válidos');
     const oldKeys=new Set(state.records.map(recordKey));
-    state.newKeys= new Set(state.records.length?cleaned.map(recordKey).filter(k=>!oldKeys.has(k)):[]);
-    state.records=cleaned;state.previousKeys=new Set(cleaned.map(recordKey));state.lastSuccess=new Date().toISOString();save();render();
-    renderStatus(`Sincronizado: ${cleaned.length} convocatorias · ${formatTime(state.lastSuccess)}${state.newKeys.size?' · '+state.newKeys.size+' nuevas':''}`,'good');
+    const currentKeys=new Set(cleaned.map(recordKey));
+    state.newKeys=new Set(state.records.length?cleaned.map(recordKey).filter(k=>!oldKeys.has(k)):[]);
+    // La fuente pública puede contener menos registros que una copia/importación anterior.
+    // Conservar los anteriores y actualizar los coincidentes; nunca borrarlos al refrescar.
+    state.records=distinct([...state.records,...cleaned]).map(r=>({
+      ...r,_rumboFeedMissing:!currentKeys.has(recordKey(r))
+    }));
+    state.previousKeys=new Set(state.records.map(recordKey));
+    state.lastSuccess=new Date().toISOString();
+    const persisted=save();render();
+    const historical=state.records.length-cleaned.length;
+    const warning=historical>0?` · ${historical} conservadas de tu historial (plazos por verificar)`:'';
+    renderStatus(`Fuente: ${cleaned.length} · Total conservado: ${state.records.length}${warning} · ${formatTime(state.lastSuccess)}${persisted?'':' · Atención: no se pudo guardar en este navegador; conserva una copia y revisa si hay otra pestaña abierta'}`,persisted?'good':'warning');
   } catch(err) {
     renderStatus('No se pudo consultar GitHub ('+err.message+'). Se muestran los últimos datos guardados en este navegador.','warning');render();
   } finally { $('refresh').disabled=false; }
@@ -106,7 +180,7 @@ async function loadRemote() {
 function importJson(file) {
   if(!file)return; const reader=new FileReader();reader.onload=()=>{
     try{const parsed=JSON.parse(reader.result);const list=Array.isArray(parsed)?parsed:parsed.oposiciones;if(!Array.isArray(list))throw Error('Se esperaba una lista JSON o un objeto con "oposiciones"');
-      const old=new Set(state.records.map(recordKey)), clean=distinct([...state.records,...list]);state.newKeys=new Set(clean.map(recordKey).filter(k=>!old.has(k)));state.records=clean;save();render();renderStatus(`Importación completada: ${state.newKeys.size} nuevas, ${clean.length} en total.`,'good');
+      const old=new Set(state.records.map(recordKey)), clean=distinct([...state.records,...list]);state.newKeys=new Set(clean.map(recordKey).filter(k=>!old.has(k)));state.records=clean;const persisted=save();render();renderStatus(persisted?`Importación completada: ${state.newKeys.size} nuevas, ${clean.length} en total.`:'Importación sin guardar. Conserva el archivo original y revisa el almacenamiento u otras pestañas. ',persisted?'good':'warning');
     }catch(e){renderStatus('No se pudo importar: '+e.message,'warning');}
   };reader.readAsText(file,'utf-8');
 }
