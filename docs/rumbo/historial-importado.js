@@ -145,8 +145,13 @@ async function importFiles(files,goToHistory=false){
   const incoming=[];
   for(const file of files){const contents=JSON.parse(await file.text());incoming.push(...extract(contents));}
   if(incoming.length>MAX_RECORDS)throw Error('Demasiados registros en los archivos.');
-  const existing=new Set(state.entries.map(x=>x.id)),unique=new Map();
-  for(const x of incoming)if(!existing.has(x.id))unique.set(x.id,x);
+  const existing=new Map(state.entries.map(x=>[x.id,x])),unique=new Map();
+  for(const x of incoming){
+    const prior=existing.get(x.id)||unique.get(x.id);
+    if(prior&&JSON.stringify(prior)!==JSON.stringify(x))
+      throw Error('Conflicto: el identificador '+x.id.slice(0,40)+' ya existe con contenido distinto. No se ha sustituido ningún registro.');
+    if(!prior)unique.set(x.id,x);
+  }
   if(state.entries.length+unique.size>MAX_RECORDS)throw Error('Superas el límite de 5.000 entradas.');
   if(!unique.size){
     message('Todos los identificadores ya estaban importados. Historial conservado: '+state.entries.length+' registros.');

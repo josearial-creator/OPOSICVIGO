@@ -72,6 +72,14 @@ assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-files').setInputFiles(file);await page.locator('#historic-import').click();
 await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/i}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
+// Un mismo ID con un contenido diferente NO debe descartarse silenciosamente.
+const conflict=JSON.parse(JSON.stringify(imported));
+conflict.reflections[0].summary='Texto diferente que necesita revisión manual';
+const protectedCopy=await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1'));
+await page.locator('#historic-files').setInputFiles({name:'conflicto.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(conflict))});
+await page.locator('#historic-import').click();
+await page.locator('#historic-status').filter({hasText:/Conflicto: el identificador/}).waitFor();
+assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),protectedCopy);
 await page.locator('#historic-search').fill('Segundo resumen');
 assert.equal(await page.locator('.historic-record').count(),1);
 await page.locator('#historic-search').fill('');

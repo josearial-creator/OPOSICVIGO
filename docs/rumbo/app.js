@@ -77,16 +77,33 @@ function loadSaved() {
     renderStatus('No se pudo leer la copia local. Se conserva intacta; recupera una copia antes de guardar nuevos datos.', 'warning');
   }
 }
+function calendarDay(value) {
+  const s=String(value??'').trim();
+  let y,m,d,match;
+  if((match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s))) [,y,m,d]=match;
+  else if((match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s))) [,d,m,y]=match;
+  else return null;
+  y=Number(y);m=Number(m);d=Number(d);
+  const date=new Date(Date.UTC(y,m-1,d));
+  return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d
+    ?Date.UTC(y,m-1,d)/86400000:null;
+}
+function todayDay(){const now=new Date();return Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000;}
 function statusType(r) {
-  // Un registro antiguo no publicado en el feed actual no acredita un plazo abierto.
+  // La etiqueta "abierta" exige fechas válidas, además del estado de la fuente.
   if (r._rumboFeedMissing) return 'verificar';
-  const explicit = escapeKey(r.inscripcion);
-  if (explicit === 'abierta') return 'abierta';
-  if (explicit === 'cerrada') return 'cerrada';
-  if (explicit === 'pendiente') return 'pendiente';
-  if (explicit === 'por verificar') return 'verificar';
-  const s = escapeKey(r.estado);
-  if (s.includes('presentación de solicitudes')) return 'abierta';
+  const explicit=escapeKey(r.inscripcion),s=escapeKey(r.estado);
+  if(explicit==='cerrada')return 'cerrada';
+  if(explicit==='pendiente')return 'pendiente';
+  if(explicit==='por verificar')return 'verificar';
+  const claimsOpen=explicit==='abierta'||(!explicit&&s.includes('presentación de solicitudes'));
+  if(claimsOpen){
+    const from=calendarDay(r.inicio),until=calendarDay(r.fin);
+    if(from===null||until===null||from>until)return 'verificar';
+    if(todayDay()<from)return 'pendiente';
+    if(todayDay()>until)return 'cerrada';
+    return 'abierta';
+  }
   if (s.includes('pendiente de abrir')) return 'pendiente';
   if (s.includes('inscripción cerrada') || s.includes('inscripcion cerrada')) return 'cerrada';
   if (s.includes('por verificar')) return 'verificar';
@@ -146,7 +163,11 @@ function openDetail(r) {
   const fields=[['Organismo',r.organismo],['Grupo',r.grupo],['Ubicación',r.ubicacion],['Plazas turno libre',r.plazas],['Estado',r._rumboFeedMissing ? 'Por verificar · ausente de la fuente actual' : (r.estado || statusLabel[statusType(r)])],['Prioridad',r.prioridad],['Discapacidad general',r.discapacidad_general ?? (disability(r)?'Reserva indicada; sin número':'No indicada')],['Discapacidad intelectual',r.discapacidad_intelectual ?? 'No informada'],['Inicio del plazo',historicalDate(r,r.inicio)],['Fin del plazo',historicalDate(r,r.fin)]];
   fields.forEach(([label,value])=>{ const e=node('div','detail');e.append(node('span','',label),node('strong','',value ?? 'Por verificar'));grid.append(e); });container.append(grid);
   const label=node('label','detail');label.style.display='block';label.style.marginTop='23px';label.textContent='Notas personales (solo en este navegador)'; const note=node('textarea');note.value=state.notes[key]||''; note.rows=3; note.style.cssText='width:100%;margin-top:8px;padding:12px;border:1px solid #d7e2ed;border-radius:8px;resize:vertical';note.addEventListener('input',()=>{state.notes[key]=note.value;if(!save())renderStatus('No se pudo guardar la nota. Copia el texto antes de recargar; puede haber cambios en otra pestaña.','warning');});label.append(note);container.append(label);
-  const link=safeUrl(r.fuente); $('official-link').href=link || '#';$('official-link').hidden=!link;
+  const direct=safeUrl(r.fuente_detalle),generic=safeUrl(r.fuente);
+  const official=$('official-link');
+  official.href=direct||generic||'#';
+  official.hidden=!(direct||generic);
+  official.textContent=direct?'Abrir la ficha oficial de esta plaza ↗':'Consultar fuente oficial (no hay enlace individual verificado) ↗';
   $('detail-dialog').showModal();
 }
 async function loadRemote() {

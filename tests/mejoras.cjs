@@ -5,7 +5,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH===
 const page=await browser.newPage();
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[
-{puesto:'Administrativa/o',organismo:'Concello de Vigo',plazas:2,grupo:'C1',tipo:'Turno libre',estado:'En fase de presentación de solicitudes',inscripcion:'Abierta',fin:'31/12/2099',fuente:'https://sede.vigo.org'},
+{puesto:'Administrativa/o',organismo:'Concello de Vigo',plazas:2,grupo:'C1',tipo:'Turno libre',estado:'En fase de presentación de solicitudes',inscripcion:'Abierta',inicio:'01/01/2000',fin:'31/12/2099',fuente:'https://sede.vigo.org'},
 {puesto:'Auxiliar',organismo:'SERGAS',plazas:5,grupo:'C2',tipo:'Turno libre',estado:'Plazo por verificar',inscripcion:'Por verificar',fin:'31/02/2026',fuente:'https://sergas.es'}
 ]}));
 // Sembrar 131 registros previos: la fuente remota solo devolverá 2.
