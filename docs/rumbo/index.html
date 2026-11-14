@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="redisenio.css">
   <link rel="stylesheet" href="rutinas-hoy.css">
   <link rel="stylesheet" href="historial-importado.css">
+  <link rel="stylesheet" href="vista-clara.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
 </head>
@@ -51,7 +52,7 @@
       <div class="sidebar-bottom"><span class="pulse"></span> Datos de fuentes oficiales<br><small>Concello de Vigo · SERGAS · ampliable</small></div>
     </aside>
     <main class="main" id="inicio">
-      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
+      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong id="rumbo-current-section">Rumbo · Hoy</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
       <div class="page">
         <details id="diario-menu" class="ev-nav-tree ev-mobile-tree" data-mobile-screen="diario" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mi evolución"><span aria-hidden="true">↗</span> Mi evolución</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◎</span> Entrenamiento</a></div></details>
         <details class="ev-nav-tree ev-mobile-tree study-nav" data-mobile-screen="oposiciones" open><summary>Estudio</summary><div class="ev-nav-children"><a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span aria-hidden="true">▤</span> Convocatorias</a><a class="nav-link" href="#apuntes-estudio" data-nav="apuntes-estudio"><span aria-hidden="true">✎</span> Apuntes de estudio</a><a class="nav-link" href="#favoritos" data-nav="favoritos"><span aria-hidden="true">☆</span> Favoritos</a></div></details>
