@@ -35,7 +35,7 @@ for(const [id,label] of TASKS){
   if(!writeDay(day=>({...day,routines:next?[...day.routines,id]:day.routines.filter(x=>x!==id)})))input.checked=!next;
  });
 }
-let deadline=0,ticker=null;
+let deadline=0,ticker=null,renderedDay=localDay();
 function message(s){$('routine-message').textContent=s;}
 function getDay(){return state.days[localDay()]||{routines:[],pauses:[]};}
 function writeDay(transform){
@@ -61,6 +61,7 @@ function renderFocus(){
  }catch{$('routine-focus').textContent='Consulta tus prioridades en Mi día.';}
 }
 function render(){
+ renderedDay=localDay();
  const today=getDay();
  for(const [id,input] of checkboxes)input.checked=today.routines.includes(id);
  $('routine-count').textContent='Pausas registradas hoy: '+today.pauses.length+'.';
@@ -71,19 +72,19 @@ function stopClock(){
  start.hidden=false;decisions.hidden=true;clock.textContent='';
 }
 function tick(){
- const remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));
+ const remaining=Math.max(0,Math.ceil((deadline-performance.now())/1000));
  clock.textContent=remaining?remaining+' segundos restantes':'Ya puedes elegir qué hacer';
  if(remaining===0){if(ticker!==null)clearInterval(ticker);ticker=null;decisions.hidden=false;cancel.hidden=false;}
 }
 start.addEventListener('click',()=>{
  if(locked){message('Hay datos incompatibles: no se iniciará un registro que pudiera sobrescribirlos.');return;}
- deadline=Date.now()+10000;start.hidden=true;cancel.hidden=false;decisions.hidden=true;message('');
+ deadline=performance.now()+10000;start.hidden=true;cancel.hidden=false;decisions.hidden=true;message('');
  tick();ticker=setInterval(tick,250);
 });
 cancel.addEventListener('click',()=>{stopClock();message('Pausa cancelada sin registrar datos.');});
 for(const [id,decision] of [['routine-stay','seguir'],['routine-switch','cambiar']]){
  $(id).addEventListener('click',()=>{
-  if(!deadline||Date.now()<deadline)return;
+  if(!deadline||performance.now()<deadline)return;
   const day=getDay();
   if(day.pauses.length>=100){message('Límite diario de registros alcanzado. Puedes seguir sin registrar.');return;}
   if(writeDay(v=>({...v,pauses:[...v.pauses,{at:new Date().toISOString(),decision}]}))){
@@ -91,6 +92,12 @@ for(const [id,decision] of [['routine-stay','seguir'],['routine-switch','cambiar
   }
  });
 }
+// Al volver desde el móvil o cruzar medianoche, mostrar el día local actual
+// sin escribir ni borrar jornadas anteriores. La pausa en curso se conserva.
+function refreshDay(){if(localDay()!==renderedDay)render();}
+window.addEventListener('focus',refreshDay);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDay();});
+setInterval(refreshDay,1000);
 window.addEventListener('rumbo:assistant-changed',renderFocus);
 window.addEventListener('storage',e=>{if(e.key===KEY)message('Las rutinas han cambiado en otra pestaña. Recarga antes de editar.');if(e.key==='rumbo-asistente-v1')renderFocus();});
 if(locked){start.disabled=true;message('Existe un registro incompatible. No se modificará ni borrará automáticamente.');}

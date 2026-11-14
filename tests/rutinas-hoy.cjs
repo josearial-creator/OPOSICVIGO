@@ -26,6 +26,27 @@ const {chromium}=require('playwright');
   await page.reload();
   assert.equal(await page.locator('input[data-routine="planificar"]').isChecked(),true,'Rutina persistente');
   assert.match(await page.locator('#routine-count').innerText(),/1/,'Pausa persistente');
+  // El reloj civil cambia, pero la pausa exige diez segundos transcurridos.
+  await page.clock.setFixedTime(new Date('2026-11-14T12:00:00'));
+  await page.locator('#routine-start').click();
+  await page.clock.setFixedTime(new Date('2026-11-14T13:00:00'));
+  await page.waitForTimeout(500);
+  assert.equal(await page.locator('#routine-stay').isVisible(),false,'Adelantar el reloj no completa la pausa');
+  await page.locator('#routine-cancel').click();
+  // Cambio de día en la misma pestaña: el render no puede alterar el historial.
+  await page.clock.setFixedTime(new Date('2026-11-14T23:59:59'));
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.locator('input[data-routine="planificar"]').check();
+  const beforeMidnight=await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1'));
+  await page.clock.setFixedTime(new Date('2026-11-15T00:00:01'));
+  await page.waitForTimeout(1100);
+  assert.equal(await check.isChecked(),false,'La nueva jornada se muestra sin marcas antiguas');
+  assert.match(await page.locator('#routine-count').innerText(),/0/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1')),beforeMidnight,'Actualizar el día no escribe ni borra registros');
+  await check.check();
+  const afterMidnight=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-rutinas-hoy-v1')));
+  assert.deepEqual(afterMidnight.days['2026-11-14'],JSON.parse(beforeMidnight).days['2026-11-14']);
+  assert.deepEqual(afterMidnight.days['2026-11-15'].routines,['planificar']);
   const prev=await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1'));
   // Una pestaña ajena modifica el registro; la abierta no debe pisarlo.
   await page.evaluate(()=>{const k='rumbo-rutinas-hoy-v1',v=JSON.parse(localStorage.getItem(k));v.external='otra pestaña';localStorage.setItem(k,JSON.stringify(v));});

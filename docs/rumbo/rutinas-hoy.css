@@ -7,7 +7,7 @@
 .routine-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;border-top:1px solid #dce7ee;padding-top:15px}
 .routine-grid h4{font-size:.95rem;margin:0 0 10px;color:#263652}
 .routine-list{display:grid;gap:9px}
-.routine-item{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.94rem}
+.routine-item{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:44px;font-size:.94rem}
 .routine-item input{width:18px;height:18px;accent-color:#0b7772;flex-shrink:0}
 .routine-item input:checked+span{text-decoration:line-through;color:#536475}
 .routine-help,.routine-footnote{font-size:.81rem;color:#58697c;line-height:1.5;margin:8px 0}

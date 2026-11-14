@@ -13,6 +13,8 @@ assert.match(await page.locator('.hero-line h1').innerText(),/Todo lo importante
 assert.equal(await page.locator('.quick-action').count(),3);
 assert.equal(await page.locator('link[href="redisenio.css"]').count(),1);
 assert.equal(await page.locator('.hero-line').evaluate(el=>getComputedStyle(el).backgroundImage.includes('linear-gradient')),true);
+await page.locator('input[data-routine="planificar"]').check();
+const routineCopy=await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1'));
 await page.locator('[data-mobile-tab="oposiciones"]').click();
 await page.locator('#convocatorias').waitFor({state:'visible'});
 assert.equal(await page.locator('#mi-dia').isVisible(),false);
@@ -37,6 +39,13 @@ await page.locator('#backup-pass').fill('contrasena-equivocada');
 await page.locator('#backup-import').click();
 await page.getByText(/No se recuperó la copia/).waitFor();
 await page.locator('#backup-pass').fill('frase-muy-segura-123');
+// Una copia con rutinas distintas debe bloquear toda restauración.
+await page.evaluate(()=>{const k='rumbo-rutinas-hoy-v1',v=JSON.parse(localStorage.getItem(k));Object.values(v.days)[0].routines.push('estudiar');localStorage.setItem(k,JSON.stringify(v));});
+const beforeConflict=await page.evaluate(()=>({...localStorage}));
+await page.locator('#backup-import').click();
+await page.getByText(/Las rutinas del navegador y las de la copia son diferentes/).waitFor();
+assert.deepEqual(await page.evaluate(()=>({...localStorage})),beforeConflict,'Un conflicto no cambia ningún almacén');
+await page.evaluate(raw=>localStorage.setItem('rumbo-rutinas-hoy-v1',raw),routineCopy);
 page.once('dialog',dialog=>dialog.dismiss());
 await page.locator('#backup-import').click();
 await page.getByText(/Recuperación cancelada sin cambios/).waitFor();
@@ -44,6 +53,7 @@ await page.evaluate(()=>{const v=JSON.parse(localStorage.getItem('rumbo-replica-
 page.once('dialog',dialog=>dialog.accept());
 await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.locator('#backup-import').click()]);
 assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-replica-v1')).notes['marcador-prueba']||null),null);
+assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-rutinas-hoy-v1')),routineCopy,'La copia cifrada conserva las rutinas');
 const restored=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-replica-v1')));
 assert.equal(restored.favorites.length,1);assert.deepEqual(Object.values(restored.notes),['Nota para restaurar']);
 const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'manifest.webmanifest');

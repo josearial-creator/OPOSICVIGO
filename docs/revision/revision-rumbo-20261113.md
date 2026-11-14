@@ -41,3 +41,15 @@
 - Sin sincronización entre dispositivos: backend autenticado sin configurar o verificar.
 - Los enlaces individuales aparecerán tras volver a procesar la fuente; no se inventan para el JSON anterior.
 - La pausa es un autoinforme voluntario, no mide capacidad clínica, y no configura alarmas.
+
+
+## Continuación del 14 de noviembre de 2026
+
+- Integrada la base actual de main en esta rama de revisión, sin fusionar el PR.
+- Hoy actualiza las marcas y el contador al cambiar el día local, al recuperar el foco o al volver a la aplicación, sin escribir ni eliminar jornadas anteriores.
+- La pausa utiliza un reloj monotónico: cambiar la hora civil no permite adelantar la decisión. Se conserva el temporizador al actualizar la jornada.
+- Las etiquetas de las rutinas tienen un área táctil mínima de 44 px.
+- La comprobación automática también se activa al cambiar los scripts de fuentes y sus dependencias.
+- Pruebas añadidas: medianoche sin recarga, conservación del día anterior, salto del reloj civil, rutinas dentro de la copia cifrada y rechazo íntegro de una restauración con rutinas distintas.
+- Validación local: backend, conservación, estados, tres pruebas Python y sintaxis. Chromium no arranca en este entorno (socket no permitido); la batería de navegador debe comprobarse en GitHub Actions sobre el nuevo commit.
+- No se ha accedido a registros personales, configurado Cloudflare ni desplegado producción. La sincronización entre dispositivos sigue pendiente del PR #12.
