@@ -18,6 +18,8 @@
   const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Más'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));
   const aliases = {'diario-menu':'mi-espacio'};
+  const visibleSectionLabel = document.getElementById('rumbo-current-section');
+  const routeLabels = new Map(Object.values(groups).flat().map(([id,label])=>[id,label]));
   const nav = document.createElement('nav');
   nav.className = 'rumbo-section-nav';
   nav.setAttribute('aria-label','Apartados de Rumbo');
@@ -50,6 +52,7 @@
   function show(route,scroll){
     active=route;
     const group=routeGroups.get(route)||'hoy';
+    if(visibleSectionLabel)visibleSectionLabel.textContent='Rumbo · '+(routeLabels.get(route)||groupTitles[group]);
     document.body.dataset.mobileView=group;
     document.body.dataset.mobileReady=mobile.matches?'true':'false';
     document.body.dataset.rumboRoute=route;
