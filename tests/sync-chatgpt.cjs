@@ -44,4 +44,3 @@ const assert=require('node:assert/strict');
     console.log('Rumbo ChatGPT: cifrado, descarga, importación y deduplicación OK');
   } finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
-

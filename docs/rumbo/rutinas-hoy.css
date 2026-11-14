@@ -17,3 +17,4 @@
 .routine-message{font-size:.84rem;margin:8px 0 0;color:#25435b;min-height:1.2em}
 .routine-footnote{margin-top:13px}
 @media(max-width:720px){.routine-panel{padding:15px}.routine-head{flex-direction:column;gap:8px}.routine-grid{grid-template-columns:1fr;gap:16px}.routine-actions button{min-height:44px}}
+.routine-panel [hidden]{display:none!important}

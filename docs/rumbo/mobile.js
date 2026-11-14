@@ -4,7 +4,7 @@
   const links = [...document.querySelectorAll('[data-mobile-tab]')];
   const paths = {
     oposiciones: new Set(['convocatorias','favoritos','apuntes-estudio']),
-    diario: new Set(['ev-diary','ev-training','mi-evolucion','rumbo-chatgpt-sync','historial-rumbo','diario-menu']),
+    diario: new Set(['mi-espacio','ev-diary','ev-training','mi-evolucion','rumbo-chatgpt-sync','historial-rumbo','diario-menu']),
     mas: new Set(['productividad','proyectos','metricas-personales','copias-rumbo'])
   };
   function screenFor(hash) {

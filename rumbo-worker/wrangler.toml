@@ -4,7 +4,7 @@ compatibility_date = "2026-01-01"
 workers_dev = true
 
 [vars]
-ALLOWED_ORIGIN = "https://josearial-creator.github.io"
+ALLOWED_ORIGIN = "https://josearial-creator.github.io,https://oposicvigo.vercel.app,https://josearial-creatorgithubio.vercel.app"
 # Fail closed until the owner verifies BOTH accounts have no billing enabled.
 FREE_TIER_CONFIRMED = "false"
 
