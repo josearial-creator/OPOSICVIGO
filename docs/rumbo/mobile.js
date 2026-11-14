@@ -59,7 +59,8 @@
       else tab.removeAttribute('aria-current');
     }
     renderNav(group,route);
-    document.body.classList.add('rumbo-separated');
+    // En ordenador, la portada conserva el resumen inicial; elegir un apartado activa su pantalla exclusiva.
+    document.body.classList.toggle('rumbo-separated',mobile.matches||Boolean(location.hash));
     if(scroll)requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));
   }
   function fromHash(){
