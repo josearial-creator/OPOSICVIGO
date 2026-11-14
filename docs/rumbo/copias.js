@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const root=document.getElementById('copias-rumbo');if(!root)return;
-const KEYS=['rumbo-replica-v1','rumbo-asistente-v1','rumbo-organizacion-v1','rumbo-evolucion-v1','rumbo-historial-importado-v1'];
+const KEYS=['rumbo-replica-v1','rumbo-asistente-v1','rumbo-organizacion-v1','rumbo-evolucion-v1','rumbo-historial-importado-v1','rumbo-rutinas-hoy-v1'];
 const enc=new TextEncoder(),dec=new TextDecoder();
 root.innerHTML=`<h2>Copias privadas y aplicación instalable</h2>
 <p>Guarda una copia cifrada de las convocatorias favoritas, notas, tareas, proyectos y registros de evolución de este navegador. Puedes trasladarla manualmente a otro dispositivo. No hay sincronización automática con la nube.</p>
@@ -42,6 +42,7 @@ function validData(d){
     if(k==='rumbo-organizacion-v1'&&(v.version!==1||!Array.isArray(v.projects)))return false;
     if(k==='rumbo-evolucion-v1'&&(v.version!==1||!Array.isArray(v.sessions)||!Array.isArray(v.real)))return false;
     if(k==='rumbo-historial-importado-v1'&&(v.version!==1||!Array.isArray(v.entries)||v.entries.some(e=>!e||typeof e.id!=='string'||!['reflection','situation','quick'].includes(e.kind)||!e.payload||typeof e.payload!=='object')))return false;
+    if(k==='rumbo-rutinas-hoy-v1'&&(v.version!==1||!v.days||typeof v.days!=='object'||Array.isArray(v.days)||Object.keys(v.days).length>730||Object.entries(v.days).some(([day,item])=>!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day)||!item||!Array.isArray(item.routines)||!Array.isArray(item.pauses))))return false;
   }
   return true;
 }
@@ -77,6 +78,10 @@ $('backup-import').addEventListener('click',async()=>{
     const restored=JSON.parse(dec.decode(plain));if(!validData(restored))throw Error('Estructura de los datos no válida.');
     const raw=Object.fromEntries(Object.entries(restored.stores).map(([k,v])=>[k,JSON.stringify(v)]));
     if(Object.values(raw).some(x=>x.length>4000000))throw Error('Datos demasiado grandes.');
+    // El nuevo registro de rutinas nunca se sustituye en silencio durante una restauración.
+    const routinesKey='rumbo-rutinas-hoy-v1',storedRoutines=localStorage.getItem(routinesKey);
+    if(raw[routinesKey]&&storedRoutines&&JSON.stringify(JSON.parse(storedRoutines))!==JSON.stringify(JSON.parse(raw[routinesKey])))
+      throw Error('Las rutinas del navegador y las de la copia son diferentes. Exporta ambas antes de resolver el conflicto: no se han sobrescrito.');
     if(!confirm('¿Recuperar esta copia? Las demás secciones se sustituirán. El historial privado solo añadirá registros nuevos y conservará los existentes.')){status('Recuperación cancelada sin cambios.');return;}
     const HISTORY='rumbo-historial-importado-v1';
     const previous=Object.fromEntries(KEYS.filter(k=>k!==HISTORY).map(k=>[k,localStorage.getItem(k)]));

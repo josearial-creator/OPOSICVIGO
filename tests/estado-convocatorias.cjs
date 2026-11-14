@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const code=fs.readFileSync(path.join(__dirname,'../docs/rumbo/app.js'),'utf8');
+const sandbox=vm.createContext({window:{addEventListener(){}},document:{getElementById:()=>({})}});
+vm.runInContext(code,sandbox);
+const status=r=>vm.runInContext('statusType('+JSON.stringify(r)+')',sandbox);
+const full={puesto:'Auxiliar',estado:'En fase de presentación de solicitudes',inicio:'2000-01-01',fin:'2099-12-31'};
+assert.equal(status(full),'abierta');
+assert.equal(status({...full,inicio:undefined}),'verificar','No se puede afirmar apertura sin comienzo');
+assert.equal(status({...full,fin:undefined}),'verificar','No se puede afirmar apertura sin fin');
+assert.equal(status({...full,fin:'2099-02-30'}),'verificar','Las fechas imposibles deben rechazarse');
+assert.equal(status({...full,fin:'2001-01-01'}),'cerrada','Una fecha vencida no puede anunciarse como abierta');
+assert.equal(status({...full,inicio:'2098-01-01'}),'pendiente','Una fecha futura todavía no está abierta');
+assert.equal(status({...full,_rumboFeedMissing:true}),'verificar','Un registro histórico no prueba la apertura');
+assert.equal(status({...full,estado:'Revisión de solicitudes'}),'seguimiento');
+assert.equal(status({...full,inscripcion:'Por verificar'}),'verificar');
+assert.equal(status({...full,inscripcion:'Cerrada'}),'cerrada');
+assert.equal(status({...full,estado:'No indicado',inscripcion:'Abierta',inicio:'01/01/2000',fin:'31/12/2099'}),'abierta');
+assert.equal(vm.runInContext("safeUrl('javascript:alert(1)')",sandbox),null,'Nunca abrir esquemas ejecutables');
+// La identidad de ficha debe mantenerse independiente del enlace profundo recién extraído.
+const keyBefore=vm.runInContext('recordKey('+JSON.stringify({...full,organismo:'Concello de Vigo',fuente:'https://sede.vigo.org/expedientes/oposicions/buscador_plazas.jsp?lang=es'})+')',sandbox);
+const keyAfter=vm.runInContext('recordKey('+JSON.stringify({...full,organismo:'Concello de Vigo',fuente:'https://sede.vigo.org/expedientes/oposicions/buscador_plazas.jsp?lang=es',fuente_detalle:'https://sede.vigo.org/expedientes/oposicions/plaza.jsp?id=754&lang=es'})+')',sandbox);
+assert.equal(keyAfter,keyBefore,'El enlace detallado no debe perder favoritos ni notas');
+console.log('PASS estados: fechas comprobables, vencimiento, registros históricos, URLs y clave estable.');
