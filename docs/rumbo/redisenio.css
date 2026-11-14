@@ -208,3 +208,38 @@ footer{margin-top:34px;color:#7b8997}
  .hero-ctas a{flex-basis:100%}
 }
 @media(prefers-reduced-motion:reduce){button,a,input,select,textarea{transition:none!important}.quick-action:hover,.hero-cta-primary:hover{transform:none}}
+
+
+/* Rumbo: navegación real por apartados independientes.
+   Se ocultan paneles, nunca se borran ni migran datos del navegador. */
+body.rumbo-separated .page > .rumbo-section-hidden,
+body.rumbo-separated .page > .ev-mobile-tree{display:none!important}
+.rumbo-section-nav{background:#fff;border:1px solid #dce6ef;border-radius:17px;padding:16px 18px;margin:0 0 18px;box-shadow:0 4px 16px rgba(18,46,70,.055)}
+.rumbo-section-title{font-size:17px;font-weight:800;margin:0 0 12px;color:#233a53;letter-spacing:-.25px}
+.rumbo-section-links{display:flex;flex-wrap:wrap;gap:8px}
+.rumbo-section-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #dce8ee;border-radius:11px;padding:10px 13px;background:#f8fafc;color:#35546b;font-size:13px;font-weight:700;line-height:1.3;text-align:center;overflow-wrap:anywhere}
+.rumbo-section-links a:hover{background:#ecf5fa}
+.rumbo-section-links a[aria-current=page]{border-color:#a4e1d5;background:#e4f8f3;color:#086a60;box-shadow:inset 0 -2px #1aa596}
+.rumbo-section-links a:focus-visible{outline:3px solid #8ac2ed;outline-offset:2px}
+/* "Diario" y "Entrenar" son apartados propios dentro de Mi evolución. */
+body.rumbo-separated[data-rumbo-route="ev-diary"] #mi-evolucion > .panel-head,
+body.rumbo-separated[data-rumbo-route="ev-training"] #mi-evolucion > .panel-head,
+body.rumbo-separated[data-rumbo-route="ev-diary"] #mi-evolucion .ev-body > :not(#ev-diary),
+body.rumbo-separated[data-rumbo-route="ev-training"] #mi-evolucion .ev-body > :not(#ev-training),
+body.rumbo-separated[data-rumbo-route="mi-evolucion"] #ev-diary,
+body.rumbo-separated[data-rumbo-route="mi-evolucion"] #ev-training{display:none!important}
+body.rumbo-separated[data-rumbo-route="ev-diary"] #mi-evolucion,
+body.rumbo-separated[data-rumbo-route="ev-training"] #mi-evolucion{padding-top:0}
+#mi-espacio{padding:22px 20px;min-width:0;overflow-wrap:anywhere}
+#mi-espacio .esp-login label{min-width:0}
+#mi-espacio #esp-password{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:46px;margin-top:7px;padding:10px 12px;border:1px solid #abc1d2;border-radius:10px;font:inherit;font-size:16px}
+@media(max-width:560px){
+ .rumbo-section-nav{margin:0 0 13px;padding:14px 12px;border-radius:15px}
+ .rumbo-section-title{font-size:16px;margin-bottom:10px}
+ .rumbo-section-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .rumbo-section-links a{padding:9px 5px;min-width:0;min-height:49px;font-size:12px}
+ #mi-espacio{padding:18px 15px}
+ #mi-espacio .esp-login{min-width:0;max-width:100%}
+ #mi-espacio .esp-login .button{max-width:100%;white-space:normal}
+}
+@media(max-width:350px){.rumbo-section-links{grid-template-columns:repeat(2,minmax(0,1fr))}}

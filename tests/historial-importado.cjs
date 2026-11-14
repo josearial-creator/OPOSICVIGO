@@ -48,7 +48,7 @@ await preview.reload();await preview.close();
 await page.goto('http://127.0.0.1:8086/#historial-rumbo');
 await page.locator('#historial-rumbo').waitFor({state:'visible'});
 assert.equal(await page.locator('[data-mobile-tab="diario"]').getAttribute('aria-current'),'page');
-await page.locator('[data-mobile-tab="diario"]').click();
+await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 await page.locator('#historial-rumbo').waitFor({state:'visible'});
 const imported={type:'rumbo-migracion-local-v1',version:1,reflections:[
 {id:'ref1',date:'2026-11-10',title:'Ejemplo <img src=x onerror=alert(1)>',summary:'Resumen <script>peligro</script>',reported:'Palabras de prueba',conversationUrl:'https://chatgpt.com/c/abc'},
@@ -67,7 +67,7 @@ assert.equal(await page.locator('#historic-situations').innerText(),'1');
 assert.equal(await page.locator('#historic-quick').innerText(),'1');
 assert.equal(await page.locator('#historial-rumbo img').count(),0);
 assert.equal(await page.locator('#historial-rumbo script').count(),0);
-await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 await page.locator('#historic-files').setInputFiles(file);await page.locator('#historic-import').click();
 await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/i}).waitFor();
@@ -87,16 +87,16 @@ const download=page.waitForEvent('download');await page.locator('#historic-expor
 assert.equal((await download).suggestedFilename(),'rumbo-historial-recuperado.json');
 // La actualización de estilos o la eliminación accidental de la clave local no borra el archivo separado.
 await page.evaluate(()=>localStorage.removeItem('rumbo-historial-importado-v1'));
-await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 await page.locator('#historic-status').filter({hasText:/historial está archivado/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'0');
 // Una copia cifrada no debe ocultar que existen cuatro registros archivados.
-await page.locator('[data-mobile-tab="mas"]').click();
+await page.locator('[data-mobile-tab="mas"]').click();await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
 await page.locator('#backup-export').click();
 await page.locator('#backup-status').filter({hasText:/Hay registros archivados que no están en la pantalla/}).waitFor();
-await page.locator('[data-mobile-tab="diario"]').click();
+await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 await page.locator('#historic-vault-restore').click();
 await page.locator('#historic-status').filter({hasText:/Recuperación verificada: 4 entradas restauradas/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
@@ -110,7 +110,7 @@ assert.equal(altered,true);
 assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),preserved);
 // Una copia cifrada antigua puede recuperar otros módulos, pero no borrar
 // un registro añadido después al historial.
-await page.locator('[data-mobile-tab="mas"]').click();
+await page.locator('[data-mobile-tab="mas"]').click();await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
 const pendingDownload=page.waitForEvent('download');
@@ -128,9 +128,9 @@ page.once('dialog',dialog=>dialog.accept());
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-import').click();
 await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rumbo-historial-importado-v1')||'{}').entries?.length===5);
-await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'5');
-await page.reload();await page.locator('[data-mobile-tab="diario"]').click();
+await page.reload();await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'5');
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
 assert.deepEqual(errors,[]);
