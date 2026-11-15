@@ -6,6 +6,7 @@ const {chromium}=require('playwright');
   const context=await browser.newContext({serviceWorkers:'block'});
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  await page.clock.setFixedTime(new Date('2026-11-14T10:00:00'));
   await page.route('https://raw.githubusercontent.com/**',r=>r.abort());
   await page.goto('http://127.0.0.1:8086/');
   await page.locator('#routine-start').waitFor();
