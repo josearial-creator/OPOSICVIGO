@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.join(__dirname,'../docs/rumbo');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const mobile=fs.readFileSync(path.join(root,'mobile.js'),'utf8');
+const js=fs.readFileSync(path.join(root,'anytype-link.js'),'utf8');
+assert.match(html,/src="anytype-link\.js"/);
+assert.match(html,/class="nav-link rumbo-anytype-link"/);
+assert.match(mobile,/external\.className='rumbo-anytype-link'/);
+assert.match(mobile,/if\(group==='mas'\)/);
+assert.match(js,/url\.protocol==='https:'/);
+assert.match(js,/url\.hostname==='object\.any\.coop'/);
+assert.match(js,/noopener noreferrer/);
+assert.match(js,/localStorage\.setItem\(key,url\)/);
+assert.doesNotMatch(html+mobile+js,/bafyreigzx4fwpdfnni4waf5w3lsqlcsyfqk3uplzilrepymw5ni4oscp4y/);
+console.log('PASS: enlaces escritorio/móvil, validación HTTPS, aislamiento del enlace personal.');
