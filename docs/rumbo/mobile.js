@@ -54,9 +54,9 @@
       external.textContent='Anytype ↗';
       external.setAttribute('aria-label','Abrir Anytype en una pestaña nueva');
       links.append(external);
-      window.RumboAnytypeRefresh?.();
     }
     nav.replaceChildren(h,links);
+    window.RumboAnytypeRefresh?.();
   }
   function show(route,scroll){
     active=route;
