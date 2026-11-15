@@ -30,6 +30,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.evaluate(()=>window.RumboSession.available()),true);
   assert.equal(await page.evaluate(()=>JSON.stringify(localStorage).includes('contraseña-ficticia')),false);
   assert.equal(await reuse.isDisabled(),false);
+  await page.locator('#test-session-ai details summary').click();
   await reuse.click();
   const ai=page.locator('#test-session-ai');
   assert.equal(await ai.locator('input[type=password]').inputValue(),secret);
