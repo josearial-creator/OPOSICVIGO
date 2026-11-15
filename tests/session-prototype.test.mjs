@@ -19,13 +19,14 @@ test('sesión: la contraseña no aparece en cookie y el token no está en respue
  assert.equal(entries.size,1);
  const body=await res.json();assert.ok(body.csrf);assert.ok(!JSON.stringify(body).includes(secret));
  assert.equal((await api(req('/session','GET',{cookie:cookie.split(';')[0]}))).status,200);
+ assert.equal((await api(new Request(origin+'/session',{headers:{Cookie:cookie.split(';')[0]}}))).status,200,'GET normal de navegador no envía Origin');
 });
 test('rechaza origen ajeno, contraseña errónea y solicitud sin HTTPS',async()=>{
  const {api,entries}=create();
  assert.equal((await api(req('/session/login','POST',{originHeader:'https://evil.test'}))).status,403);
  assert.equal((await api(req('/session/login','POST',{password:'mal'}))).status,401);
  assert.equal(entries.size,0);
- const insecure=req('/session');assert.equal((await api(new Request('http://rumbo.example.test/session',{headers:{Origin:origin}}))).status,403);
+ assert.equal((await api(new Request('http://rumbo.example.test/session',{headers:{Origin:origin}}))).status,403);
 });
 test('logout exige CSRF y revoca la sesión inmediatamente',async()=>{
  const {api,entries}=create();
