@@ -45,6 +45,17 @@
       if(id===route)a.setAttribute('aria-current','page');
       links.append(a);
     }
+    if(group==='mas'){
+      const external=document.createElement('a');
+      external.className='rumbo-anytype-link';
+      external.href='https://object.any.coop/';
+      external.target='_blank';
+      external.rel='noopener noreferrer';
+      external.textContent='Anytype ↗';
+      external.setAttribute('aria-label','Abrir Anytype en una pestaña nueva');
+      links.append(external);
+      window.RumboAnytypeRefresh?.();
+    }
     nav.replaceChildren(h,links);
   }
   function show(route,scroll){
