@@ -99,7 +99,7 @@ $('esp-connect').addEventListener('click',async()=>{
  const pass=$('esp-password').value;
  if(!pass){mark('Introduce la contraseña privada.');return;}
  token=pass;lock(true);
- try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');}
+ try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');window.RumboSession?.unlock(pass);}
  catch(e){token='';mark('No se pudo acceder: '+e.message);}
  finally{lock(false);}
 });
@@ -107,7 +107,7 @@ $('esp-disconnect').addEventListener('click',async()=>{
  if(busy)return;clearTimeout(timer);stopDictation();lock(true);
  try{if(dirty)await persistDraft($('esp-text').value);await saveQueue;}
  catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return;}
- token='';key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
+ token='';window.RumboSession?.lock();key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
  $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-disconnect').hidden=true;$('esp-text').value='';mark('Sesión cerrada.');lock(false);
 });
 $('esp-save').addEventListener('click',async()=>{
