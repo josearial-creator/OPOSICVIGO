@@ -8,14 +8,26 @@ const mark=t=>{$('esp-status').textContent=t;};
 root.innerHTML=`
 <div class="esp-header"><div><div class="eyebrow">PERSONAL Y PRIVADO</div><h2>Mi espacio</h2><p>Escribe lo que necesites, sin categorías obligatorias.</p></div></div>
 <div class="esp-login">
- <label>Contraseña privada de Rumbo<input id="esp-password" type="password" autocomplete="off" placeholder="Contraseña para acceder a tus anotaciones"></label>
- <button id="esp-connect" class="button primary" type="button">Acceder a mis anotaciones</button>
- <button id="esp-disconnect" class="button secondary" type="button" hidden>Salir</button>
- <p class="assistant-muted">El acceso se comprueba en el servidor. La contraseña permanece en memoria durante esta sesión.</p>
+ <div id="esp-login-form" class="esp-login-form">
+  <label for="esp-password">Contraseña privada de Rumbo</label>
+  <div class="esp-login-fields">
+   <input id="esp-password" type="password" autocomplete="off" placeholder="Introduce tu contraseña privada">
+   <button id="esp-connect" class="button primary" type="button">Entrar a Mi espacio</button>
+  </div>
+  <p class="assistant-muted">La contraseña se comprueba en el servidor y solo permanece en memoria durante esta sesión.</p>
+ </div>
+ <div id="esp-session" class="esp-session" hidden role="status" aria-live="polite">
+  <span class="esp-session-dot" aria-hidden="true"></span>
+  <div class="esp-session-description">
+   <strong>Sesión privada abierta</strong>
+   <small id="esp-session-count">Anotaciones disponibles</small>
+  </div>
+  <button id="esp-disconnect" class="button secondary" type="button" hidden>Cerrar sesión</button>
+ </div>
 </div>
 <div id="esp-private" hidden>
  <label for="esp-text">¿Qué tienes en mente?</label>
- <textarea id="esp-text" rows="8" maxlength="10000" placeholder="¿Qué tienes en mente?"></textarea>
+ <textarea id="esp-text" rows="5" maxlength="10000" aria-describedby="esp-draft-status" placeholder="Empieza a escribir aquí…"></textarea>
  <div class="esp-actions">
   <button id="esp-save" class="button primary" type="button">Guardar</button>
   <button id="esp-new" class="button secondary" type="button" hidden>Nueva anotación</button>
@@ -23,7 +35,7 @@ root.innerHTML=`
  </div>
  <p class="assistant-muted" id="esp-draft-status">El borrador se conserva cifrado en este navegador.</p>
  <div id="esp-mood" hidden><span>Si quieres, ¿cómo te encuentras?</span><div class="esp-actions"><button type="button" data-mood="bien" class="button secondary">Bien</button><button type="button" data-mood="regular" class="button secondary">Regular</button><button type="button" data-mood="mal" class="button secondary">Mal</button><button type="button" data-mood="" class="button secondary">Omitir</button></div></div>
- <h3>Anotaciones recientes</h3>
+ <div class="esp-list-heading"><h3>Anotaciones recientes</h3><span id="esp-count" aria-live="polite">0 anotaciones</span></div>
  <div id="esp-list"></div>
  <div class="esp-actions"><button id="esp-export" type="button" class="button secondary">Exportar mis anotaciones</button><button id="esp-delete-all" type="button" class="button secondary">Eliminar todas mis anotaciones</button></div>
 </div>
@@ -79,6 +91,9 @@ $('esp-text').addEventListener('input',()=>{
 });
 async function load(){const data=await api();notes=data.notes;render();}
 function render(){
+ const amount=notes.length, summary=amount+' '+(amount===1?'anotación':'anotaciones');
+ $('esp-count').textContent=summary;
+ $('esp-session-count').textContent=summary+' disponibles en el servidor';
  const list=$('esp-list');list.replaceChildren();
  if(!notes.length){const p=document.createElement('p');p.textContent='Aún no hay anotaciones.';list.append(p);return;}
  for(const n of notes){
@@ -94,12 +109,13 @@ function render(){
   card.append(actions);list.append(card);
  }
 }
+$('esp-password').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();$('esp-connect').click();}});
 $('esp-connect').addEventListener('click',async()=>{
  if(busy)return;
  const pass=$('esp-password').value;
  if(!pass){mark('Introduce la contraseña privada.');return;}
  token=pass;lock(true);
- try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');}
+ try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-form').hidden=true;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');}
  catch(e){token='';mark('No se pudo acceder: '+e.message);}
  finally{lock(false);}
 });
@@ -108,7 +124,7 @@ $('esp-disconnect').addEventListener('click',async()=>{
  try{if(dirty)await persistDraft($('esp-text').value);await saveQueue;}
  catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return;}
  token='';key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
- $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-disconnect').hidden=true;$('esp-text').value='';mark('Sesión cerrada.');lock(false);
+ $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;$('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';mark('Sesión cerrada.');lock(false);
 });
 $('esp-save').addEventListener('click',async()=>{
  if(busy)return;
