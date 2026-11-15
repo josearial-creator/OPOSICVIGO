@@ -11,3 +11,34 @@
 @media(max-width:360px){.esp-actions{grid-template-columns:1fr}}
 
 #mi-espacio [hidden]{display:none!important}
+
+/* Acceso claro: tras autenticarse solo se muestra el estado de la sesión. */
+#mi-espacio .esp-login{display:block}
+#mi-espacio .esp-login-form{width:100%}
+#mi-espacio .esp-login-form>label{display:block;font-weight:700;margin-bottom:8px}
+#mi-espacio .esp-login-fields{display:flex;align-items:stretch;gap:10px}
+#mi-espacio .esp-login-fields input{flex:1;min-width:0;min-height:48px;padding:12px 14px;border:1px solid #aebdc5;background:#fff;color:#172c3b}
+#mi-espacio .esp-login-fields .button{min-height:48px}
+#mi-espacio .esp-login-form .assistant-muted{margin:9px 0 0;line-height:1.45}
+#mi-espacio .esp-session{display:flex;align-items:center;gap:12px;border:1px solid #b7dbd3;border-radius:13px;background:#eff9f5;padding:13px 15px}
+#mi-espacio .esp-session-dot{flex:0 0 10px;width:10px;height:10px;border-radius:50%;background:#0c766c;box-shadow:0 0 0 4px #d9eee7}
+#mi-espacio .esp-session-description{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+#mi-espacio .esp-session-description strong{color:#184b43;font-size:15px}
+#mi-espacio .esp-session-description small{color:#365b59}
+#mi-espacio .esp-session .button{flex:0 0 auto}
+#mi-espacio textarea{min-height:155px;border-width:1px;border-color:#aabcc3;box-shadow:0 1px 3px rgba(25,48,69,.04);transition:border-color .15s}
+#mi-espacio textarea:focus{border-color:#0b7d74}
+#mi-espacio .esp-list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:27px;border-top:1px solid #e2e7e8;padding-top:14px}
+#mi-espacio .esp-list-heading h3{margin:0}
+#mi-espacio #esp-count{font-size:13px;color:#526c72}
+#mi-espacio .esp-note{box-shadow:0 3px 14px rgba(25,48,69,.045)}
+#mi-espacio #esp-draft-status{line-height:1.45}
+#mi-espacio #esp-delete-all{color:#8f3935;border-color:#e5c6c2}
+#mi-espacio #esp-delete-all:hover{background:#fff2f0}
+@media(max-width:700px){
+ #mi-espacio .esp-login-fields{display:grid;grid-template-columns:minmax(0,1fr)}
+ #mi-espacio .esp-login-fields input{width:100%;box-sizing:border-box}
+ #mi-espacio .esp-session{flex-wrap:wrap}
+ #mi-espacio .esp-session .button{margin-left:auto}
+ #mi-espacio textarea{min-height:175px}
+}
