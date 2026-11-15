@@ -8,7 +8,7 @@ const random=()=>{const a=crypto.getRandomValues(new Uint8Array(32));return [...
 const eq=(a,b)=>{const x=enc.encode(a),y=enc.encode(b);let bad=x.length^y.length;const len=Math.max(x.length,y.length);for(let i=0;i<len;i++)bad|=(x[i]||0)^(y[i]||0);return bad===0;};
 const json=(status,body,headers={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const clearCookie='__Host-rumbo-session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0';
-const cookie=value=>`__Host-rumbo-session=${value}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=2592000`;
+const cookie=(value,ageSeconds)=>`__Host-rumbo-session=${value}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${ageSeconds}`;
 function parseCookie(request){const raw=request.headers.get('Cookie')||'';const match=raw.match(/(?:^|;\s*)__Host-rumbo-session=([a-f0-9]{64})(?:;|$)/);return match?.[1]||null;}
 async function readSession(request,store,now){
  const id=parseCookie(request);if(!id)return null;
@@ -18,7 +18,7 @@ async function readSession(request,store,now){
 }
 function checkOrigin(request,apiOrigin){
  const target=new URL(request.url);
- return target.protocol==='https:'&&target.origin===apiOrigin&&request.headers.get('Origin')===apiOrigin;
+ return target.protocol==='https:'&&target.origin===apiOrigin&&(request.method==='GET'?!request.headers.has('Origin')||request.headers.get('Origin')===apiOrigin:request.headers.get('Origin')===apiOrigin);
 }
 export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000}){
  if(!store||!['get','put','delete'].every(n=>typeof store[n]==='function'))throw Error('Se requiere almacén coherente y revocable');
@@ -44,7 +44,7 @@ export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),ma
    await store.put(hash,{expiresAt,csrf});
    if(prior)await store.delete(prior.hash);
    // csrf permanece solo en memoria del frontend, NO en localStorage.
-   return json(200,{authenticated:true,expiresAt,csrf},{'Set-Cookie':cookie(id)});
+   return json(200,{authenticated:true,expiresAt,csrf},{'Set-Cookie':cookie(id,Math.ceil(maxAgeMs/1000))});
   }
   const session=await readSession(request,store,clock());
   if(!session)return json(401,{error:'Sesión no válida'},{'Set-Cookie':clearCookie});
