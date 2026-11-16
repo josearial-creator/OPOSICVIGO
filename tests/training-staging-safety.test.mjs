@@ -6,7 +6,7 @@ const code=readFileSync(new URL('../scripts/verify-training-cloudflare-isolated.
 
 test('el Worker de prueba tiene nombre restringido y no utiliza el de producción',()=>{
  assert.match(code,/const staging=String\(process\.env\.PR36_STAGING_WORKER_NAME\|\|''\)\.trim\(\)/);
- assert.match(code,/rumbo-entrenamiento-pr36-test2/);
+ assert.match(code,/if\(staging!=='snowy-river-c4rumbo-entrenamiento-pr36-test2a6'\)/);
  assert.match(code,/if\(bindings\.length>0\)throw Error/);
  assert.doesNotMatch(code,/const staging='rumbo-entrenador'/);
 });
