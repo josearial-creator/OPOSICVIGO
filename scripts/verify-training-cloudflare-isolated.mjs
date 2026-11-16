@@ -81,7 +81,21 @@ try{
  // No D1 binding; separate KV; never any production secrets.
  workerCreated=true;
  wrangler(['deploy','--config','release-training-test.generated.json']);
- wrangler(['secret','put','RUMBO_ACCESS_TOKEN','--name',scriptName],password);
+ // Install the temporary password using the Cloudflare API, not Wrangler's default config.
+ // The default wrangler.toml belongs to production and must never be used for secrets.
+ await cloudflare(workerUrl+'/secrets','PUT',{type:'secret_text',name:'RUMBO_ACCESS_TOKEN',text:password});
+ const settings=await cloudflare(workerUrl+'/settings');
+ if(!settings.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'))throw Error('Staging secret binding not confirmed');
+ if(!settings.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId))throw Error('Staging KV binding not confirmed');
+ // A newly deployed Worker version may take a few moments to become active globally.
+ let ready=false;
+ for(let i=0;i<20;i++){
+  const r=await req('GET','/training',null,origin,false);
+  if(r.status===401){ready=true;break;}
+  if(r.status!==503)throw Error('Unexpected authentication readiness status: '+r.status);
+  await new Promise(resolve=>setTimeout(resolve,1500));
+ }
+ if(!ready)throw Error('Staging authentication was not ready after controlled retries.');
  await smoke();
 }catch(e){console.error('Staging test failed: '+e.message);process.exitCode=1;
 }finally{
