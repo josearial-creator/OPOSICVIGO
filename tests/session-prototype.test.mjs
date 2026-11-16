@@ -55,3 +55,23 @@ test('falla cerrado si falta almacén consistente o secreto',()=>{
  assert.throws(()=>createSessionApi({store:{},secret,apiOrigin:origin}));
  assert.throws(()=>createSessionApi({store:{get(){},put(){},delete(){}},secret:'short',apiOrigin:origin}));
 });
+
+test('bloqueo de intentos de contraseña y fallo cerrado del limitador',async()=>{
+ const entries=new Map(),attempts=new Map(),calls=[];
+ const store={get:async k=>entries.get(k),put:async(k,v)=>entries.set(k,v),delete:async k=>entries.delete(k)};
+ const limiter={
+  clientId:async()=> 'trusted-client-id',
+  check:async id=>(attempts.get(id)||0)<2,
+  recordFailure:async id=>{calls.push('failure');attempts.set(id,(attempts.get(id)||0)+1);},
+  recordSuccess:async id=>{calls.push('success');attempts.delete(id);}
+ };
+ const api=createSessionApi({store,secret,apiOrigin:origin,loginLimiter:limiter});
+ assert.equal((await api(req('/session/login','POST',{password:'wrong1'}))).status,401);
+ assert.equal((await api(req('/session/login','POST',{password:'wrong2'}))).status,401);
+ assert.equal((await api(req('/session/login','POST',{password:secret}))).status,429);
+ assert.deepEqual(calls,['failure','failure']);
+ assert.equal(entries.size,0);
+ const unavailable=createSessionApi({store,secret,apiOrigin:origin,loginLimiter:{...limiter,check:async()=>{throw Error('limiter offline');}}});
+ assert.equal((await unavailable(req('/session/login','POST'))).status,503);
+ assert.equal(entries.size,0);
+});
