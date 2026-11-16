@@ -165,7 +165,8 @@ function focusStart(){
  if(focus)return;
  const task=$('ps-task').value.trim();
  if(!task){message('ps-focus-message','Escribe la tarea que vas a realizar.');$('ps-task').focus();return;}
- focus={id:crypto.randomUUID(),task,started:Date.now(),end:Date.now()+1500000};
+ const started=Date.now();
+ focus={id:crypto.randomUUID(),task,started,end:started+1500000};
  try{localStorage.setItem(focusKey,JSON.stringify(focus));}catch{focus=null;message('ps-focus-message','No se pudo guardar el temporizador. Comprueba el almacenamiento.');return;}
  message('ps-focus-message','Una sola tarea. Deja Rumbo y otras actividades para después.');
  tickFocus();
