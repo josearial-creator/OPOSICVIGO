@@ -15,3 +15,7 @@ El propietario ha confirmado que sustituyó el token previamente expuesto y guar
 ## Reintento después de actualizar el secreto de GitHub
 
 El propietario confirma que ha actualizado `CLOUDFLARE_API_TOKEN` en Repository secrets tras el error de credenciales de la ejecución #13. Se solicita un único reintento del workflow ya revisado. Si no supera validación, no repetir automáticamente ni modificar notas privadas.
+
+## Activación controlada después del diagnóstico PR #35
+
+El PR #35 pasó GitHub Actions y se fusionó. Solicitud de un único intento con credenciales actuales, sin publicar secretos, sin fusionar PR #34 y sin activar funciones de pago. Si falla, inspeccionar el nuevo mensaje diagnóstico y no repetir el workflow automáticamente.
