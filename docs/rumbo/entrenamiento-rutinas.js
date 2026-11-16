@@ -28,7 +28,7 @@ style.textContent=`#ev-rutinas-abcd{margin:1.2rem 0;padding:1rem;border:1px soli
 #ev-rutinas-abcd table{width:100%;min-width:700px;border-collapse:collapse;font-size:.94rem}
 #ev-rutinas-abcd th,#ev-rutinas-abcd td{border:1px solid #dce4eb;padding:10px;text-align:left;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}
 #ev-rutinas-abcd th{background:#edf3f8}
-#ev-rutinas-abcd .er-hint{font-size:.9rem;color:#485c6b}
+#ev-rutinas-abcd .er-hint{font-size:.9rem;color:#485c6b}\n#er-archive{border-top:1px solid #dce4eb;margin-top:22px;padding:14px 0}\n#er-archive summary{cursor:pointer;font-weight:650;color:#475d6d}
 #ev-rutinas-abcd [role="status"]{min-height:1.4em}
 @media(max-width:620px){#ev-rutinas-abcd .er-form{grid-template-columns:1fr}#ev-rutinas-abcd{padding:12px}}`;
 document.head.appendChild(style);
@@ -84,6 +84,17 @@ function mount(){
 <p class="er-hint">Los registros se cifran en el navegador con la contraseña y se sincronizan con Cloudflare. La contraseña no se conserva al cerrar o recargar. Conserva la contraseña y una copia cifrada: sin ella no podrás recuperar los registros. Los 132 registros históricos y Mi espacio son independientes.</p>
 <div class="er-scroll"><table><thead><tr><th>Fecha y hora</th><th>Situación</th><th>Pensamiento</th><th>Emoción</th><th>Conducta</th><th>Acción</th></tr></thead><tbody id="er-body"></tbody></table></div><p id="er-empty">Todavía no hay registros.</p></div><p id="er-status" role="status" aria-live="polite"></p>`;
  parent.prepend(el);
+ // No eliminar las prácticas anteriores ni sus eventos guardados en localStorage.
+ // Se presentan plegadas para que la vista principal tenga solo las dos rutinas nuevas
+ // y el registro ABCD, sin duplicar botones de pausa.
+ const previous=parent.querySelector('#ps-app');
+ if(previous){
+  const archive=document.createElement('details');
+  archive.id='er-archive';
+  archive.innerHTML='<summary>Prácticas anteriores y sus registros (archivo)</summary>';
+  archive.appendChild(previous);
+  parent.appendChild(archive);
+ }
  let timer=null,step=0;
  el.querySelector('#er-pause').onclick=()=>{if(timer)clearInterval(timer);const until=Date.now()+10000;const button=el.querySelector('#er-pause');button.disabled=true;timer=setInterval(()=>{const t=Math.max(0,Math.ceil((until-Date.now())/1000));el.querySelector('#er-pause-state').textContent=t?`Quedan ${t} segundos`:'Pausa completada. Decide si cambias de tarea.';if(!t){clearInterval(timer);timer=null;button.disabled=false;}},200);};
  const steps=['Detenerme: detecto la urgencia.','Analizar: observo lo que ocurre.','Pensar: elijo una respuesta útil.','Ejecutar: realizo una acción.'];
