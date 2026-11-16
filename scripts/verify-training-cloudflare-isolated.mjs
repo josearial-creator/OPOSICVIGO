@@ -72,6 +72,10 @@ async function smoke(){
  throw Error('KV deletion was not confirmed.');
 }
 try{
+ // Preflight: check the account's existing workers.dev subdomain, without modifying it.
+ // Cloudflare error 10007 means Worker or workers.dev subdomain not found.
+ const sub=await cloudflare(`https://api.cloudflare.com/client/v4/accounts/${account}/workers/subdomain`);
+ if(!sub?.subdomain||sub.subdomain!=='jose-arial')throw Error('Configured workers.dev subdomain is absent or mismatched; no resources created.');
  // Fail closed if an old staging Worker already exists; never overwrite even staging.
  const check=await fetch(workerUrl,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
  if(check.status!==404)throw Error('Staging Worker name already exists or cannot verify absence; aborting (HTTP '+check.status+').');
