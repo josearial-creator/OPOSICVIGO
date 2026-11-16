@@ -20,11 +20,12 @@ function checkOrigin(request,apiOrigin){
  const target=new URL(request.url);
  return target.protocol==='https:'&&target.origin===apiOrigin&&(request.method==='GET'?!request.headers.has('Origin')||request.headers.get('Origin')===apiOrigin:request.headers.get('Origin')===apiOrigin);
 }
-export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000}){
+export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000,loginLimiter=null}){
  if(!store||!['get','put','delete'].every(n=>typeof store[n]==='function'))throw Error('Se requiere almacén coherente y revocable');
  if(!secret||secret.length<32)throw Error('Falta secreto de autenticación válido');
  if(!apiOrigin||new URL(apiOrigin).origin!==apiOrigin||!apiOrigin.startsWith('https://'))throw Error('Origen HTTPS explícito requerido');
  if(maxAgeMs<=0||maxAgeMs>2592000000)throw Error('Caducidad absoluta inválida');
+ if(loginLimiter&&(!['clientId','check','recordFailure','recordSuccess'].every(n=>typeof loginLimiter[n]==='function')))throw Error('Limitador de acceso incompleto');
  return async function handle(request){
   if(!checkOrigin(request,apiOrigin))return json(403,{error:'Origen no autorizado'});
   const path=new URL(request.url).pathname;
@@ -38,7 +39,20 @@ export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),ma
   if(path==='/session/login'){
    if(Number(request.headers.get('Content-Length')||0)>4096)return json(413,{error:'Solicitud demasiado grande'});
    let body;try{const raw=await request.text();if(raw.length>4096)throw Error();body=JSON.parse(raw);}catch{return json(400,{error:'Solicitud inválida'});}
-   if(typeof body?.password!=='string'||body.password.length>2048||!eq(body.password,secret))return json(401,{error:'Credenciales incorrectas'});
+   // En producción, el limitador DEBE utilizar un identificador de cliente fiable
+   // proporcionado por una infraestructura que impida suplantación de cabeceras.
+   // Sin dicha infraestructura no activar este prototipo.
+   let clientId;
+   if(loginLimiter){
+    try{clientId=await loginLimiter.clientId(request);if(!clientId||!await loginLimiter.check(clientId))return json(429,{error:'Demasiados intentos. Prueba más tarde.'});}
+    catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}
+   }
+   if(typeof body?.password!=='string'||body.password.length>2048||!eq(body.password,secret)){
+    if(loginLimiter){try{await loginLimiter.recordFailure(clientId);}catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}}
+    return json(401,{error:'Credenciales incorrectas'});
+   }
+   if(loginLimiter){try{await loginLimiter.recordSuccess(clientId);}catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}}
+
    const prior=await readSession(request,store,clock());
    const id=random(),hash=await digest(id),expiresAt=clock()+maxAgeMs,csrf=random();
    await store.put(hash,{expiresAt,csrf});
