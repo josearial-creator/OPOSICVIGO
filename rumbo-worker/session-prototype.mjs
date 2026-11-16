@@ -31,7 +31,7 @@ export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),ma
   const method=request.method;
   if(path==='/session'&&method==='GET'){
    const session=await readSession(request,store,clock());
-   return json(session?200:401,session?{authenticated:true,expiresAt:session.record.expiresAt}:{authenticated:false});
+   return json(session?200:401,session?{authenticated:true,expiresAt:session.record.expiresAt,csrf:session.record.csrf}:{authenticated:false});
   }
   if(method!=='POST'||!['/session/login','/session/logout'].includes(path))return json(404,{error:'Ruta no disponible'});
   if(request.headers.get('Content-Type')!=='application/json')return json(415,{error:'Se requiere JSON'});
