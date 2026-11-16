@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/preflight-training-production.mjs'
+      - 'scripts/release-training-production.mjs'
+      - '.github/workflows/release-training-production.yml'
       - '.github/workflows/preflight-training-production.yml'
       - 'rumbo-worker/worker.mjs'
       - 'rumbo-worker/training-api.mjs'
@@ -24,7 +26,9 @@ jobs:
         run: npm ci --ignore-scripts
         working-directory: rumbo-worker
       - name: Validar sintaxis del preflight
-        run: node --check scripts/preflight-training-production.mjs
+        run: |
+          node --check scripts/preflight-training-production.mjs
+          node --check scripts/release-training-production.mjs
       - name: Revisar bindings reales de producción y compilar sin desplegar
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
