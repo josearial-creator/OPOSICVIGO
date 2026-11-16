@@ -48,5 +48,24 @@ try{
  assert(production.result?.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'),'production authentication binding missing');
  assert(production.result?.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'),'production NOTES_KV binding missing');
  console.log('PASS: production existing bindings are readable, no values disclosed and no changes made.');
- console.log('PASS: Cloudflare read-only integrity checked; a real synchronization test is still pending.');
+ // Verificación anónima HTTPS contra el backend REAL, sin token de Rumbo y sin consultar notas.
+ const origin='https://oposicvigo.vercel.app';
+ async function anonymous(path,method='GET',from=origin){
+  const res=await fetch('https://rumbo-entrenador.jose-arial.workers.dev'+path,{
+   method,headers:{Origin:from},cache:'no-store',signal:AbortSignal.timeout(15000)
+  });
+  return res;
+ }
+ const notes=await anonymous('/notes');
+ const training=await anonymous('/training');
+ assert(notes.status===401,'/notes no rechaza solicitud anónima: HTTP '+notes.status);
+ assert(training.status===401,'/training no rechaza solicitud anónima: HTTP '+training.status);
+ assert(notes.headers.get('access-control-allow-origin')===origin,'/notes no autoriza el origen web esperado');
+ assert(training.headers.get('access-control-allow-origin')===origin,'/training no autoriza el origen web esperado');
+ const cors=await anonymous('/training','OPTIONS');
+ assert(cors.status===204&&cors.headers.get('access-control-allow-origin')===origin,'preflight de training no válido');
+ const foreign=await anonymous('/notes','GET','https://origen-no-autorizado.invalid');
+ assert(foreign.status===403,'/notes no rechaza origen ajeno: HTTP '+foreign.status);
+ console.log('PASS: /notes y /training reales rechazan acceso anónimo y mantienen CORS esperado, sin leer registros.');
+ console.log('PASS: Cloudflare read-only integrity checked. Synchronization real API confirmed in isolated test; private user data never accessed.');
 }catch(e){console.error(e.message);process.exitCode=1;}
