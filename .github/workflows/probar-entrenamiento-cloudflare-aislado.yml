@@ -1,7 +1,12 @@
 name: Probar Entrenamiento en Cloudflare aislado
-# Ensayo controlado: acepta HTTP 410 transitorio durante propagación de versiones
+# Ensayo controlado: Worker desechable validado por nombre; eliminación total en finally
 on:
   workflow_dispatch:
+    inputs:
+      staging_worker:
+        description: 'Nombre exacto del Worker temporal sin bindings (termina en rumbo-entrenamiento-pr36-test2)'
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -22,6 +27,7 @@ jobs:
         working-directory: rumbo-worker
       - name: Ejecutar pruebas reales con KV temporal y limpieza
         env:
+          PR36_STAGING_WORKER_NAME: ${{ inputs.staging_worker }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
         run: node scripts/verify-training-cloudflare-isolated.mjs
