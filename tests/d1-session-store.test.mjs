@@ -52,3 +52,14 @@ test('Prototipo + D1: login, comprobación y revocación; sin alterar anotacione
  assert.equal((await api(req('/session','GET',cookie))).status,401);
  assert.equal(db.rows.size,0);
 });
+
+test('D1: usa primario en cada consulta, incluso tras revocación en otra petición',async()=>{
+ const db=database(),hints=[];
+ db.withSession=hint=>{hints.push(hint);return {prepare:db.prepare.bind(db)};};
+ const store=createD1SessionStore(db,{clock:()=>now});
+ await store.put(h,{csrf,expiresAt:now+10000});
+ assert.ok(await store.get(h));
+ await store.delete(h);
+ assert.equal(await store.get(h),null);
+ assert.deepEqual(hints,['first-primary','first-primary','first-primary','first-primary']);
+});
