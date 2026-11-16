@@ -6,8 +6,8 @@ import {randomBytes,randomUUID,webcrypto} from 'node:crypto';
 
 const account='2bc103e4dec32961305599da77b877f6';
 const staging=String(process.env.PR36_STAGING_WORKER_NAME||'').trim();
-if(!/^[a-z0-9-]{0,25}rumbo-entrenamiento-pr36-test2$/.test(staging)||staging.length>63)
- throw Error('Nombre de Worker temporal inválido: debe terminar en rumbo-entrenamiento-pr36-test2.');
+if(staging!=='snowy-river-c4rumbo-entrenamiento-pr36-test2a6')
+ throw Error('Worker de prueba no autorizado: usar exactamente el nombre verificado en Cloudflare.');
 const origin='https://oposicvigo.vercel.app';
 const accountSubdomain='jose-arial';
 const base=`https://api.cloudflare.com/client/v4/accounts/${account}`;
