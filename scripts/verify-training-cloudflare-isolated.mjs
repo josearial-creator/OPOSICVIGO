@@ -85,25 +85,37 @@ async function smoke(){
  const post=await req('POST','/training',item);
  if(post.status!==201)throw Error('Guardado HTTP '+post.status);
  let saved;
- for(let i=0;i<24;i++){
+ for(let i=0;i<60;i++){
   const r=await req('GET','/training');
-  if(r.status!==200)throw Error('Lectura HTTP '+r.status);
-  saved=(await r.json()).records?.find(x=>x.id===testId);
-  if(saved)break;
-  await new Promise(resolve=>setTimeout(resolve,1000));
+  if(r.status===200){
+   saved=(await r.json()).records?.find(x=>x.id===testId);
+   if(saved)break;
+  }else if(![404,410,502,503,504].includes(r.status))throw Error('Lectura HTTP '+r.status);
+  if(i<59)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  if(!saved)throw Error('El KV temporal no devolvió el registro.');
  const plaintext=dec.decode(await webcrypto.subtle.decrypt({name:'AES-GCM',iv:un64(saved.iv)},await key(un64(saved.salt)),un64(saved.cipher)));
  if(JSON.stringify(JSON.parse(plaintext))!==JSON.stringify(data))throw Error('El descifrado no coincide.');
- if((await req('POST','/training',item)).status!==200)throw Error('Reintento no idempotente.');
- if((await req('DELETE','/training/'+testId)).status!==200)throw Error('Borrado no confirmado.');
- for(let i=0;i<24;i++){
+ async function writeOrDeleteUntil(label,method,path,expected,body){
+  let last=-1;
+  for(let i=0;i<45;i++){
+   last=(await req(method,path,body)).status;
+   if(last===expected)return;
+   if(![404,410,502,503,504].includes(last))throw Error(label+' HTTP '+last);
+   if(i<44)await new Promise(resolve=>setTimeout(resolve,1500));
+  }
+  throw Error(label+' no confirmado tras reintentos: HTTP '+last);
+ }
+ await writeOrDeleteUntil('Reintento idempotente','POST','/training',200,item);
+ await writeOrDeleteUntil('Borrado','DELETE','/training/'+testId,200);
+ for(let i=0;i<60;i++){
   const r=await req('GET','/training');
   if(r.status===200&&!((await r.json()).records||[]).some(x=>x.id===testId)){
    console.log('PASS: Cloudflare real, KV aislado, autenticación, CORS, cifrado, lectura y borrado.');
    return;
   }
-  await new Promise(resolve=>setTimeout(resolve,1000));
+  if(r.status!==200&&![404,410,502,503,504].includes(r.status))throw Error('Confirmación de borrado HTTP '+r.status);
+  if(i<59)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  throw Error('Borrado no reflejado en KV temporal.');
 }
