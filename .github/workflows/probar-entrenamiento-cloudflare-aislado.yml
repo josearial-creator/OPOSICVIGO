@@ -1,5 +1,5 @@
 name: Probar Entrenamiento en Cloudflare aislado
-# Ensayo único, solo en Worker temporal y después de verificaciones de seguridad
+# Ensayo controlado: acepta HTTP 410 transitorio durante propagación de versiones
 on:
   push:
     branches: [feature/entrenamiento-rutinas-registro-20261116]
