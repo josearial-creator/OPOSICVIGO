@@ -44,3 +44,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/test-training-staging.mjs
+
+# Ensayo controlado autorizado para PR36. Se crean y eliminan únicamente recursos de prueba.
