@@ -9,6 +9,7 @@ on:
       - 'tests/training-api.test.mjs'
       - 'tests/training-worker-auth.test.mjs'
       - 'tests/package.json'
+      - 'scripts/verify-training-cloudflare-isolated.mjs'
       - '.github/workflows/verificar-entrenamiento.yml'
   workflow_dispatch:
 permissions:
@@ -27,5 +28,6 @@ jobs:
           node --check docs/rumbo/entrenamiento-rutinas.js
           node --check rumbo-worker/training-api.mjs
           node --check rumbo-worker/worker.mjs
+          node --check scripts/verify-training-cloudflare-isolated.mjs
       - name: Probar almacenamiento cifrado y aislamiento del diario
         run: node --test tests/training-api.test.mjs tests/training-worker-auth.test.mjs
