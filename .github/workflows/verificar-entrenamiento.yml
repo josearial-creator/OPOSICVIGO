@@ -10,6 +10,7 @@ on:
       - 'tests/training-worker-auth.test.mjs'
       - 'tests/package.json'
       - 'scripts/verify-training-cloudflare-isolated.mjs'
+      - 'scripts/validate-training-build.mjs'
       - '.github/workflows/verificar-entrenamiento.yml'
   workflow_dispatch:
 permissions:
@@ -31,3 +32,7 @@ jobs:
           node --check scripts/verify-training-cloudflare-isolated.mjs
       - name: Probar almacenamiento cifrado y aislamiento del diario
         run: node --test tests/training-api.test.mjs tests/training-worker-auth.test.mjs
+      - name: Compilar Worker temporal sin desplegar ni usar secretos
+        run: |
+          npm ci --ignore-scripts --prefix rumbo-worker
+          node scripts/validate-training-build.mjs
