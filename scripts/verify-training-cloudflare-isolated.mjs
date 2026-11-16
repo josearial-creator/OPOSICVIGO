@@ -13,7 +13,6 @@ const kvTitle='rumbo-training-test-'+run;
 const namespaceUrl=`https://api.cloudflare.com/client/v4/accounts/${account}/storage/kv/namespaces`;
 const workerUrl=`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/${scriptName}`;
 let namespaceId=null,workerCreated=false;
-const out={};
 const config='rumbo-worker/release-training-test.generated.json';
 async function cloudflare(url,method='GET',value){
  const r=await fetch(url,{method,headers:{Authorization:'Bearer '+token,...(value?{'Content-Type':'application/json'}:{})},body:value?JSON.stringify(value):undefined,signal:AbortSignal.timeout(30000)});
@@ -23,7 +22,13 @@ async function cloudflare(url,method='GET',value){
 }
 function wrangler(args,input){
  const result=spawnSync('./node_modules/.bin/wrangler',args,{cwd:'rumbo-worker',input,encoding:'utf8',timeout:90000,env:{...process.env,CLOUDFLARE_ACCOUNT_ID:account,WRANGLER_SEND_METRICS:'false'}});
- if(result.status!==0)throw Error('Staging Wrangler error '+(result.stdout+' '+result.stderr).match(/\[code: \d+\]/g)?.join(','));
+ if(result.status!==0){
+  const raw=result.stdout+' '+result.stderr;
+  const codes=[...new Set(raw.match(/\[code: \d+\]/g)||[])].join(',');
+  // No raw CLI output or secrets are ever logged.
+  const kind=/workers\.api\.error\.script_not_found/i.test(raw)?'script_not_found':/subdomain/i.test(raw)?'subdomain':/not authorized|permission|forbidden/i.test(raw)?'permissions':'unclassified';
+  throw Error('Staging deploy failed; codes='+codes+'; category='+kind+'; exit='+result.status);
+ }
 }
 const password=randomBytes(48).toString('hex');
 const auth='Rumbo '+Buffer.from(password,'utf8').toString('base64');
@@ -79,6 +84,7 @@ try{
  // Fail closed if an old staging Worker already exists; never overwrite even staging.
  const check=await fetch(workerUrl,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
  if(check.status!==404)throw Error('Staging Worker name already exists or cannot verify absence; aborting (HTTP '+check.status+').');
+ console.log('Preflight passed: account workers.dev subdomain matches. No production resources changed.');
  const namespace=await cloudflare(namespaceUrl,'POST',{title:kvTitle});
  namespaceId=namespace.id;
  await writeFile(config,JSON.stringify({name:scriptName,main:'worker.mjs',compatibility_date:'2026-01-01',workers_dev:true,kv_namespaces:[{binding:'NOTES_KV',id:namespaceId}],vars:{ALLOWED_ORIGIN:origin,FREE_TIER_CONFIRMED:'false'},observability:{enabled:false}}),{mode:0o600});
