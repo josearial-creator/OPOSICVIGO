@@ -11,3 +11,7 @@ Este archivo es solo un registro de la solicitud de activación; no almacena not
 ## Reintento tras configurar el token de Cloudflare
 
 El propietario ha confirmado que sustituyó el token previamente expuesto y guardó un nuevo `CLOUDFLARE_API_TOKEN` en los secretos de GitHub Actions. Se solicita ejecutar el workflow existente sobre `main`; el job deberá bloquear el despliegue si las credenciales o las verificaciones no son válidas. No se guarda ningún valor de secreto en Git.
+
+## Reintento después de actualizar el secreto de GitHub
+
+El propietario confirma que ha actualizado `CLOUDFLARE_API_TOKEN` en Repository secrets tras el error de credenciales de la ejecución #13. Se solicita un único reintento del workflow ya revisado. Si no supera validación, no repetir automáticamente ni modificar notas privadas.
