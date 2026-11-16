@@ -22,23 +22,22 @@ try{
  assert(actual==='jose-arial','configured staging hostname mismatch (no changes made)');
  console.log('PASS: configured staging workers.dev hostname matches account.');
  const staging=await get('/workers/scripts/fancy-sea-977drumbo-entrenamiento-pr36-test/settings');
- if(staging.status===404){
-  const list=await get('/workers/scripts');
-  if(list.status===200&&list.success&&Array.isArray(list.result)){
-   const candidates=list.result.map(x=>String(x.id||x.name||'')).filter(x=>/entrenam|pr36|fancy-sea/i.test(x));
-   if(candidates.length)console.log('WORKER_NAME_MISMATCH: posibles nombres de prueba: '+candidates.join(', '));
-   else console.log('WORKER_NAME_MISMATCH: ninguno de los Workers listados coincide con entrenamiento.');
-  }else console.log('WORKER_NAME_MISMATCH: no se pudo consultar el listado de Workers.');
+ if(staging.status===404)console.log('PASS: staging Worker has been removed after the cleanup.');
+ else{
+  assert(staging.status===200&&staging.success,'cannot inspect staging Worker HTTP '+staging.status);
+  assert(Array.isArray(staging.result?.bindings),'staging bindings could not be verified');
+  assert(staging.result.bindings.length===0,'staging Worker has remaining bindings: no test allowed');
+  console.log('PASS: staging Worker exists but is isolated, with no bindings.');
  }
- assert(staging.status===200&&staging.success,'staging Worker not found: HTTP '+staging.status+' codes '+staging.codes.join(','));
- assert(Array.isArray(staging.result?.bindings),'staging Worker bindings could not be verified');
- assert(staging.result.bindings.length===0,'staging Worker has existing bindings; refusing to overwrite');
- console.log('PASS: staging Worker exists and has no bindings.');
+ const namespaces=await get('/storage/kv/namespaces?per_page=100');
+ assert(namespaces.status===200&&namespaces.success,'KV namespace list cannot be inspected');
+ assert(!(namespaces.result||[]).some(x=>x.title==='rumbo-training-test-43902343610'),'temporary KV from run 7 remains');
+ console.log('PASS: no KV from failed run 7 remains.');
  const production=await get('/workers/scripts/rumbo-entrenador/settings');
  assert(production.status===200&&production.success,'production settings not readable: HTTP '+production.status+' codes '+production.codes.join(','));
  // Check binding TYPES ONLY, never read or print secret values, IDs or note content.
  assert(production.result?.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'),'production authentication binding missing');
  assert(production.result?.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'),'production NOTES_KV binding missing');
  console.log('PASS: production existing bindings are readable, no values disclosed and no changes made.');
- console.log('PASS: read-only Cloudflare prerequisites checked. Deployment permissions and actual KV writes remain untested.');
+ console.log('PASS: Cloudflare read-only integrity checked; a real synchronization test is still pending.');
 }catch(e){console.error(e.message);process.exitCode=1;}
