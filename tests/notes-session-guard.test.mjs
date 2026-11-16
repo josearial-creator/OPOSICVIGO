@@ -35,3 +35,18 @@ test('session notes guard: fallo del almacenamiento no autoriza acceso',async()=
  const guard=createNotesSessionGuard({store:{get:async()=>{throw new Error('D1 no disponible')}},apiOrigin:site,clock:()=>now});
  await assert.rejects(()=>guard(req()),/D1 no disponible/);
 });
+
+test('sesión anterior queda revocada tras cambio de versión de contraseña',async()=>{
+ let version=3;
+ const versionedStore={get:async()=>({csrf,expiresAt:now+60_000,authVersion:3})};
+ const guard=createNotesSessionGuard({store:versionedStore,apiOrigin:site,clock:()=>now,currentAuthVersion:async()=>version});
+ assert.equal(await guard(req('GET')),null);
+ version=4;
+ assert.equal((await guard(req('GET'))).status,401);
+ assert.equal((await guard(req('DELETE',{Origin:site,'X-Rumbo-CSRF':csrf}))).status,401);
+});
+test('fallo en consultar versión actual no concede acceso a notas',async()=>{
+ const store={get:async()=>({csrf,expiresAt:now+60_000,authVersion:1})};
+ const guard=createNotesSessionGuard({store,apiOrigin:site,clock:()=>now,currentAuthVersion:async()=>{throw Error('D1 fuera de servicio');}});
+ await assert.rejects(()=>guard(req()),/D1 fuera de servicio/);
+});
