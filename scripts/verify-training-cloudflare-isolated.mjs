@@ -38,6 +38,21 @@ function wrangler(configFile){
   throw Error('Staging Wrangler deploy failed; codes='+codes+'; exit='+result.status);
  }
 }
+// Wrangler secret put despliega la nueva versión inmediatamente. La API /secrets
+// puede crear una versión sin activarla, y /settings seguir mostrando la anterior.
+// Es obligatorio pasar tanto --config como --name para evitar afectar a producción.
+function putStagingSecret(){
+ const args=['secret','put','RUMBO_ACCESS_TOKEN','--config','release-training-test.generated.json','--name',staging];
+ const result=spawnSync('./node_modules/.bin/wrangler',args,{
+  cwd:'rumbo-worker',input:password+'\\n',encoding:'utf8',timeout:90000,
+  env:{...process.env,CLOUDFLARE_ACCOUNT_ID:account,WRANGLER_SEND_METRICS:'false'}
+ });
+ if(result.status!==0){
+  const raw=(result.stdout||'')+' '+(result.stderr||'');
+  const codes=[...new Set(raw.match(/\[code: \d+\]/g)||[])].join(',');
+  throw Error('Staging secret deploy failed; codes='+codes+'; exit='+result.status);
+ }
+}
 async function req(method,path,body,from=origin,authorized=true){
  return fetch(endpoint+path,{method,headers:{Origin:from,...(authorized?{Authorization:auth}:{}),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(18000)});
 }
@@ -99,18 +114,19 @@ try {
  // Solo modificar el Worker temporal después de confirmar que ya existe.
  modified=true;
  wrangler('release-training-test.generated.json');
- await cf(workerUrl+'/secrets','PUT',{type:'secret_text',name:'RUMBO_ACCESS_TOKEN',text:password});
- const active=await cf(workerUrl+'/settings');
- if(!active.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'))throw Error('Secreto temporal no instalado.');
- if(!active.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId))throw Error('KV temporal no vinculado.');
- let ready=false;
- for(let i=0;i<20;i++){
-  const status=(await req('GET','/training',undefined,origin,false)).status;
-  if(status===401){ready=true;break;}
-  if(status!==503)throw Error('Estado de autenticación inesperado: HTTP '+status);
-  await new Promise(resolve=>setTimeout(resolve,1500));
+ putStagingSecret();
+ let ready=false,authBinding=false,kvBinding=false,lastStatus=0;
+ // Espera propagación de la versión desplegada, sin leer ni imprimir secretos.
+ for(let i=0;i<24;i++){
+  const active=await cf(workerUrl+'/settings');
+  authBinding=!!active.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
+  kvBinding=!!active.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId);
+  lastStatus=(await req('GET','/training',undefined,origin,false)).status;
+  if(authBinding&&kvBinding&&lastStatus===401){ready=true;break;}
+  if(![401,503].includes(lastStatus))throw Error('Estado inesperado del Worker temporal: HTTP '+lastStatus);
+  if(i<23)await new Promise(resolve=>setTimeout(resolve,1500));
  }
- if(!ready)throw Error('El Worker temporal no activó el secreto.');
+ if(!ready)throw Error('No se confirmó activación del secreto o KV temporal: auth='+authBinding+', kv='+kvBinding+', HTTP='+lastStatus);
  await smoke();
 } catch(e) {
  console.error('Prueba aislada fallida: '+e.message);
