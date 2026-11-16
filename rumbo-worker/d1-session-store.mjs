@@ -14,15 +14,16 @@ export function createD1SessionStore(db,{clock=()=>Date.now()}={}){
  return Object.freeze({
   async get(hash){
    validate(hash);
-   const row=await stmt('SELECT csrf_token,expires_at FROM rumbo_auth_sessions_v1 WHERE token_hash=?',hash).first();
+   const row=await stmt('SELECT csrf_token,expires_at,auth_version FROM rumbo_auth_sessions_v1 WHERE token_hash=?',hash).first();
    if(!row)return null;
    if(!Number.isSafeInteger(row.expires_at)||row.expires_at<=clock())return null;
-   return {csrf:row.csrf_token,expiresAt:row.expires_at};
+   return {csrf:row.csrf_token,expiresAt:row.expires_at,...(row.auth_version!==undefined?{authVersion:row.auth_version}:{})};
   },
   async put(hash,record){
    validate(hash);
    if(!record||typeof record.csrf!=='string'||!HASH.test(record.csrf)||!Number.isSafeInteger(record.expiresAt)||record.expiresAt<=clock()||record.expiresAt>clock()+2592000000)throw Error('Sesión inválida');
-   await stmt('INSERT INTO rumbo_auth_sessions_v1 (token_hash,csrf_token,expires_at,created_at) VALUES (?,?,?,?)',hash,record.csrf,record.expiresAt,clock()).run();
+   if(record.authVersion!==undefined&&(!Number.isSafeInteger(record.authVersion)||record.authVersion<1))throw Error('Versión de autenticación inválida');
+   await stmt('INSERT INTO rumbo_auth_sessions_v1 (token_hash,csrf_token,expires_at,created_at,auth_version) VALUES (?,?,?,?,?)',hash,record.csrf,record.expiresAt,clock(),record.authVersion??1).run();
   },
   async delete(hash){
    validate(hash);
