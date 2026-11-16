@@ -227,6 +227,13 @@ async function syncNow(){
      if(!localStorage.getItem(prefix+value.id))saveEvent(value);
      localStorage.setItem(syncPrefix+value.id,'1');
     }catch{throw Error('No se pudieron guardar todos los registros recibidos en este navegador.');}
+   }else{
+    // El registro ABCD contiene texto de cuatro campos y comparte /training:
+    // no transformarlo en práctica ni sobreescribirlo. El formato desconocido
+    // continúa bloqueando la sincronización sin alterar ningún registro.
+    const abc=['situacion','pensamiento','emocion','conducta'];
+    if(!value||!abc.every(k=>typeof value[k]==='string'))
+     throw Error('El servidor contiene un registro de formato desconocido. No se han sobrescrito datos.');
    }
   }
   refresh();
