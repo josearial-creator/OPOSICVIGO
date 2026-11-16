@@ -93,7 +93,22 @@ function mount(){
  el.querySelector('#er-lock').onclick=()=>{password='';items=[];pending=null;el.querySelector('#er-form').reset();table();el.querySelector('#er-private').hidden=true;el.querySelector('#er-login').hidden=false;status('Acceso cerrado. Los campos y registros visibles se han ocultado.');};
  el.querySelector('#er-form').onsubmit=async e=>{e.preventDefault();if(busy||!password)return;const form=e.currentTarget,fd=new FormData(form);const fields={};for(const k of ['situacion','pensamiento','emocion','conducta']){fields[k]=String(fd.get(k)||'').trim();if(!fields[k])return;}
  busy=true;el.querySelector('#er-save').disabled=true;status('Cifrando y guardando…');
- try{if(!pending)pending=await seal(fields);await api('','POST',pending);pending=null;form.reset();await refresh();status('Guardado cifrado confirmado en Cloudflare.');}catch(e){status('Guardado no confirmado: '+e.message+'. No cierres ni modifiques el formulario hasta reintentar.');}
+ try{
+  if(!pending)pending=await seal(fields);
+  const savedId=pending.id;
+  // El éxito de POST confirma el guardado aunque falle el GET posterior.
+  await api('','POST',pending);
+  pending=null;
+  form.reset();
+  try{
+   await refresh();
+   status(items.some(r=>r.id===savedId)
+    ?'Guardado cifrado confirmado en Cloudflare. El registro aparece en la tabla.'
+    :'Guardado cifrado confirmado en Cloudflare. Puede tardar en aparecer en la tabla; pulsa «Recargar del servidor». No lo guardes de nuevo.');
+  }catch(refreshError){
+   status('Guardado cifrado confirmado en Cloudflare, pero no se pudo actualizar la tabla: '+refreshError.message+'. Pulsa «Recargar del servidor»; no repitas el guardado.');
+  }
+ }catch(e){status('Guardado no confirmado: '+e.message+'. No cierres ni modifiques el formulario hasta reintentar.');}
  finally{busy=false;el.querySelector('#er-save').disabled=false;}};
  el.querySelector('#er-form').addEventListener('input',()=>{pending=null;});
  el.querySelector('#er-body').onclick=async e=>{const button=e.target.closest('[data-er-delete]');if(!button||busy)return;if(!confirm('¿Eliminar este registro del servidor? Esta acción no se puede deshacer.'))return;busy=true;try{await api('/'+button.dataset.erDelete,'DELETE');await refresh();status('Registro eliminado del servidor.');}catch(err){status('No se confirmó la eliminación: '+err.message);}finally{busy=false;}};
