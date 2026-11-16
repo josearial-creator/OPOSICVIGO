@@ -14,5 +14,7 @@ test('el secreto temporal se instala por Wrangler dirigido solo a staging',()=>{
 test('requiere Worker vacío y restaura el modo inerte antes de borrar KV',()=>{
  assert.match(code,/if\(bindings\.length>0\)throw Error/);
  assert.match(code,/wrangler\('release-training-disabled\.generated\.json'\)/);
- assert.match(code,/if\(!modified\|\|resetConfirmed\)/);
+ assert.match(code,/if\(!modified\|\|resetConfirmed\|\|workerDeleted\)/);
+ assert.match(code,/if\(staging!=='fancy-sea-977drumbo-entrenamiento-pr36-test'\)/);
+ assert.match(code,/const allowed=new Set\(\['RUMBO_ACCESS_TOKEN','NOTES_KV','ALLOWED_ORIGIN','FREE_TIER_CONFIRMED'\]\)/);
 });
