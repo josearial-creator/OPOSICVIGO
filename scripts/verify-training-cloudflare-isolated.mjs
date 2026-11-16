@@ -44,7 +44,7 @@ function wrangler(configFile){
 function putStagingSecret(){
  const args=['secret','put','RUMBO_ACCESS_TOKEN','--config','release-training-test.generated.json','--name',staging];
  const result=spawnSync('./node_modules/.bin/wrangler',args,{
-  cwd:'rumbo-worker',input:password+'\\n',encoding:'utf8',timeout:90000,
+  cwd:'rumbo-worker',input:password+'\n',encoding:'utf8',timeout:90000,
   env:{...process.env,CLOUDFLARE_ACCOUNT_ID:account,WRANGLER_SEND_METRICS:'false'}
  });
  if(result.status!==0){
