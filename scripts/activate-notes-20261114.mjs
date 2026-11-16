@@ -18,6 +18,16 @@ export function configuration(settings,namespace){
  if(!existing)kv.push({binding:'NOTES_KV',id:namespace});
  return {name:'rumbo-entrenador',main:'worker.mjs',compatibility_date:settings.compatibility_date||'2026-01-01',compatibility_flags:settings.compatibility_flags||[],workers_dev:true,keep_vars:true,kv_namespaces:kv,d1_databases:bindings.filter(b=>b.type==='d1').map(b=>({binding:b.name,database_id:b.id})),vars:{ALLOWED_ORIGIN:[...origins].join(',')},observability:settings.observability||{enabled:false}};
 }
+// Do not rotate a configured password. Validate known resources before adding a missing secret.
+export function secretSyncNeeded(settings){
+ const bindings=settings.bindings||[];
+ const secrets=bindings.filter(b=>b.name==='RUMBO_ACCESS_TOKEN');
+ if(secrets.length>1||secrets.some(b=>b.type!=='secret_text'))throw Error('Binding de acceso incompatible; intervención manual necesaria.');
+ if(secrets.length)return false;
+ const bound=bindings.find(b=>b.name==='NOTES_KV');
+ configuration({...settings,bindings:[...bindings,{name:'RUMBO_ACCESS_TOKEN',type:'secret_text'}]},bound?.namespace_id||'preflight');
+ return true;
+}
 async function main(){
  const {CLOUDFLARE_ACCOUNT_ID:account,CLOUDFLARE_API_TOKEN:token,RUMBO_ACCESS_TOKEN:password}=process.env;
  if(account!=='2bc103e4dec32961305599da77b877f6'||!token||!password||password.length<32)throw Error('Faltan credenciales existentes válidas.');
@@ -27,7 +37,21 @@ async function main(){
   const data=await response.json();if(!response.ok||!data.success)throw Error(`Cloudflare ${method}: HTTP ${response.status}; códigos ${(data.errors||[]).map(e=>e.code).join(',')}`);
   return data.result;
  }
- const settings=await cf('/workers/scripts/rumbo-entrenador/settings');
+ let settings=await cf('/workers/scripts/rumbo-entrenador/settings');
+ // Preflight refuses unknown bindings, changed D1 and invalid origins before any mutation.
+ if(secretSyncNeeded(settings)){
+  const before=settings.bindings||[];
+  // Cloudflare's secret endpoint creates a new Worker version without exposing its value.
+  await cf('/workers/scripts/rumbo-entrenador/secrets','PUT',{type:'secret_text',name:'RUMBO_ACCESS_TOKEN',text:password});
+  settings=await cf('/workers/scripts/rumbo-entrenador/settings');
+  const after=settings.bindings||[];
+  for(const b of before){
+   const saved=after.find(x=>x.name===b.name);
+   if(!saved||saved.type!==b.type||(b.id&&saved.id!==b.id)||(b.namespace_id&&saved.namespace_id!==b.namespace_id))throw Error('Verificación de conservación de bindings falló tras instalar el secreto.');
+  }
+  if(!after.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'))throw Error('No se confirmó la instalación del secreto en Cloudflare.');
+  console.log('Secreto de acceso instalado desde GitHub Secrets sin mostrar su valor.');
+ }
  // Validate all pre-existing bindings before creating any resource.
  const bound=settings.bindings?.find(b=>b.name==='NOTES_KV');
  configuration(settings,bound?.namespace_id||'preflight');
