@@ -60,11 +60,23 @@ async function key(salt){
  const raw=await webcrypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
  return webcrypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:180000,hash:'SHA-256'},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
+async function expectEventually(label,method,path,expected,authorized,from=origin){
+ let last=-1;
+ for(let attempt=0;attempt<25;attempt++){
+  last=(await req(method,path,undefined,from,authorized)).status;
+  if(last===expected)return;
+  // Nunca aceptar un acceso autorizado cuando se espera denegación.
+  if(last>=200&&last<300)throw Error(label+' incorrecto: HTTP '+last);
+  if(![404,502,503,504].includes(last))throw Error(label+' incorrecto: HTTP '+last);
+  if(attempt<24)await new Promise(resolve=>setTimeout(resolve,1500));
+ }
+ throw Error(label+' no confirmado tras reintentos: último HTTP '+last);
+}
 async function smoke(){
- const cors=await req('OPTIONS','/training',undefined,origin,false);
- if(cors.status!==204)throw Error('CORS HTTP '+cors.status);
- if((await req('GET','/training',undefined,origin,false)).status!==401)throw Error('Acceso anónimo no rechazado.');
- if((await req('GET','/training',undefined,'https://origen-no-permitido.invalid')).status!==403)throw Error('Origen externo no rechazado.');
+ await expectEventually('CORS','OPTIONS','/training',204,false);
+ await expectEventually('Acceso anónimo','GET','/training',401,false);
+ await expectEventually('Origen externo','GET','/training',403,true,'https://origen-no-permitido.invalid');
+ await expectEventually('Lectura autenticada','GET','/training',200,true);
  const data={situacion:'situación ficticia',pensamiento:'pensamiento ficticio',emocion:'emoción ficticia',conducta:'pausa ficticia'};
  const salt=randomBytes(16),iv=randomBytes(12);
  const encrypted=await webcrypto.subtle.encrypt({name:'AES-GCM',iv},await key(salt),enc.encode(JSON.stringify(data)));
@@ -115,18 +127,23 @@ try {
  modified=true;
  wrangler('release-training-test.generated.json');
  putStagingSecret();
- let ready=false,authBinding=false,kvBinding=false,lastStatus=0;
- // Espera propagación de la versión desplegada, sin leer ni imprimir secretos.
- for(let i=0;i<24;i++){
+ let ready=false,authBinding=false,kvBinding=false,lastStatus=0,lastAuthenticated=0,confirmed=0;
+ // Confirma DOS lecturas consecutivas correctas para reducir falsos positivos de propagación.
+ for(let i=0;i<36;i++){
   const active=await cf(workerUrl+'/settings');
   authBinding=!!active.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
   kvBinding=!!active.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId);
   lastStatus=(await req('GET','/training',undefined,origin,false)).status;
-  if(authBinding&&kvBinding&&lastStatus===401){ready=true;break;}
-  if(![401,503].includes(lastStatus))throw Error('Estado inesperado del Worker temporal: HTTP '+lastStatus);
-  if(i<23)await new Promise(resolve=>setTimeout(resolve,1500));
+  lastAuthenticated=(await req('GET','/training',undefined,origin,true)).status;
+  if(authBinding&&kvBinding&&lastStatus===401&&lastAuthenticated===200)confirmed++;
+  else confirmed=0;
+  if(confirmed>=2){ready=true;break;}
+  if(lastStatus>=200&&lastStatus<300)throw Error('Acceso anónimo inesperadamente permitido: HTTP '+lastStatus);
+  if(![401,404,503].includes(lastStatus)||![200,404,503].includes(lastAuthenticated))
+   throw Error('Estado inesperado del Worker de pruebas: anónimo HTTP '+lastStatus+', autenticado HTTP '+lastAuthenticated);
+  if(i<35)await new Promise(resolve=>setTimeout(resolve,1500));
  }
- if(!ready)throw Error('No se confirmó activación del secreto o KV temporal: auth='+authBinding+', kv='+kvBinding+', HTTP='+lastStatus);
+ if(!ready)throw Error('No se confirmó propagación de autenticación y KV: auth='+authBinding+', kv='+kvBinding+', anónimo HTTP='+lastStatus+', autenticado HTTP='+lastAuthenticated);
  await smoke();
 } catch(e) {
  console.error('Prueba aislada fallida: '+e.message);
