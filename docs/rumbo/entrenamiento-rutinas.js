@@ -3,8 +3,8 @@
 'use strict';
 const root=document.getElementById('mi-evolucion');
 if(!root)return;
-const origin='https://rumbo-entrenador.jose-arial.workers.dev';
-const endpoint=(()=>{try{const v=localStorage.getItem('rumbo-ai-endpoint')||origin;const u=new URL(v);return u.protocol==='https:'?u.origin:origin;}catch{return origin;}})();
+// Entrenamiento contiene datos personales: no utilizar direcciones API arbitrarias de localStorage.
+const endpoint='https://rumbo-entrenador.jose-arial.workers.dev';
 const enc=new TextEncoder(),dec=new TextDecoder();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
