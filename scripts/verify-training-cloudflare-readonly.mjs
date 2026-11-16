@@ -21,7 +21,7 @@ try{
  // Do not trust a guessed workers.dev address. Warn if the configured hostname is wrong.
  assert(actual==='jose-arial','configured staging hostname mismatch (no changes made)');
  console.log('PASS: configured staging workers.dev hostname matches account.');
- const staging=await get('/workers/scripts/rumbo-entrenamiento-pr36-test/settings');
+ const staging=await get('/workers/scripts/fancy-sea-977drumbo-entrenamiento-pr36-test/settings');
  if(staging.status===404){
   const list=await get('/workers/scripts');
   if(list.status===200&&list.success&&Array.isArray(list.result)){
