@@ -20,9 +20,10 @@ function checkOrigin(request,apiOrigin){
  const target=new URL(request.url);
  return target.protocol==='https:'&&target.origin===apiOrigin&&(request.method==='GET'?!request.headers.has('Origin')||request.headers.get('Origin')===apiOrigin:request.headers.get('Origin')===apiOrigin);
 }
-export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000,loginLimiter=null,currentAuthVersion=null}){
+export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000,loginLimiter=null,currentAuthVersion=null,verifyLogin=null}){
  if(!store||!['get','put','delete'].every(n=>typeof store[n]==='function'))throw Error('Se requiere almacén coherente y revocable');
- if(!secret||secret.length<32)throw Error('Falta secreto de autenticación válido');
+ if(verifyLogin!==null&&typeof verifyLogin!=='function')throw Error('Verificador de contraseña inválido');
+ if(verifyLogin===null&&(!secret||secret.length<32))throw Error('Falta secreto de autenticación válido');
  if(!apiOrigin||new URL(apiOrigin).origin!==apiOrigin||!apiOrigin.startsWith('https://'))throw Error('Origen HTTPS explícito requerido');
  if(maxAgeMs<=0||maxAgeMs>2592000000)throw Error('Caducidad absoluta inválida');
  if(loginLimiter&&(!['clientId','check','recordFailure','recordSuccess'].every(n=>typeof loginLimiter[n]==='function')))throw Error('Limitador de acceso incompleto');
@@ -55,7 +56,12 @@ export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),ma
     try{clientId=await loginLimiter.clientId(request);if(!clientId||!await loginLimiter.check(clientId))return json(429,{error:'Demasiados intentos. Prueba más tarde.'});}
     catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}
    }
-   if(typeof body?.password!=='string'||body.password.length>2048||!eq(body.password,secret)){
+   let validPassword=false;
+   if(typeof body?.password==='string'&&body.password.length<=2048){
+    try{validPassword=verifyLogin?await verifyLogin(body.password):eq(body.password,secret);}
+    catch{return json(503,{error:'Verificador de credenciales no disponible'});}
+   }
+   if(!validPassword){
     if(loginLimiter){try{await loginLimiter.recordFailure(clientId);}catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}}
     return json(401,{error:'Credenciales incorrectas'});
    }
