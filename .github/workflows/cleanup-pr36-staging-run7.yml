@@ -1,0 +1,28 @@
+name: Limpiar KV y Worker temporal PR36 run7
+on:
+  push:
+    branches: [feature/entrenamiento-rutinas-registro-20261116]
+    paths: ['.github/workflows/cleanup-pr36-staging-run7.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pr36-staging-cleanup
+  cancel-in-progress: false
+jobs:
+  limpiar:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[pr36-clean-run7]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxis del procedimiento
+        run: node --check scripts/cleanup-pr36-staging-run7.mjs
+      - name: Eliminar solo Worker temporal y KV de la ejecución 7
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/cleanup-pr36-staging-run7.mjs
