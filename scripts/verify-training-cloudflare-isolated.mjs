@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {randomBytes,randomUUID,webcrypto} from 'node:crypto';
 
 const account='2bc103e4dec32961305599da77b877f6';
-const staging='rumbo-entrenamiento-pr36-test';
+const staging='fancy-sea-977drumbo-entrenamiento-pr36-test';
 const origin='https://oposicvigo.vercel.app';
 const accountSubdomain='jose-arial';
 const base=`https://api.cloudflare.com/client/v4/accounts/${account}`;
