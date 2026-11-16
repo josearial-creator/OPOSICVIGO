@@ -1,5 +1,5 @@
 name: Probar Entrenamiento en Cloudflare aislado
-# Único ensayo sobre Worker preexistente, tras PASS de diagnóstico read-only
+# Ensayo único, solo en Worker temporal y después de verificaciones de seguridad
 on:
   push:
     branches: [feature/entrenamiento-rutinas-registro-20261116]
