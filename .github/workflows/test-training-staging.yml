@@ -1,0 +1,46 @@
+name: Ensayo real aislado de Entrenamiento PR36
+on:
+  push:
+    branches: ['feature/entrenamiento-rutinas-registro-20261116']
+    paths:
+      - 'scripts/test-training-staging.mjs'
+      - '.github/workflows/test-training-staging.yml'
+      - 'rumbo-worker/**'
+      - 'docs/rumbo/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: prueba-temporal-entrenamiento-pr36
+  cancel-in-progress: false
+jobs:
+  ensayo:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-pr36-staging]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencias de navegador y Worker
+        run: |
+          npm ci --ignore-scripts --prefix tests
+          npm ci --ignore-scripts --prefix rumbo-worker
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            npx --prefix tests playwright install --with-deps chromium
+            echo "CHROMIUM_PATH=bundled" >> "$GITHUB_ENV"
+          fi
+      - name: Verificar sintaxis del ensayo temporal
+        run: node --check scripts/test-training-staging.mjs
+      - name: Ensayar en Cloudflare aislado con datos ficticios y eliminar recursos
+        env:
+          CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/test-training-staging.mjs
