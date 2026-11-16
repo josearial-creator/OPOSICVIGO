@@ -34,7 +34,7 @@ async function req(method,path,data,from=origin,authorized=true){
 const enc=new TextEncoder(),dec=new TextDecoder(),to64=v=>Buffer.from(v).toString('base64'),from64=v=>Buffer.from(v,'base64');
 async function derive(salt){
  const key=await webcrypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
- return webcrypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:180000,hash:'SHA-256'},key,false,['encrypt','decrypt']);
+ return webcrypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:180000,hash:'SHA-256'},key,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
 async function smoke(){
  const pre=await req('OPTIONS','/training',null,origin,false);
@@ -79,8 +79,8 @@ try{
  namespaceId=namespace.id;
  await writeFile(config,JSON.stringify({name:scriptName,main:'worker.mjs',compatibility_date:'2026-01-01',workers_dev:true,kv_namespaces:[{binding:'NOTES_KV',id:namespaceId}],vars:{ALLOWED_ORIGIN:origin,FREE_TIER_CONFIRMED:'false'},observability:{enabled:false}}),{mode:0o600});
  // No D1 binding; separate KV; never any production secrets.
- wrangler(['deploy','--config','release-training-test.generated.json']);
  workerCreated=true;
+ wrangler(['deploy','--config','release-training-test.generated.json']);
  wrangler(['secret','put','RUMBO_ACCESS_TOKEN','--name',scriptName],password);
  await smoke();
 }catch(e){console.error('Staging test failed: '+e.message);process.exitCode=1;
