@@ -54,3 +54,36 @@ test('gateway: missing D1 schema fails closed with no notes handler invocation',
  const response=await gateway(request('/notes','GET',{cookie:'__Host-rumbo-session='+'a'.repeat(64)}));
  assert.equal(response.status,503);assert.equal(count,0);
 });
+
+test('puerta con contraseña personal: cambiar versión invalida tanto notas como reanudación',async()=>{
+ const db=fakeD1();let generation=2;let calls=0;
+ const loginSecret='nueva-contraseña-sintética-y-permanente';
+ const gateway=createPrivateGateway({db,notesEnv:{NOTES_KV:{}},secret:null,apiOrigin:site,
+  currentAuthVersion:async()=>generation,
+  verifyLogin:async password=>password===loginSecret,
+  clock:()=>Date.UTC(2026,10,16),
+  notesHandler:async()=>{calls++;return Response.json({notes:[]});}
+ });
+ // El adaptador D1 recupera auth_version: este simulador representa la columna nueva.
+ const originalPrepare=db.prepare.bind(db);
+ db.prepare=sql=>({bind(...args){
+  const query=originalPrepare(sql).bind(...args);
+  return {
+   async first(){const row=await query.first();return row?{...row,auth_version:db.rows.get(args[0])?.authVersion??2}:row;},
+   async run(){const value=await query.run();
+    if(sql.startsWith('INSERT ')){const row=db.rows.get(args[0]);row.authVersion=args[4];}
+    return value;}
+  };
+ }});
+ const login=await gateway(request('/session/login','POST',{password:loginSecret}));
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('Set-Cookie').split(';')[0];
+ assert.equal((await gateway(request('/notes','GET',{cookie}))).status,200);
+ assert.equal((await gateway(request('/session','GET',{cookie}))).status,200);
+ generation=3;
+ assert.equal((await gateway(request('/session','GET',{cookie}))).status,401);
+ assert.equal((await gateway(request('/notes','GET',{cookie}))).status,401);
+ assert.equal(calls,1);
+ assert.equal((await gateway(request('/session/login','POST',{password:secret}))).status,401);
+ assert.equal((await gateway(request('/session/login','POST',{password:loginSecret}))).status,200);
+});
