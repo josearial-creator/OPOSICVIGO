@@ -6,7 +6,7 @@ import {configuration} from './activate-notes-20261114.mjs';
 const account='2bc103e4dec32961305599da77b877f6';
 const worker='rumbo-entrenador';
 const expectedDb='7752c042-d26f-4a4b-8b81-5bdbf17ff0fd';
-const authorizedBranch=new Set(['refs/heads/main','refs/heads/feature/entrenamiento-rutinas-registro-20261116']);
+const authorizedBranch=new Set(['refs/heads/main']);
 const requiredOrigins=['https://oposicvigo.vercel.app','https://josearial-creator.github.io','https://josearial-creatorgithubio.vercel.app'];
 const token=process.env.CLOUDFLARE_API_TOKEN;
 if(process.env.PR36_RELEASE_CONFIRM!=='PUBLICAR-ENTRENAMIENTO-PR36')throw Error('Publicación bloqueada: falta aprobación explícita.');
@@ -68,14 +68,24 @@ try{
   const currentBinding=(after.bindings||[]).find(x=>x.name===b.name);
   return currentBinding&&fingerprint(currentBinding)===fingerprint(b);
  }),'los bindings actuales no coinciden después del despliegue: revisar rollback');
- const valid=await smoke('/notes');
- assert(valid.status===401,'el diario no rechaza solicitudes sin contraseña (HTTP '+valid.status+')');
- const training=await smoke('/training');
- assert(training.status===401,'Entrenamiento no rechaza solicitudes sin contraseña (HTTP '+training.status+')');
- const pre=await smoke('/training','OPTIONS');
- assert(pre.status===204&&pre.headers.get('access-control-allow-origin')===origin,'preflight de Entrenamiento no válido');
- const foreign=await smoke('/notes','GET','https://origen-no-autorizado.invalid');
- assert(foreign.status===403,'el diario no rechaza un origen externo');
+ // Cloudflare puede servir versiones anteriores mientras propaga el despliegue.
+ // No aceptar una respuesta 2xx para una ruta privada sin credenciales.
+ let verified=0,finalStatus='';
+ for(let i=0;i<40;i++){
+  const notesRes=await smoke('/notes');
+  const trainingRes=await smoke('/training');
+  const pre=await smoke('/training','OPTIONS');
+  const foreign=await smoke('/notes','GET','https://origen-no-autorizado.invalid');
+  if([notesRes.status,trainingRes.status].some(status=>status>=200&&status<300))
+   throw Error('Una ruta privada respondió sin autenticación: publicación no segura.');
+  const ready=notesRes.status===401&&trainingRes.status===401&&
+   pre.status===204&&pre.headers.get('access-control-allow-origin')===origin&&foreign.status===403;
+  finalStatus='notes='+notesRes.status+', training='+trainingRes.status+', preflight='+pre.status+', origin='+foreign.status;
+  if(ready)verified++;else verified=0;
+  if(verified>=2)break;
+  if(i<39)await new Promise(resolve=>setTimeout(resolve,1500));
+ }
+ assert(verified>=2,'no se confirmó propagación segura de /notes y /training ('+finalStatus+')');
  console.log('PASS: Worker actualizado; bindings del diario, D1, secretos y orígenes conservados.');
  console.log('PASS: autenticación no autorizada rechazada en /notes y /training; no se consultaron registros personales.');
  console.log('Backend listo para validación manual antes de publicar el frontend.');
