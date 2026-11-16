@@ -1,9 +1,6 @@
 name: Probar Entrenamiento en Cloudflare aislado
 # Único ensayo sobre Worker preexistente, tras PASS de diagnóstico read-only
 on:
-  push:
-    branches: [feature/entrenamiento-rutinas-registro-20261116]
-    paths: ['.github/workflows/probar-entrenamiento-cloudflare-aislado.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,7 +9,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   staging:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[pr36-staging-once]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
