@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),headless:true,args:['--no-sandbox']});
  const storage=new Map(),password='clave privada larga de prueba 1234567890';
- let failNextRead=false;
+ let failNextReadStatus=null;
  const base='http://127.0.0.1:8086';
  async function openPage(viewport){
   const page=await browser.newPage({viewport});
@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
    if(method==='OPTIONS')return route.fulfill({status:204,headers,body:''});
    if(request.headers().authorization!=='Rumbo '+Buffer.from(password).toString('base64'))return route.fulfill({status:401,headers,json:{error:'Acceso no autorizado'}});
    if(method==='GET'){
-    if(failNextRead){failNextRead=false;return route.fulfill({status:503,headers,json:{error:'Lectura temporalmente no disponible'}});}
+    if(failNextReadStatus){const status=failNextReadStatus;failNextReadStatus=null;return route.fulfill({status,headers,json:{error:'Lectura temporalmente no disponible'}});}
     return route.fulfill({status:200,headers,json:{records:[...storage.values()]}});
    }
    if(method==='POST'){
@@ -77,19 +77,21 @@ const assert=require('node:assert/strict');
   await desktop.locator('#er-empty').waitFor({state:'visible'});
   assert.equal(await desktop.evaluate(()=>localStorage.getItem('rumbo-history-test-sentinel')),'HISTORIAL_INTACTO');
 
-  // Una escritura confirmada por POST NO debe repetirse si la lectura posterior falla.
-  for(const [key,value]of Object.entries(values))await desktop.locator('#er-form [name='+key+']').fill(value+' (sin duplicar)');
-  failNextRead=true;
-  await desktop.locator('#er-save').click();
-  await desktop.waitForFunction(()=>document.querySelector('#er-status')?.textContent.includes('Guardado cifrado confirmado en Cloudflare, pero no se pudo actualizar'));
-  assert.equal(storage.size,1,'El registro fue guardado una sola vez');
-  assert.equal(await desktop.locator('#er-form [name=situacion]').inputValue(),'','No retener formulario ya guardado');
-  await desktop.locator('#er-refresh').click();
-  await desktop.locator('#er-body tr').waitFor();
-  assert.equal(await desktop.locator('#er-body tr').count(),1,'La lectura recupera el registro confirmado sin duplicación');
-  await desktop.locator('#er-body [data-er-delete]').click();
-  await desktop.locator('#er-empty').waitFor({state:'visible'});
-  assert.equal(storage.size,0);
+  // Una escritura confirmada por POST NO debe repetirse si el GET posterior recibe 503 o 410.
+  for(const transientStatus of [503,410]){
+   for(const [key,value]of Object.entries(values))await desktop.locator('#er-form [name='+key+']').fill(value+' (sin duplicar '+transientStatus+')');
+   failNextReadStatus=transientStatus;
+   await desktop.locator('#er-save').click();
+   await desktop.waitForFunction(()=>document.querySelector('#er-status')?.textContent.includes('Guardado cifrado confirmado en Cloudflare, pero no se pudo actualizar'));
+   assert.equal(storage.size,1,'El registro fue guardado una sola vez tras HTTP '+transientStatus);
+   assert.equal(await desktop.locator('#er-form [name=situacion]').inputValue(),'','No retener formulario ya guardado');
+   await desktop.locator('#er-refresh').click();
+   await desktop.locator('#er-body tr').waitFor();
+   assert.equal(await desktop.locator('#er-body tr').count(),1,'Recuperación del registro confirmado sin duplicación');
+   await desktop.locator('#er-body [data-er-delete]').click();
+   await desktop.locator('#er-empty').waitFor({state:'visible'});
+   assert.equal(storage.size,0);
+  }
   await mobile.close();await desktop.close();
   process.stdout.write('PASS: cifrado, conexión, guardado, recarga, segundo navegador y borrado aislado.\\n');
  }finally{await browser.close();}
