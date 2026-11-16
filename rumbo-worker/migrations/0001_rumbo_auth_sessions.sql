@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS rumbo_auth_sessions_v1 (
   token_hash TEXT PRIMARY KEY NOT NULL CHECK (length(token_hash)=64),
   csrf_token TEXT NOT NULL CHECK (length(csrf_token)=64),
   expires_at INTEGER NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  auth_version INTEGER NOT NULL DEFAULT 1 CHECK (auth_version >= 1)
 );
 CREATE INDEX IF NOT EXISTS idx_rumbo_auth_sessions_expiry_v1
   ON rumbo_auth_sessions_v1 (expires_at);
