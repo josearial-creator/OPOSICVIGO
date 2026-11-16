@@ -1,0 +1,33 @@
+name: Probar Entrenamiento en Cloudflare aislado
+# Ensayo controlado: Worker desechable validado por nombre; eliminación total en finally
+on:
+  workflow_dispatch:
+    inputs:
+      staging_worker:
+        description: 'Nombre exacto del Worker temporal sin bindings (se corresponde exactamente con Worker PR36 test2a6)'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: rumbo-training-staging-isolated
+  cancel-in-progress: false
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Wrangler
+        run: npm ci --ignore-scripts
+        working-directory: rumbo-worker
+      - name: Ejecutar pruebas reales con KV temporal y limpieza
+        env:
+          PR36_STAGING_WORKER_NAME: ${{ inputs.staging_worker }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
+        run: node scripts/verify-training-cloudflare-isolated.mjs

@@ -2,8 +2,11 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),headless:true,args:['--no-sandbox']});
-const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+const context=await browser.newContext({serviceWorkers:'block'});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[{puesto:'Auxiliar de prueba',organismo:'Concello de Vigo',plazas:2,grupo:'C2',estado:'Convocada'}]}));
+// Esta prueba cubre el entrenador histórico; la interfaz actual se verifica en entrenamiento-browser.cjs.
+// Omitimos solo el script de prácticas nuevas en este navegador para recuperar el formulario histórico.
+await page.route('**/practicas-sencillas.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:'/* modo histórico de prueba, sin borrar datos */'}));
 await page.goto('http://127.0.0.1:8086');await page.locator('#rows button').first().waitFor();
 await page.getByRole('button',{name:'Alternar favorito'}).click();
 await page.getByRole('button',{name:'Detalle',exact:true}).click();await page.locator('#dialog-content textarea').fill('Nota original conservada');await page.locator('#dialog-done').click();
