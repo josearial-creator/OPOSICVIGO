@@ -103,6 +103,40 @@ const assert=require('node:assert/strict');
    await desktop.locator('#er-empty').waitFor({state:'visible'});
    assert.equal(storage.size,0);
   }
+  // Convivencia realista: las prácticas cifradas y ABCD ocupan el mismo endpoint,
+  // pero cada interfaz solo debe mostrar el tipo que le corresponde.
+  await desktop.locator('#er-archive > summary').click();
+  await desktop.locator('#ps-steps-plus').click();
+  await desktop.locator('#ps-password').fill(password);
+  await desktop.locator('#ps-sync').click();
+  await desktop.waitForFunction(()=>document.querySelector('#ps-sync-status')?.textContent.includes('Sincronización confirmada'));
+  assert.equal(storage.size,1,'La práctica antigua sincronizada se conserva sin ABCD');
+  await desktop.locator('#er-refresh').click();
+  await desktop.waitForFunction(()=>document.querySelector('#er-status')?.textContent.includes('Registros recuperados'));
+  assert.equal(await desktop.locator('#er-body tr').count(),0,'No presentar prácticas como ABCD');
+
+  for(const [key,value]of Object.entries(values))await desktop.locator('#er-form [name='+key+']').fill(value+' mezclado');
+  await desktop.locator('#er-save').click();
+  await desktop.waitForFunction(()=>document.querySelector('#er-status')?.textContent.includes('Guardado cifrado confirmado'));
+  assert.equal(storage.size,2,'Práctica antigua y ABCD comparten backend sin sobrescribirse');
+  assert.equal(await desktop.locator('#er-body tr').count(),1,'La tabla solo muestra ABCD');
+
+  const mixedMobile=await openPage({width:390,height:844});
+  await mixedMobile.locator('#er-pass').fill(password);
+  await mixedMobile.locator('#er-connect').click();
+  await mixedMobile.locator('#er-body tr').waitFor({state:'visible'});
+  assert.equal(await mixedMobile.locator('#er-body tr').count(),1);
+  await mixedMobile.locator('#er-archive > summary').click();
+  await mixedMobile.locator('#ps-password').fill(password);
+  await mixedMobile.locator('#ps-sync').click();
+  await mixedMobile.waitForFunction(()=>document.querySelector('#ps-sync-status')?.textContent.includes('Sincronización confirmada'));
+  assert.match(await mixedMobile.locator('#ps-events').innerText(),/Detener, escuchar, pensar, procesar y actuar/,'La práctica se recupera sin convertir el ABCD');
+  assert.equal(await mixedMobile.locator('#er-body tr').count(),1,'El ABCD no se transforma en práctica');
+  await mixedMobile.locator('#er-body [data-er-delete]').click();
+  await mixedMobile.locator('#er-empty').waitFor({state:'visible'});
+  assert.equal(storage.size,1,'Eliminar ABCD no borra la práctica');
+  await mixedMobile.close();
+  storage.clear(); // limpieza exclusivamente del simulador de pruebas
   await mobile.close();await desktop.close();
   process.stdout.write('PASS: cifrado, conexión, guardado, recarga, segundo navegador y borrado aislado.\\n');
  }finally{await browser.close();}
