@@ -1,10 +1,15 @@
 // Adaptador D1 para el prototipo aislado. NO referenciado desde worker.mjs.
-// REQUISITO antes de producción: read_replication.mode='disabled' o un diseño
-// de consistencia y bookmarks verificado en peticiones independientes.
+// Cada consulta inicia una sesión D1 con primera lectura en primario: así
+// una revocación previa no puede quedar oculta tras una réplica atrasada.
+// Sin withSession, el binding D1 directo dirige las consultas al primario.
+// Referencia: Cloudflare D1 withSession('first-primary').
 const HASH=/^[a-f0-9]{64}$/;
 export function createD1SessionStore(db,{clock=()=>Date.now()}={}){
  if(!db||typeof db.prepare!=='function')throw Error('Binding D1 ausente');
- const stmt=(sql,...args)=>db.prepare(sql).bind(...args);
+ const stmt=(sql,...args)=>{
+   const primary=typeof db.withSession==='function'?db.withSession('first-primary'):db;
+   return primary.prepare(sql).bind(...args);
+ };
  const validate=hash=>{if(typeof hash!=='string'||!HASH.test(hash))throw Error('Identificador inválido');};
  return Object.freeze({
   async get(hash){
