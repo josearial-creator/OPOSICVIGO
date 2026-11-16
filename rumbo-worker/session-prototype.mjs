@@ -20,18 +20,26 @@ function checkOrigin(request,apiOrigin){
  const target=new URL(request.url);
  return target.protocol==='https:'&&target.origin===apiOrigin&&(request.method==='GET'?!request.headers.has('Origin')||request.headers.get('Origin')===apiOrigin:request.headers.get('Origin')===apiOrigin);
 }
-export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000,loginLimiter=null}){
+export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),maxAgeMs=30*24*60*60*1000,loginLimiter=null,currentAuthVersion=null}){
  if(!store||!['get','put','delete'].every(n=>typeof store[n]==='function'))throw Error('Se requiere almacén coherente y revocable');
  if(!secret||secret.length<32)throw Error('Falta secreto de autenticación válido');
  if(!apiOrigin||new URL(apiOrigin).origin!==apiOrigin||!apiOrigin.startsWith('https://'))throw Error('Origen HTTPS explícito requerido');
  if(maxAgeMs<=0||maxAgeMs>2592000000)throw Error('Caducidad absoluta inválida');
  if(loginLimiter&&(!['clientId','check','recordFailure','recordSuccess'].every(n=>typeof loginLimiter[n]==='function')))throw Error('Limitador de acceso incompleto');
+ if(currentAuthVersion!==null&&typeof currentAuthVersion!=='function')throw Error('Origen de versión de contraseña inválido');
+ const readValidSession=async request=>{
+  const session=await readSession(request,store,clock());
+  if(!session||!currentAuthVersion)return session;
+  const version=await currentAuthVersion();
+  if(!Number.isSafeInteger(version)||version<1||session.record.authVersion!==version)return null;
+  return session;
+ };
  return async function handle(request){
   if(!checkOrigin(request,apiOrigin))return json(403,{error:'Origen no autorizado'});
   const path=new URL(request.url).pathname;
   const method=request.method;
   if(path==='/session'&&method==='GET'){
-   const session=await readSession(request,store,clock());
+   const session=await readValidSession(request);
    return json(session?200:401,session?{authenticated:true,expiresAt:session.record.expiresAt,csrf:session.record.csrf}:{authenticated:false});
   }
   if(method!=='POST'||!['/session/login','/session/logout'].includes(path))return json(404,{error:'Ruta no disponible'});
@@ -53,14 +61,21 @@ export function createSessionApi({store,secret,apiOrigin,clock=()=>Date.now(),ma
    }
    if(loginLimiter){try{await loginLimiter.recordSuccess(clientId);}catch{return json(503,{error:'Control de acceso temporalmente no disponible'});}}
 
-   const prior=await readSession(request,store,clock());
+   // Capturar una generación coherente; si cambia durante el alta, no crear sesión antigua.
+   const authVersion=currentAuthVersion?await currentAuthVersion():null;
+   if(currentAuthVersion&&(!Number.isSafeInteger(authVersion)||authVersion<1))return json(503,{error:'Credenciales no disponibles'});
+   const prior=await readValidSession(request);
    const id=random(),hash=await digest(id),expiresAt=clock()+maxAgeMs,csrf=random();
-   await store.put(hash,{expiresAt,csrf});
+   await store.put(hash,{expiresAt,csrf,...(authVersion!==null?{authVersion}:{})});
    if(prior)await store.delete(prior.hash);
+   if(currentAuthVersion&&await currentAuthVersion()!==authVersion){
+    await store.delete(hash);
+    return json(409,{error:'Las credenciales cambiaron durante el acceso'});
+   }
    // csrf permanece solo en memoria del frontend, NO en localStorage.
    return json(200,{authenticated:true,expiresAt,csrf},{'Set-Cookie':cookie(id,Math.ceil(maxAgeMs/1000))});
   }
-  const session=await readSession(request,store,clock());
+  const session=await readValidSession(request);
   if(!session)return json(401,{error:'Sesión no válida'},{'Set-Cookie':clearCookie});
   if(!eq(request.headers.get('X-Rumbo-CSRF')||'',session.record.csrf))return json(403,{error:'CSRF inválido'});
   await store.delete(session.hash);
