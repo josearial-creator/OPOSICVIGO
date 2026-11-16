@@ -21,9 +21,11 @@ try{
  // Do not trust a guessed workers.dev address. Warn if the configured hostname is wrong.
  assert(actual==='jose-arial','configured staging hostname mismatch (no changes made)');
  console.log('PASS: configured staging workers.dev hostname matches account.');
- const staging=await get('/workers/scripts/rumbo-entrenamiento-pr36-test');
- assert(staging.status===404,'staging name not confirmed available: HTTP '+staging.status+' codes '+staging.codes.join(','));
- console.log('PASS: staging Worker name is not currently in use.');
+ const staging=await get('/workers/scripts/rumbo-entrenamiento-pr36-test/settings');
+ assert(staging.status===200&&staging.success,'staging Worker not found: HTTP '+staging.status+' codes '+staging.codes.join(','));
+ assert(Array.isArray(staging.result?.bindings),'staging Worker bindings could not be verified');
+ assert(staging.result.bindings.length===0,'staging Worker has existing bindings; refusing to overwrite');
+ console.log('PASS: staging Worker exists and has no bindings.');
  const production=await get('/workers/scripts/rumbo-entrenador/settings');
  assert(production.status===200&&production.success,'production settings not readable: HTTP '+production.status+' codes '+production.codes.join(','));
  // Check binding TYPES ONLY, never read or print secret values, IDs or note content.
