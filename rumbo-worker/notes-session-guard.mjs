@@ -16,8 +16,9 @@ const equal=(a,b)=>{
 const deny=status=>new Response(JSON.stringify({error:status===401?'Acceso no autorizado':'Solicitud no permitida'}),{
  status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}
 });
-export function createNotesSessionGuard({store,apiOrigin,clock=()=>Date.now()}){
+export function createNotesSessionGuard({store,apiOrigin,clock=()=>Date.now(),currentAuthVersion=null}){
  if(!store||typeof store.get!=='function')throw Error('Almacén de sesiones no configurado');
+ if(currentAuthVersion!==null&&typeof currentAuthVersion!=='function')throw Error('Validador de versión de cuenta inválido');
  if(!apiOrigin||!apiOrigin.startsWith('https://')||new URL(apiOrigin).origin!==apiOrigin)throw Error('Origen API inválido');
  return async function authorize(request){
   const url=new URL(request.url),method=request.method;
@@ -30,6 +31,12 @@ export function createNotesSessionGuard({store,apiOrigin,clock=()=>Date.now()}){
   const hash=toHex(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(cookie))));
   const record=await store.get(hash);
   if(!record||!Number.isSafeInteger(record.expiresAt)||record.expiresAt<=clock())return deny(401);
+  // Obligatorio cuando se active el cambio de contraseña: las sesiones antiguas
+  // dejan de autorizar acceso al incrementar authVersion.
+  if(currentAuthVersion){
+   const version=await currentAuthVersion();
+   if(!Number.isSafeInteger(version)||version<1||record.authVersion!==version)return deny(401);
+  }
   if(method!=='GET'&&!equal(request.headers.get('X-Rumbo-CSRF'),record.csrf))return deny(403);
   return null; // null significa autorizado; el llamador decide ruta y operación.
  };
