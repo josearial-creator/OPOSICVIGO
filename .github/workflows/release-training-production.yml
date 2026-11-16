@@ -1,0 +1,42 @@
+name: Publicar SOLO backend de Entrenamiento PR36
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacion:
+        description: 'Escribe PUBLICAR-ENTRENAMIENTO-PR36 para autorizar modificación de rumbo-entrenador'
+        required: true
+        type: string
+      workers_free:
+        description: 'Confirmo que Cloudflare Workers está en plan gratuito y sin facturación'
+        required: true
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: desplegar-rumbo-worker
+  cancel-in-progress: false
+jobs:
+  publicar-backend:
+    if: inputs.confirmacion == 'PUBLICAR-ENTRENAMIENTO-PR36' && inputs.workers_free == true && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/entrenamiento-rutinas-registro-20261116')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+        working-directory: rumbo-worker
+      - name: Validar sintaxis de publicación protegida
+        run: node --check scripts/release-training-production.mjs
+      - name: Comprobar configuración existente y compilar sin desplegar
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/preflight-training-production.mjs
+      - name: Publicación explícitamente autorizada: solo rumbo-entrenador
+        env:
+          PR36_RELEASE_CONFIRM: ${{ inputs.confirmacion }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/release-training-production.mjs
