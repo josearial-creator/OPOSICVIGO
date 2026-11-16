@@ -30,10 +30,14 @@ try{
   console.log('PASS: staging Worker exists but is isolated, with no bindings.');
  }
  const stageNew=await get('/workers/scripts/snowy-river-c4rumbo-entrenamiento-pr36-test2a6/settings');
- assert(stageNew.status===200&&stageNew.success,'new PR36 Worker not found: HTTP '+stageNew.status+' codes '+stageNew.codes.join(','));
- assert(Array.isArray(stageNew.result?.bindings),'new staging bindings could not be verified');
- assert(stageNew.result.bindings.length===0,'new staging Worker already has bindings: test blocked');
- console.log('PASS: newly created Worker has the exact authorized name and zero bindings.');
+ if(stageNew.status===404){
+  console.log('PASS: PR36 test2a6 Worker removed after the successful isolated test.');
+ }else{
+  assert(stageNew.status===200&&stageNew.success,'cannot inspect staging Worker: HTTP '+stageNew.status+' codes '+stageNew.codes.join(','));
+  assert(Array.isArray(stageNew.result?.bindings),'staging bindings could not be verified');
+  assert(stageNew.result.bindings.length===0,'staging Worker has bindings and must not be reused');
+  console.log('PASS: PR36 test2a6 Worker exists and has no bindings.');
+ }
  const namespaces=await get('/storage/kv/namespaces?per_page=100');
  assert(namespaces.status===200&&namespaces.success,'KV namespace list cannot be inspected');
  assert(!(namespaces.result||[]).some(x=>x.title==='rumbo-training-test-43902343610'),'temporary KV from run 7 remains');
