@@ -24,7 +24,8 @@ test('recifrar borrador: conserva contenido y mantiene intacto el original',asyn
  const clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:f64(data.iv)},await key(next,f64(data.salt)),f64(data.cipher));
  assert.equal(dec.decode(clear),'Este texto es ficticio y debe mantenerse.');
  assert.equal(JSON.parse(original).format,2);
- await assert.rejects(()=>crypto.subtle.decrypt({name:'AES-GCM',iv:f64(data.iv)},await key(old,f64(data.salt)),f64(data.cipher)));
+ const formerKey=await key(old,f64(data.salt));
+ await assert.rejects(()=>crypto.subtle.decrypt({name:'AES-GCM',iv:f64(data.iv)},formerKey,f64(data.cipher)));
 });
 test('contraseña anterior incorrecta: rechaza sin devolver sobrescritura',async()=>{
  const saved=await fixture('conservación');
