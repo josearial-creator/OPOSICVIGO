@@ -58,6 +58,14 @@ const assert=require('node:assert/strict');
   await mobile.locator('#er-connect').click();
   await mobile.locator('#er-body tr').waitFor();
   assert.match(await mobile.locator('#er-body').innerText(),/Pausé diez segundos/);
+  assert.equal(await mobile.evaluate(()=>Object.values(localStorage).some(v=>v.includes('Situación de prueba privada'))),false,'No guardar los campos personales en localStorage');
+  await mobile.locator('#er-lock').click();
+  assert.equal(await mobile.locator('#er-private').isVisible(),false);
+  assert.equal(await mobile.locator('#er-form [name=situacion]').inputValue(),'');
+  await mobile.locator('#er-pass').fill(password);
+  await mobile.locator('#er-connect').click();
+  await mobile.locator('#er-body tr').waitFor();
+
   await mobile.locator('#er-body [data-er-delete]').click();
   await mobile.locator('#er-empty').waitFor({state:'visible'});
   assert.equal(storage.size,0);
