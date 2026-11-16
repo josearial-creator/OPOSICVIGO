@@ -10,7 +10,8 @@ const base='https://api.cloudflare.com/client/v4/accounts/'+account;
 async function call(path,method='GET'){
  const response=await fetch(base+path,{method,headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(25000)});
  const result=await response.json().catch(()=>({}));
- if(response.status!==404&&(!response.ok||result.success!==true))
+ const validSuccess=response.ok&&(result.success===true||(method==='DELETE'&&result.success===undefined));
+ if(response.status!==404&&!validSuccess)
   throw Error('Cloudflare '+method+' HTTP '+response.status+', codes='+(result.errors||[]).map(e=>e.code).join(','));
  return {status:response.status,body:result.result};
 }
@@ -23,6 +24,7 @@ async function namespaces(){
   totalPages=Number(result.result_info?.total_pages||1);
   for(const item of result.result||[])if(item.title===targetKvTitle)found.push(item);
  }
+ if(totalPages>10)throw Error('Demasiadas páginas de KV para verificar con seguridad.');
  if(found.length>1)throw Error('Hay varios KV con el título esperado; operación bloqueada.');
  return found[0]||null;
 }
