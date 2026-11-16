@@ -161,7 +161,10 @@ try {
  console.error('Prueba aislada fallida: '+e.message);
  process.exitCode=1;
 } finally {
- // El Worker se conserva, pero se convierte en una página inerte, sin datos ni secretos.
+ // Intentar restaurar primero el Worker como página inerte y sin bindings.
+ // Si no es posible, eliminar SOLO el Worker temporal con nombre fijo;
+ // eliminar el KV ÚNICAMENTE tras confirmar que está desvinculado o el Worker no existe.
+ let workerDeleted=false;
  if(modified){
   try{
    await writeFile(disableConfig,JSON.stringify({
@@ -173,25 +176,51 @@ try {
    const secret=after.bindings?.find(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
    if(secret)await cf(workerUrl+'/secrets/RUMBO_ACCESS_TOKEN','DELETE');
    after=await cf(workerUrl+'/settings');
-   if(after.bindings?.some(b=>['RUMBO_ACCESS_TOKEN','NOTES_KV','db'].includes(b.name)))throw Error('Binding temporal aún activo; no eliminar KV hasta revisión.');
+   if(after.bindings?.some(b=>['RUMBO_ACCESS_TOKEN','NOTES_KV','db'].includes(b.name)))throw Error('Persisten bindings temporales.');
    resetConfirmed=true;
-   console.log('PASS: Worker temporal restaurado a modo inerte sin secreto ni KV vinculado.');
+   console.log('PASS: Worker temporal inerte y sin bindings.');
   }catch(e){
-   console.error('IMPORTANTE: no se confirmó la restauración del Worker temporal: '+e.message);
-   process.exitCode=1;
+   console.error('No se pudo confirmar el modo inerte sin bindings: '+e.message);
+   try{
+    if(staging!=='fancy-sea-977drumbo-entrenamiento-pr36-test')throw Error('Nombre de Worker fuera de lista autorizada.');
+    const response=await cf(workerUrl+'/settings');
+    if(!Array.isArray(response?.bindings))throw Error('No se pudieron verificar los bindings antes de borrar.');
+    const allowed=new Set(['RUMBO_ACCESS_TOKEN','NOTES_KV','ALLOWED_ORIGIN','FREE_TIER_CONFIRMED']);
+    if(response.bindings.some(b=>!allowed.has(b.name)))throw Error('Worker con bindings desconocidos: no se elimina.');
+    const kv=response.bindings.find(b=>b.name==='NOTES_KV');
+    if(kv&&(!namespaceId||kv.type!=='kv_namespace'||kv.namespace_id!==namespaceId))throw Error('KV vinculado diferente al temporal.');
+    const deleted=await fetch(workerUrl,{method:'DELETE',headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(25000)});
+    const payload=await deleted.json().catch(()=>({}));
+    if(!deleted.ok||(payload.success!==undefined&&payload.success!==true))throw Error('No se autorizó eliminar Worker temporal: HTTP '+deleted.status);
+    let gone=false;
+    for(let i=0;i<15;i++){
+     const test=await fetch(workerUrl+'/settings',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
+     if(test.status===404){gone=true;break;}
+     if(i<14)await new Promise(resolve=>setTimeout(resolve,1500));
+    }
+    if(!gone)throw Error('No se confirmó la eliminación del Worker temporal.');
+    workerDeleted=true;
+    console.log('PASS: Worker temporal eliminado tras fallar desvinculación.');
+   }catch(cleanupError){
+    console.error('IMPORTANTE: Worker temporal NO confirmado como limpio: '+cleanupError.message);
+    process.exitCode=1;
+   }
   }
  }
  if(namespaceId){
-  if(!modified||resetConfirmed){
+  if(!modified||resetConfirmed||workerDeleted){
    try{
     await cf(namespaceUrl+'/'+namespaceId,'DELETE');
-    console.log('PASS: KV temporal eliminado; no se consultaron datos del usuario.');
-   }catch(e){console.error('IMPORTANTE: falló la eliminación del KV temporal: '+e.message);process.exitCode=1;}
+    console.log('PASS: KV temporal eliminado después de la desvinculación o eliminación del Worker.');
+   }catch(e){
+    console.error('IMPORTANTE: no se pudo eliminar el KV temporal: '+e.message);
+    process.exitCode=1;
+   }
   }else{
-   console.error('IMPORTANTE: KV temporal conservado por seguridad; requiere limpieza manual.');
+   console.error('IMPORTANTE: KV temporal conservado porque aún podría estar vinculado.');
    process.exitCode=1;
   }
  }
  await Promise.allSettled([unlink(config),unlink(disableConfig)]);
- console.log('Worker de pruebas preexistente conservado, sin acceso a datos de producción.');
+ console.log('No se han modificado recursos del diario principal.');
 }
