@@ -53,8 +53,18 @@ async function open(record){
  const key=await aes(password,un64(record.salt));
  const plain=dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(record.iv)},key,un64(record.cipher)));
  const fields=JSON.parse(plain);
- if(!['situacion','pensamiento','emocion','conducta'].every(k=>typeof fields[k]==='string'))throw Error('Contenido inválido');
- return {...record,...fields};
+ if(['situacion','pensamiento','emocion','conducta'].every(k=>typeof fields?.[k]==='string'))
+  return {...record,...fields};
+ // Las prácticas anteriores usan el mismo /training, pero otro formato cifrado.
+ // Solo ignorar prácticas reconocidas; los datos desconocidos siguen provocando error.
+ const practiceKinds=['pause10','steps5','focus25','return'];
+ const knownPractice=fields&&fields.version===1&&fields.id===record.id&&fields.at===record.date&&
+  practiceKinds.includes(fields.kind)&&
+  (fields.kind!=='pause10'||fields.seconds===10)&&
+  (fields.kind!=='focus25'||(fields.seconds===1500&&typeof fields.task==='string'&&fields.task.length<=120))&&
+  (fields.kind!=='return'||(typeof fields.note==='string'&&fields.note.length<=300));
+ if(knownPractice)return null;
+ throw Error('Contenido cifrado de tipo desconocido');
 }
 function table(){
  const body=document.getElementById('er-body');if(!body)return;
@@ -66,7 +76,7 @@ async function refresh(){
  const data=await api();const decrypted=await Promise.allSettled(data.records.map(open));
  const bad=decrypted.filter(r=>r.status==='rejected').length;
  if(bad)throw Error(`Hay ${bad} registro(s) que no se pudieron descifrar. No se han borrado ni sobrescrito. Utiliza la contraseña original para evitar guardar datos con claves diferentes.`);
- items=decrypted.map(r=>r.value);
+ items=decrypted.map(r=>r.value).filter(Boolean);
  table();
  status('Registros recuperados del almacenamiento privado.');
 }
