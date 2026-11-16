@@ -1,0 +1,24 @@
+name: Diagnostico Cloudflare solo lectura PR36
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-training-cloudflare-readonly.mjs'
+      - '.github/workflows/diagnostico-training-readonly.yml'
+permissions:
+  contents: read
+jobs:
+  preflight:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/entrenamiento-rutinas-registro-20261116'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Consulta sin cambios de Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/verify-training-cloudflare-readonly.mjs
