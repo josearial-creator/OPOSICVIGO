@@ -4,10 +4,12 @@ on:
     paths:
       - 'rumbo-worker/training-api.mjs'
       - 'rumbo-worker/worker.mjs'
+      - 'rumbo-worker/staging-disabled.mjs'
       - 'docs/rumbo/entrenamiento-rutinas.js'
       - 'docs/rumbo/index.html'
       - 'tests/training-api.test.mjs'
       - 'tests/training-worker-auth.test.mjs'
+      - 'tests/staging-disabled.test.mjs'
       - 'tests/package.json'
       - 'scripts/verify-training-cloudflare-isolated.mjs'
       - 'scripts/validate-training-build.mjs'
@@ -29,9 +31,10 @@ jobs:
           node --check docs/rumbo/entrenamiento-rutinas.js
           node --check rumbo-worker/training-api.mjs
           node --check rumbo-worker/worker.mjs
+          node --check rumbo-worker/staging-disabled.mjs
           node --check scripts/verify-training-cloudflare-isolated.mjs
       - name: Probar almacenamiento cifrado y aislamiento del diario
-        run: node --test tests/training-api.test.mjs tests/training-worker-auth.test.mjs
+        run: node --test tests/training-api.test.mjs tests/training-worker-auth.test.mjs tests/staging-disabled.test.mjs
       - name: Compilar Worker temporal sin desplegar ni usar secretos
         run: |
           npm ci --ignore-scripts --prefix rumbo-worker
