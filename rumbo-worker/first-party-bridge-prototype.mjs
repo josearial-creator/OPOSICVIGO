@@ -10,7 +10,7 @@ function equal(a,b){if(typeof a!=='string'||typeof b!=='string')return false;
 const fail=(status,error)=>new Response(JSON.stringify({error}),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const prefix='/api/rumbo';
 const endpoint='/internal/rumbo';
-const paths=/^\/(?:session(?:\/login|\/logout)?|notes(?:\/[a-f0-9-]{36})?)$/;
+const paths=/^\/(?:session(?:\/login|\/logout)?|password\/change|notes(?:\/[a-f0-9-]{36})?)$/;
 function validConfig({publicOrigin,workerOrigin,serviceSecret}){
  const okOrigin=x=>{try{return typeof x==='string'&&x.startsWith('https://')&&new URL(x).origin===x;}catch{return false;}};
  if(!okOrigin(publicOrigin)||!okOrigin(workerOrigin)||publicOrigin===workerOrigin||typeof serviceSecret!=='string'||serviceSecret.length<32)throw Error('Frontera interna mal configurada');
