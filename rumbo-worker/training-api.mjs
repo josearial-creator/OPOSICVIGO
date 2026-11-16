@@ -4,7 +4,7 @@ const json=(status,data)=>new Response(JSON.stringify(data),{status,headers:{'Co
 const idOk=x=>typeof x==='string'&&/^[a-f0-9-]{36}$/.test(x);
 const b64=x=>typeof x==='string'&&/^[A-Za-z0-9+/]+={0,2}$/.test(x);
 const iso=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)&&!Number.isNaN(Date.parse(x));
-const valid=x=>x&&x.version===1&&idOk(x.id)&&iso(x.date)&&b64(x.salt)&&x.salt.length===24&&b64(x.iv)&&x.iv.length===16&&b64(x.cipher)&&x.cipher.length>=24&&x.cipher.length<=24000;
+const valid=x=>x&&x.version===1&&idOk(x.id)&&iso(x.date)&&b64(x.salt)&&x.salt.length===24&&b64(x.iv)&&x.iv.length===16&&b64(x.cipher)&&x.cipher.length>=24&&x.cipher.length<=80000;
 export async function trainingApi(request,env,path){
  if(!env.NOTES_KV)return json(503,{error:'Almacenamiento privado no configurado'});
  const suffix=path.slice('/training'.length);
@@ -22,7 +22,7 @@ export async function trainingApi(request,env,path){
  }
  if(request.method==='POST'&&!id){
   if(!request.headers.get('Content-Type')?.startsWith('application/json'))return json(415,{error:'Se requiere JSON'});
-  let value;try{const raw=await request.text();if(raw.length>26000)return json(413,{error:'Registro demasiado grande'});value=JSON.parse(raw);}catch{return json(400,{error:'Registro no válido'});}
+  let value;try{const raw=await request.text();if(raw.length>90000)return json(413,{error:'Registro demasiado grande'});value=JSON.parse(raw);}catch{return json(400,{error:'Registro no válido'});}
   if(!valid(value))return json(400,{error:'Registro cifrado no válido'});
   const k=prefix+value.id;
   const previous=await env.NOTES_KV.get(k,'json');
