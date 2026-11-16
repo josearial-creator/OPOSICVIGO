@@ -23,7 +23,9 @@ test('registro cifrado: guardar, listar, reintentar y borrar sin tocar notas',as
 });
 test('nunca recibe texto personal sin cifrar y no ofrece borrado masivo',async()=>{
  const kv=memoryKv(),env={NOTES_KV:kv};
- let res=await trainingApi(req('POST','/training',{...record,situacion:'privado'}),env,'/training');assert.equal(res.status,201);
+ let res=await trainingApi(req('POST','/training',{...record,situacion:'privado'}),env,'/training');assert.equal(res.status,400);
+ assert.equal(kv.data.has('private-training/v1/owner/'+id),false);
+ res=await trainingApi(req('POST','/training',record),env,'/training');assert.equal(res.status,201);
  assert.equal(kv.data.get('private-training/v1/owner/'+id).includes('situacion'),false);
  res=await trainingApi(req('POST','/training',{...record,id:'invalid'}),env,'/training');assert.equal(res.status,400);
  res=await trainingApi(req('DELETE','/training'),env,'/training');assert.equal(res.status,405);
