@@ -45,7 +45,9 @@ test('Prototipo + D1: login, comprobación y revocación; sin alterar anotacione
  const req=(path,method='GET',cookie='',token='')=>new Request(origin+path,{method,headers:{...(method==='POST'?{Origin:origin,'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...(token?{'X-Rumbo-CSRF':token}:{})},...(method==='POST'?{body:JSON.stringify(path.endsWith('login')?{password:secret}:{})}:{})});
  const login=await api(req('/session/login','POST'));assert.equal(login.status,200);
  const cookie=login.headers.get('Set-Cookie').split(';')[0],data=await login.json();
- assert.equal(await (await api(req('/session','GET',cookie))).json().then(x=>x.authenticated),true);
+ const resumed=await (await api(req('/session','GET',cookie))).json();
+ assert.equal(resumed.authenticated,true);
+ assert.equal(resumed.csrf,data.csrf,'Al reabrir en el mismo origen se recupera protección CSRF');
  assert.equal((await api(req('/session/logout','POST',cookie,data.csrf))).status,200);
  assert.equal((await api(req('/session','GET',cookie))).status,401);
  assert.equal(db.rows.size,0);
