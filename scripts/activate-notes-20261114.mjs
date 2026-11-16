@@ -19,13 +19,19 @@ export function configuration(settings,namespace){
  return {name:'rumbo-entrenador',main:'worker.mjs',compatibility_date:settings.compatibility_date||'2026-01-01',compatibility_flags:settings.compatibility_flags||[],workers_dev:true,keep_vars:true,kv_namespaces:kv,d1_databases:bindings.filter(b=>b.type==='d1').map(b=>({binding:b.name,database_id:b.id})),vars:{ALLOWED_ORIGIN:[...origins].join(',')},observability:settings.observability||{enabled:false}};
 }
 // Do not rotate a configured password. Validate known resources before adding a missing secret.
-export function secretSyncNeeded(settings){
+export function secretSyncNeeded(settings,password){
  const bindings=settings.bindings||[];
  const secrets=bindings.filter(b=>b.name==='RUMBO_ACCESS_TOKEN');
- if(secrets.length>1||secrets.some(b=>b.type!=='secret_text'))throw Error('Binding de acceso incompatible; intervención manual necesaria.');
- if(secrets.length)return false;
+ if(secrets.length>1)throw Error('Hay más de un binding de acceso; revisión manual necesaria.');
+ if(secrets[0]?.type==='secret_text')return false;
+ if(secrets.length){
+  if(secrets[0].type!=='plain_text')throw Error('Tipo de binding de acceso incompatible: '+secrets[0].type);
+  // Convert only if the GitHub secret matches the existing plain-text value exactly.
+  if(typeof password!=='string'||secrets[0].text!==password)throw Error('La contraseña de GitHub no coincide con el binding actual. No se ha sustituido.');
+ }
  const bound=bindings.find(b=>b.name==='NOTES_KV');
- configuration({...settings,bindings:[...bindings,{name:'RUMBO_ACCESS_TOKEN',type:'secret_text'}]},bound?.namespace_id||'preflight');
+ const safeBindings=[...bindings.filter(b=>b.name!=='RUMBO_ACCESS_TOKEN'),{name:'RUMBO_ACCESS_TOKEN',type:'secret_text'}];
+ configuration({...settings,bindings:safeBindings},bound?.namespace_id||'preflight');
  return true;
 }
 async function main(){
@@ -39,18 +45,19 @@ async function main(){
  }
  let settings=await cf('/workers/scripts/rumbo-entrenador/settings');
  // Preflight refuses unknown bindings, changed D1 and invalid origins before any mutation.
- if(secretSyncNeeded(settings)){
+ if(secretSyncNeeded(settings,password)){
   const before=settings.bindings||[];
   // Cloudflare's secret endpoint creates a new Worker version without exposing its value.
   await cf('/workers/scripts/rumbo-entrenador/secrets','PUT',{type:'secret_text',name:'RUMBO_ACCESS_TOKEN',text:password});
   settings=await cf('/workers/scripts/rumbo-entrenador/settings');
   const after=settings.bindings||[];
   for(const b of before){
+   if(b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='plain_text')continue; // Expected migration into secret_text.
    const saved=after.find(x=>x.name===b.name);
    if(!saved||saved.type!==b.type||(b.id&&saved.id!==b.id)||(b.namespace_id&&saved.namespace_id!==b.namespace_id))throw Error('Verificación de conservación de bindings falló tras instalar el secreto.');
   }
   if(!after.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'))throw Error('No se confirmó la instalación del secreto en Cloudflare.');
-  console.log('Secreto de acceso instalado desde GitHub Secrets sin mostrar su valor.');
+  console.log('Secreto de acceso protegido en Cloudflare sin mostrar ni cambiar su valor.');
  }
  // Validate all pre-existing bindings before creating any resource.
  const bound=settings.bindings?.find(b=>b.name==='NOTES_KV');

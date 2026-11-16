@@ -17,3 +17,16 @@ test('se bloquea la sincronización si faltan D1 o hay un binding desconocido',(
  assert.throws(()=>secretSyncNeeded({bindings:[...missing.bindings,{name:'OBJECT',type:'durable_object_namespace'}]}));
  assert.throws(()=>secretSyncNeeded({bindings:[...missing.bindings,{name:'RUMBO_ACCESS_TOKEN',type:'plain_text'}]}));
 });
+
+test('convierte texto a secreto solo con contraseña idéntica',()=>{
+ const textBinding={...settings,bindings:settings.bindings.map(b=>b.name==='RUMBO_ACCESS_TOKEN'?{name:'RUMBO_ACCESS_TOKEN',type:'plain_text',text:'test-credential'}:b)};
+ assert.equal(secretSyncNeeded(textBinding,'test-credential'),true);
+ assert.throws(()=>secretSyncNeeded(textBinding,'different'),/no coincide/);
+ assert.throws(()=>secretSyncNeeded(textBinding),/no coincide/);
+ assert.equal(secretSyncNeeded(settings,'test-credential'),false);
+});
+test('rechaza duplicados y otros tipos de credenciales',()=>{
+ assert.throws(()=>secretSyncNeeded({bindings:[...settings.bindings,{name:'RUMBO_ACCESS_TOKEN',type:'plain_text',text:'x'}]},'x'),/más de un/);
+ const invalid={...settings,bindings:settings.bindings.map(b=>b.name==='RUMBO_ACCESS_TOKEN'?{name:'RUMBO_ACCESS_TOKEN',type:'json',json:'{}'}:b)};
+ assert.throws(()=>secretSyncNeeded(invalid,'x'),/incompatible/);
+});
