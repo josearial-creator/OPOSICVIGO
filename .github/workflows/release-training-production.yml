@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publicar-backend:
-    if: inputs.confirmacion == 'PUBLICAR-ENTRENAMIENTO-PR36' && inputs.workers_free == true && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/entrenamiento-rutinas-registro-20261116')
+    if: inputs.confirmacion == 'PUBLICAR-ENTRENAMIENTO-PR36' && inputs.workers_free == true && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
