@@ -1,11 +1,13 @@
-// Prueba real del PR #36 sobre un Worker PREEXISTENTE creado desde Cloudflare.
-// No crea ni borra Workers. Nunca usa recursos de producción ni registros personales.
+// Prueba real PR36 sobre UN WORKER DESECHABLE preexistente creado en Cloudflare.
+// Nunca crea Workers ni usa datos reales. Elimina Worker y KV temporales al concluir.
 import {writeFile,unlink} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {randomBytes,randomUUID,webcrypto} from 'node:crypto';
 
 const account='2bc103e4dec32961305599da77b877f6';
-const staging='fancy-sea-977drumbo-entrenamiento-pr36-test';
+const staging=String(process.env.PR36_STAGING_WORKER_NAME||'').trim();
+if(!/^[a-z0-9-]{0,25}rumbo-entrenamiento-pr36-test2$/.test(staging)||staging.length>63)
+ throw Error('Nombre de Worker temporal inválido: debe terminar en rumbo-entrenamiento-pr36-test2.');
 const origin='https://oposicvigo.vercel.app';
 const accountSubdomain='jose-arial';
 const base=`https://api.cloudflare.com/client/v4/accounts/${account}`;
@@ -17,8 +19,7 @@ const run=String(process.env.GITHUB_RUN_ID||'').replace(/[^0-9]/g,'');
 if(!token||!run)throw Error('Falta token de GitHub o identificador de ejecución.');
 if(process.env.CLOUDFLARE_ACCOUNT_ID&&process.env.CLOUDFLARE_ACCOUNT_ID!==account)throw Error('Cuenta de Cloudflare inesperada: sin cambios.');
 const config='rumbo-worker/release-training-test.generated.json';
-const disableConfig='rumbo-worker/release-training-disabled.generated.json';
-let namespaceId=null,modified=false,resetConfirmed=false, testId=null;
+let namespaceId=null,modified=false, testId=null;
 const password=randomBytes(48).toString('hex');
 const auth='Rumbo '+Buffer.from(password,'utf8').toString('base64');
 const enc=new TextEncoder(),dec=new TextDecoder();
@@ -161,66 +162,44 @@ try {
  console.error('Prueba aislada fallida: '+e.message);
  process.exitCode=1;
 } finally {
- // Intentar restaurar primero el Worker como página inerte y sin bindings.
- // Si no es posible, eliminar SOLO el Worker temporal con nombre fijo;
- // eliminar el KV ÚNICAMENTE tras confirmar que está desvinculado o el Worker no existe.
- let workerDeleted=false;
+ // Recursos autorizados: solo el Worker con sufijo específico de esta prueba y el KV creado por este run.
+ // Si no se puede confirmar que el Worker dejó de existir, NO eliminamos un KV que quizá siga vinculado.
+ let absent=!modified;
  if(modified){
   try{
-   await writeFile(disableConfig,JSON.stringify({
-    name:staging,main:'staging-disabled.mjs',compatibility_date:'2026-01-01',
-    workers_dev:true,observability:{enabled:false}
-   }),{mode:0o600});
-   wrangler('release-training-disabled.generated.json');
-   let after=await cf(workerUrl+'/settings');
-   const secret=after.bindings?.find(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
-   if(secret)await cf(workerUrl+'/secrets/RUMBO_ACCESS_TOKEN','DELETE');
-   after=await cf(workerUrl+'/settings');
-   if(after.bindings?.some(b=>['RUMBO_ACCESS_TOKEN','NOTES_KV','db'].includes(b.name)))throw Error('Persisten bindings temporales.');
-   resetConfirmed=true;
-   console.log('PASS: Worker temporal inerte y sin bindings.');
+   const res=await cf(workerUrl+'/settings');
+   const bindings=res?.bindings;
+   if(!Array.isArray(bindings))throw Error('No se pudieron comprobar los bindings del Worker temporal.');
+   const allowed=new Set(['RUMBO_ACCESS_TOKEN','NOTES_KV','ALLOWED_ORIGIN','FREE_TIER_CONFIRMED']);
+   if(bindings.some(b=>!allowed.has(b.name)))throw Error('Bindings ajenos al ensayo: no se elimina.');
+   const kv=bindings.find(b=>b.name==='NOTES_KV');
+   if(kv&&(kv.type!=='kv_namespace'||kv.namespace_id!==namespaceId))throw Error('KV vinculado ajeno al ensayo.');
+   const response=await fetch(workerUrl,{method:'DELETE',headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(25000)});
+   const body=await response.json().catch(()=>({}));
+   if(!response.ok||(body.success!==undefined&&body.success!==true))throw Error('DELETE Worker HTTP '+response.status);
+   for(let attempt=0;attempt<20;attempt++){
+    const check=await fetch(workerUrl+'/settings',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
+    if(check.status===404){absent=true;break;}
+    if(attempt<19)await new Promise(ok=>setTimeout(ok,1500));
+   }
+   if(!absent)throw Error('No se confirmó la eliminación del Worker temporal.');
+   console.log('PASS: Worker temporal borrado, ausencia confirmada.');
   }catch(e){
-   console.error('No se pudo confirmar el modo inerte sin bindings: '+e.message);
-   try{
-    if(staging!=='fancy-sea-977drumbo-entrenamiento-pr36-test')throw Error('Nombre de Worker fuera de lista autorizada.');
-    const response=await cf(workerUrl+'/settings');
-    if(!Array.isArray(response?.bindings))throw Error('No se pudieron verificar los bindings antes de borrar.');
-    const allowed=new Set(['RUMBO_ACCESS_TOKEN','NOTES_KV','ALLOWED_ORIGIN','FREE_TIER_CONFIRMED']);
-    if(response.bindings.some(b=>!allowed.has(b.name)))throw Error('Worker con bindings desconocidos: no se elimina.');
-    const kv=response.bindings.find(b=>b.name==='NOTES_KV');
-    if(kv&&(!namespaceId||kv.type!=='kv_namespace'||kv.namespace_id!==namespaceId))throw Error('KV vinculado diferente al temporal.');
-    const deleted=await fetch(workerUrl,{method:'DELETE',headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(25000)});
-    const payload=await deleted.json().catch(()=>({}));
-    if(!deleted.ok||(payload.success!==undefined&&payload.success!==true))throw Error('No se autorizó eliminar Worker temporal: HTTP '+deleted.status);
-    let gone=false;
-    for(let i=0;i<15;i++){
-     const test=await fetch(workerUrl+'/settings',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
-     if(test.status===404){gone=true;break;}
-     if(i<14)await new Promise(resolve=>setTimeout(resolve,1500));
-    }
-    if(!gone)throw Error('No se confirmó la eliminación del Worker temporal.');
-    workerDeleted=true;
-    console.log('PASS: Worker temporal eliminado tras fallar desvinculación.');
-   }catch(cleanupError){
-    console.error('IMPORTANTE: Worker temporal NO confirmado como limpio: '+cleanupError.message);
-    process.exitCode=1;
-   }
-  }
- }
- if(namespaceId){
-  if(!modified||resetConfirmed||workerDeleted){
-   try{
-    await cf(namespaceUrl+'/'+namespaceId,'DELETE');
-    console.log('PASS: KV temporal eliminado después de la desvinculación o eliminación del Worker.');
-   }catch(e){
-    console.error('IMPORTANTE: no se pudo eliminar el KV temporal: '+e.message);
-    process.exitCode=1;
-   }
-  }else{
-   console.error('IMPORTANTE: KV temporal conservado porque aún podría estar vinculado.');
+   console.error('IMPORTANTE: no se confirmó eliminación del Worker temporal: '+e.message);
    process.exitCode=1;
   }
  }
- await Promise.allSettled([unlink(config),unlink(disableConfig)]);
- console.log('No se han modificado recursos del diario principal.');
+ if(namespaceId){
+  if(absent){
+   try{
+    await cf(namespaceUrl+'/'+namespaceId,'DELETE');
+    // Confirmamos ausencia exacta; no se consultan datos del usuario.
+    const check=await fetch(namespaceUrl+'/'+namespaceId,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
+    if(check.status!==404)throw Error('No se confirmó ausencia del KV: HTTP '+check.status);
+    console.log('PASS: KV temporal borrado, ausencia confirmada.');
+   }catch(e){console.error('IMPORTANTE: KV temporal pendiente: '+e.message);process.exitCode=1;}
+  }else{console.error('IMPORTANTE: KV temporal conservado porque el Worker podría estar vinculado.');process.exitCode=1;}
+ }
+ await Promise.allSettled([unlink(config)]);
+ console.log('El Worker principal rumbo-entrenador y el diario no se han utilizado.');
 }
