@@ -1,0 +1,32 @@
+name: Probar Entrenamiento en Cloudflare aislado
+on:
+  push:
+    branches:
+      - feature/entrenamiento-rutinas-registro-20261116
+    paths:
+      - 'scripts/verify-training-cloudflare-isolated.mjs'
+      - '.github/workflows/probar-entrenamiento-cloudflare-aislado.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rumbo-training-staging-isolated
+  cancel-in-progress: false
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Wrangler
+        run: npm ci --ignore-scripts
+        working-directory: rumbo-worker
+      - name: Ejecutar pruebas reales con KV temporal y limpieza
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '2bc103e4dec32961305599da77b877f6'
+        run: node scripts/verify-training-cloudflare-isolated.mjs
