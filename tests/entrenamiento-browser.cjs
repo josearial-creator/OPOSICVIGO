@@ -36,6 +36,14 @@ const assert=require('node:assert/strict');
  }
  try{
   const desktop=await openPage({width:1280,height:850});
+  // La nueva interfaz convive con el archivo de prácticas anteriores sin borrarlo.
+  assert.equal(await desktop.locator('#er-rutinas-abcd').count(),0); // ID real: ev-rutinas-abcd
+  assert.equal(await desktop.locator('#ev-rutinas-abcd').count(),1);
+  assert.equal(await desktop.locator('#er-archive #ps-app').count(),1);
+  assert.equal(await desktop.locator('#er-archive').evaluate(el=>el.open),false,'Las prácticas anteriores quedan plegadas');
+  await desktop.locator('#er-archive summary').click();
+  assert.equal(await desktop.locator('#ps-pause-plus').isVisible(),true,'El archivo de prácticas anteriores sigue disponible');
+  await desktop.locator('#er-archive summary').click();
   await desktop.evaluate(()=>localStorage.setItem('rumbo-history-test-sentinel','HISTORIAL_INTACTO'));
   await desktop.locator('#er-pass').fill('contraseña equivocada');
   await desktop.locator('#er-connect').click();
