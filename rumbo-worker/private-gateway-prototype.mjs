@@ -7,11 +7,12 @@ import {notesApi} from './notes-api.mjs';
 const reply=(status,message)=>new Response(JSON.stringify({error:message}),{status,headers:{
  'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'
 }});
-export function createPrivateGateway({db,notesEnv,secret,apiOrigin,clock=()=>Date.now(),notesHandler=notesApi}){
- if(!db||!notesEnv||!secret||!apiOrigin)throw Error('Configuración incompleta');
+export function createPrivateGateway({db,notesEnv,secret,apiOrigin,clock=()=>Date.now(),notesHandler=notesApi,currentAuthVersion=null,verifyLogin=null,loginLimiter=null}){
+ if(!db||!notesEnv||(!secret&&!verifyLogin)||!apiOrigin)throw Error('Configuración incompleta');
+ if((currentAuthVersion===null)!==(verifyLogin===null))throw Error('La contraseña personal exige validar la generación de cada sesión');
  const store=createD1SessionStore(db,{clock});
- const sessions=createSessionApi({store,secret,apiOrigin,clock});
- const authorize=createNotesSessionGuard({store,apiOrigin,clock});
+ const sessions=createSessionApi({store,secret,apiOrigin,clock,currentAuthVersion,verifyLogin,loginLimiter});
+ const authorize=createNotesSessionGuard({store,apiOrigin,clock,currentAuthVersion});
  return async function route(request){
   const url=new URL(request.url);
   if(url.origin!==apiOrigin)return reply(403,'Origen no permitido');
