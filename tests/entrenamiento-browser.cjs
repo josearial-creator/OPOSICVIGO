@@ -8,6 +8,9 @@ const assert=require('node:assert/strict');
  async function openPage(viewport){
   const page=await browser.newPage({viewport});
   page.on('dialog',d=>d.accept());
+  // Intento de cambiar el backend desde localStorage: Entrenamiento debe ignorarlo.
+  await page.addInitScript(()=>{try{localStorage.setItem('rumbo-ai-endpoint','https://redirected.invalid');}catch{}});
+  await page.route('https://redirected.invalid/training**',route=>route.fulfill({status:418,json:{error:'Destino externo inseguro'}}));
   await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[]}));
   await page.route('https://rumbo-entrenador.jose-arial.workers.dev/training**',async route=>{
    const request=route.request(),method=request.method(),path=new URL(request.url()).pathname;
