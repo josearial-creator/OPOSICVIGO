@@ -67,7 +67,7 @@ async function expectEventually(label,method,path,expected,authorized,from=origi
   if(last===expected)return;
   // Nunca aceptar un acceso autorizado cuando se espera denegación.
   if(last>=200&&last<300)throw Error(label+' incorrecto: HTTP '+last);
-  if(![404,502,503,504].includes(last))throw Error(label+' incorrecto: HTTP '+last);
+  if(![404,410,502,503,504].includes(last))throw Error(label+' incorrecto: HTTP '+last);
   if(attempt<24)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  throw Error(label+' no confirmado tras reintentos: último HTTP '+last);
@@ -129,7 +129,7 @@ try {
  putStagingSecret();
  let ready=false,authBinding=false,kvBinding=false,lastStatus=0,lastAuthenticated=0,confirmed=0;
  // Confirma DOS lecturas consecutivas correctas para reducir falsos positivos de propagación.
- for(let i=0;i<36;i++){
+ for(let i=0;i<70;i++){
   const active=await cf(workerUrl+'/settings');
   authBinding=!!active.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
   kvBinding=!!active.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId);
@@ -139,9 +139,9 @@ try {
   else confirmed=0;
   if(confirmed>=2){ready=true;break;}
   if(lastStatus>=200&&lastStatus<300)throw Error('Acceso anónimo inesperadamente permitido: HTTP '+lastStatus);
-  if(![401,404,503].includes(lastStatus)||![200,404,503].includes(lastAuthenticated))
+  if(![401,404,410,502,503,504].includes(lastStatus)||![200,404,410,502,503,504].includes(lastAuthenticated))
    throw Error('Estado inesperado del Worker de pruebas: anónimo HTTP '+lastStatus+', autenticado HTTP '+lastAuthenticated);
-  if(i<35)await new Promise(resolve=>setTimeout(resolve,1500));
+  if(i<69)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  if(!ready)throw Error('No se confirmó propagación de autenticación y KV: auth='+authBinding+', kv='+kvBinding+', anónimo HTTP='+lastStatus+', autenticado HTTP='+lastAuthenticated);
  await smoke();
