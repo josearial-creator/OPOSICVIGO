@@ -36,7 +36,12 @@ export function secretSyncNeeded(settings,password){
 }
 async function main(){
  const {CLOUDFLARE_ACCOUNT_ID:account,CLOUDFLARE_API_TOKEN:token,RUMBO_ACCESS_TOKEN:password}=process.env;
- if(account!=='2bc103e4dec32961305599da77b877f6'||!token||!password||password.length<32)throw Error('Faltan credenciales existentes válidas.');
+ // Diagnóstico seguro: indicar solo qué requisito falla, nunca sus valores.
+ if(account!=='2bc103e4dec32961305599da77b877f6')throw Error('CLOUDFLARE_ACCOUNT_ID no coincide con la cuenta de Rumbo.');
+ if(typeof token!=='string'||!token.trim())throw Error('Falta CLOUDFLARE_API_TOKEN en los secretos del repositorio GitHub.');
+ if(typeof password!=='string'||!password)throw Error('Falta RUMBO_ACCESS_TOKEN en los secretos del repositorio GitHub.');
+ if(password.length<32)throw Error('RUMBO_ACCESS_TOKEN tiene menos de 32 caracteres en GitHub.');
+
  const base=`https://api.cloudflare.com/client/v4/accounts/${account}`;
  async function cf(path,method='GET',body){
   const response=await fetch(base+path,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)});
