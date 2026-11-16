@@ -107,6 +107,7 @@ const assert=require('node:assert/strict');
   // pero cada interfaz solo debe mostrar el tipo que le corresponde.
   await desktop.locator('#er-archive > summary').click();
   await desktop.locator('#ps-steps-plus').click();
+  await desktop.locator('#ps-app > details > summary').click();
   await desktop.locator('#ps-password').fill(password);
   await desktop.locator('#ps-sync').click();
   await desktop.waitForFunction(()=>document.querySelector('#ps-sync-status')?.textContent.includes('Sincronización confirmada'));
@@ -127,6 +128,7 @@ const assert=require('node:assert/strict');
   await mixedMobile.locator('#er-body tr').waitFor({state:'visible'});
   assert.equal(await mixedMobile.locator('#er-body tr').count(),1);
   await mixedMobile.locator('#er-archive > summary').click();
+  await mixedMobile.locator('#ps-app > details > summary').click();
   await mixedMobile.locator('#ps-password').fill(password);
   await mixedMobile.locator('#ps-sync').click();
   await mixedMobile.waitForFunction(()=>document.querySelector('#ps-sync-status')?.textContent.includes('Sincronización confirmada'));
