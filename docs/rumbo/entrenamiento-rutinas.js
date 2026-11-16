@@ -65,9 +65,10 @@ function table(){
 async function refresh(){
  const data=await api();const decrypted=await Promise.allSettled(data.records.map(open));
  const bad=decrypted.filter(r=>r.status==='rejected').length;
- items=decrypted.filter(r=>r.status==='fulfilled').map(r=>r.value);
+ if(bad)throw Error(`Hay ${bad} registro(s) que no se pudieron descifrar. No se han borrado ni sobrescrito. Utiliza la contraseña original para evitar guardar datos con claves diferentes.`);
+ items=decrypted.map(r=>r.value);
  table();
- status(bad?`Hay ${bad} registro(s) que no se pudieron descifrar. No se han borrado ni sobrescrito. Comprueba la contraseña utilizada originalmente.`:'Registros recuperados del almacenamiento privado.');
+ status('Registros recuperados del almacenamiento privado.');
 }
 function mount(){
  const parent=root.querySelector('#ev-training');if(!parent||parent.querySelector('#ev-rutinas-abcd'))return;
