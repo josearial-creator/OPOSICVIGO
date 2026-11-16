@@ -61,15 +61,28 @@ async function key(salt){
  const raw=await webcrypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
  return webcrypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:180000,hash:'SHA-256'},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
+async function validTrainingList(response){
+ if(response.status!==200||!String(response.headers.get('content-type')||'').includes('application/json'))return false;
+ const data=await response.clone().json().catch(()=>null);
+ return !!data&&Array.isArray(data.records);
+}
+function oldTemplateResponse(response){
+ // Hasta que se propague nuestro código, la plantilla Hello World puede devolver 200.
+ // Solo se tolera si carece del encabezado de seguridad que incorpora el Worker de Rumbo.
+ return response.status>=200&&response.status<300&&response.headers.get('x-content-type-options')!=='nosniff';
+}
 async function expectEventually(label,method,path,expected,authorized,from=origin){
  let last=-1;
- for(let attempt=0;attempt<25;attempt++){
-  last=(await req(method,path,undefined,from,authorized)).status;
-  if(last===expected)return;
-  // Nunca aceptar un acceso autorizado cuando se espera denegación.
-  if(last>=200&&last<300)throw Error(label+' incorrecto: HTTP '+last);
-  if(![404,410,502,503,504].includes(last))throw Error(label+' incorrecto: HTTP '+last);
-  if(attempt<24)await new Promise(resolve=>setTimeout(resolve,1500));
+ for(let attempt=0;attempt<45;attempt++){
+  const r=await req(method,path,undefined,from,authorized);
+  last=r.status;
+  const isExpected=last===expected&&(expected!==200||await validTrainingList(r));
+  if(isExpected)return;
+  if(last>=200&&last<300&&!oldTemplateResponse(r))throw Error(label+' incorrecto: HTTP '+last);
+  if(last<200||last>=300){
+   if(![404,410,502,503,504].includes(last))throw Error(label+' incorrecto: HTTP '+last);
+  }
+  if(attempt<44)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  throw Error(label+' no confirmado tras reintentos: último HTTP '+last);
 }
@@ -146,14 +159,20 @@ try {
   const active=await cf(workerUrl+'/settings');
   authBinding=!!active.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text');
   kvBinding=!!active.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'&&b.namespace_id===namespaceId);
-  lastStatus=(await req('GET','/training',undefined,origin,false)).status;
-  lastAuthenticated=(await req('GET','/training',undefined,origin,true)).status;
-  if(authBinding&&kvBinding&&lastStatus===401&&lastAuthenticated===200)confirmed++;
+  const anonymousResponse=await req('GET','/training',undefined,origin,false);
+  const authenticatedResponse=await req('GET','/training',undefined,origin,true);
+  lastStatus=anonymousResponse.status;
+  lastAuthenticated=authenticatedResponse.status;
+  const correctRecords=await validTrainingList(authenticatedResponse);
+  if(authBinding&&kvBinding&&lastStatus===401&&correctRecords)confirmed++;
   else confirmed=0;
   if(confirmed>=2){ready=true;break;}
-  if(lastStatus>=200&&lastStatus<300)throw Error('Acceso anónimo inesperadamente permitido: HTTP '+lastStatus);
-  if(![401,404,410,502,503,504].includes(lastStatus)||![200,404,410,502,503,504].includes(lastAuthenticated))
-   throw Error('Estado inesperado del Worker de pruebas: anónimo HTTP '+lastStatus+', autenticado HTTP '+lastAuthenticated);
+  if(lastStatus>=200&&lastStatus<300&&!oldTemplateResponse(anonymousResponse))
+   throw Error('Acceso anónimo inesperadamente permitido: HTTP '+lastStatus);
+  if(![401,404,410,502,503,504].includes(lastStatus)&&!oldTemplateResponse(anonymousResponse))
+   throw Error('Estado anónimo inesperado: HTTP '+lastStatus);
+  if(![200,404,410,502,503,504].includes(lastAuthenticated))
+   throw Error('Estado autenticado inesperado: HTTP '+lastAuthenticated);
   if(i<69)await new Promise(resolve=>setTimeout(resolve,1500));
  }
  if(!ready)throw Error('No se confirmó propagación de autenticación y KV: auth='+authBinding+', kv='+kvBinding+', anónimo HTTP='+lastStatus+', autenticado HTTP='+lastAuthenticated);
