@@ -16,9 +16,6 @@ const idOk=id=>typeof id==='string'&&/^[a-f0-9-]{36}$/.test(id);
 let pauseEnd=0,pauseTimer=null,focusTimer=null,focus=null,password='',syncing=false,localAlert='',events=[];
 const style=document.createElement('style');
 style.textContent=[
- 'body.rumbo-separated[data-rumbo-route="mi-evolucion"] #mi-evolucion > .panel-head{display:none!important}',
- 'body.rumbo-separated[data-rumbo-route="mi-evolucion"] #mi-evolucion .ev-body > :not(#ev-training){display:none!important}',
- 'body.rumbo-separated[data-rumbo-route="mi-evolucion"] #ev-training{display:block!important}',
  '#ev-training{margin-top:0!important;border-top:0!important;padding-top:0!important}',
  '#ps-app{color:#213b50;padding:4px 0 25px}',
  '#ps-app .ps-heading{font-size:1.45rem;margin:0 0 6px;font-weight:800}',
