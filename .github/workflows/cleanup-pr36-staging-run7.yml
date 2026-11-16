@@ -1,8 +1,5 @@
 name: Limpiar KV y Worker temporal PR36 run7
 on:
-  push:
-    branches: [feature/entrenamiento-rutinas-registro-20261116]
-    paths: ['.github/workflows/cleanup-pr36-staging-run7.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +8,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   limpiar:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[pr36-clean-run7]')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: staging
