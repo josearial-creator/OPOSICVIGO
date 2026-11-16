@@ -1,0 +1,34 @@
+// Preflight de SOLO LECTURA para la prueba aislada de Entrenamiento.
+// No despliega, no crea recursos, no modifica variables, no muestra secretos.
+const account='2bc103e4dec32961305599da77b877f6';
+const token=process.env.CLOUDFLARE_API_TOKEN;
+if(!token){console.error('BLOCKED: falta credencial GitHub para diagnóstico de solo lectura.');process.exit(1);}
+const base='https://api.cloudflare.com/client/v4/accounts/'+account;
+async function get(path){
+ let response;
+ try{response=await fetch(base+path,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(20000)});}
+ catch{throw Error('Network error in read-only preflight');}
+ const obj=await response.json().catch(()=>({}));
+ return {status:response.status,success:obj.success===true,result:obj.result,codes:(obj.errors||[]).map(x=>x.code)};
+}
+function assert(ok,label){if(!ok)throw Error('BLOCKED '+label);}
+try{
+ const domain=await get('/workers/subdomain');
+ assert(domain.status===200&&domain.success,'workers.dev subdomain endpoint: HTTP '+domain.status+' codes '+domain.codes.join(','));
+ const actual=domain.result?.subdomain;
+ assert(typeof actual==='string'&&actual.length>0,'workers.dev subdomain missing');
+ console.log('PASS: account workers.dev subdomain exists (value hidden).');
+ // Do not trust a guessed workers.dev address. Warn if the configured hostname is wrong.
+ assert(actual==='jose-arial','configured staging hostname mismatch (no changes made)');
+ console.log('PASS: configured staging workers.dev hostname matches account.');
+ const staging=await get('/workers/scripts/rumbo-entrenamiento-pr36-test');
+ assert(staging.status===404,'staging name not confirmed available: HTTP '+staging.status+' codes '+staging.codes.join(','));
+ console.log('PASS: staging Worker name is not currently in use.');
+ const production=await get('/workers/scripts/rumbo-entrenador/settings');
+ assert(production.status===200&&production.success,'production settings not readable: HTTP '+production.status+' codes '+production.codes.join(','));
+ // Check binding TYPES ONLY, never read or print secret values, IDs or note content.
+ assert(production.result?.bindings?.some(b=>b.name==='RUMBO_ACCESS_TOKEN'&&b.type==='secret_text'),'production authentication binding missing');
+ assert(production.result?.bindings?.some(b=>b.name==='NOTES_KV'&&b.type==='kv_namespace'),'production NOTES_KV binding missing');
+ console.log('PASS: production existing bindings are readable, no values disclosed and no changes made.');
+ console.log('PASS: read-only Cloudflare prerequisites checked. Deployment permissions and actual KV writes remain untested.');
+}catch(e){console.error(e.message);process.exitCode=1;}
