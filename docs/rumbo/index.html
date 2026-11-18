@@ -59,7 +59,7 @@
       <div class="sidebar-bottom"><span class="pulse"></span> Datos de fuentes oficiales<br><small>Concello de Vigo · SERGAS · ampliable</small></div>
     </aside>
     <main class="main" id="inicio">
-      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
+      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><button class="button secondary rumbo-access-open" type="button" id="rumbo-access-open" aria-haspopup="dialog" aria-controls="rumbo-access-dialog">Acceso privado</button><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
       <div class="page" id="contenido-principal" tabindex="-1">
         <details id="diario-menu" class="ev-nav-tree ev-mobile-tree" data-mobile-screen="diario" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
         <details class="ev-nav-tree ev-mobile-tree study-nav" data-mobile-screen="oposiciones" open><summary>Estudio</summary><div class="ev-nav-children"><a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span aria-hidden="true">▤</span> Convocatorias</a><a class="nav-link" href="#apuntes-estudio" data-nav="apuntes-estudio"><span aria-hidden="true">✎</span> Apuntes de estudio</a><a class="nav-link" href="#favoritos" data-nav="favoritos"><span aria-hidden="true">☆</span> Favoritos</a></div></details>
@@ -144,6 +144,23 @@
   <p id="rumbo-offline" class="offline-notice" role="status" hidden>Sin conexión. Puedes consultar datos locales; los cambios y consultas del servidor requieren Internet.</p>
   <button id="need-stop" class="assistant-stop-button" type="button">Necesito parar</button>
   <dialog id="assistant-stop-dialog" class="assistant-stop-dialog" aria-labelledby="stop-dialog-heading"><h2 id="stop-dialog-heading">Puedes dejarlo aquí</h2><p>No necesitas terminarlo todo ahora. Guarda dónde continuar.</p><label>¿Qué estás haciendo?<input id="stop-current" maxlength="120"></label><p class="assistant-stop-question">¿Es necesario resolverlo ahora? Puedes decidir que no.</p><label>Siguiente paso que quieres dejar guardado<textarea id="stop-next" rows="3" maxlength="250" placeholder="Ej.: Revisar el apartado 3 otro día"></textarea></label><div class="assistant-stop-actions"><button type="button" class="button primary" id="stop-park">Aparcar y cerrar</button><button type="button" class="button secondary" id="stop-done">He terminado</button><button type="button" class="button secondary" id="stop-close">Volver</button></div></dialog>
+  <dialog id="rumbo-access-dialog" class="rumbo-access-dialog" aria-labelledby="rumbo-access-heading">
+    <div class="rumbo-access-head"><h2 id="rumbo-access-heading">Acceso privado de Rumbo</h2><button id="rumbo-access-close" type="button" class="button secondary" aria-label="Cerrar ventana">Cerrar</button></div>
+    <div id="rumbo-access-credentials">
+      <p>Introduce una sola vez tu contraseña privada para acceder a Mi espacio y Entrenamiento en esta pestaña.</p>
+      <form id="rumbo-access-form">
+        <label for="rumbo-access-password">Contraseña privada de Rumbo</label>
+        <input id="rumbo-access-password" type="password" autocomplete="off" required maxlength="4096">
+        <button type="submit" id="rumbo-access-submit" class="button primary">Abrir acceso privado</button>
+      </form>
+    </div>
+    <div id="rumbo-access-connected" hidden>
+      <p>Acceso verificado. Puedes cambiar de apartado sin volver a escribir la contraseña.</p>
+      <button id="rumbo-access-logout" class="button secondary" type="button">Cerrar acceso en esta pestaña</button>
+    </div>
+    <p class="rumbo-access-note">La contraseña solo permanece en memoria. Al recargar o cerrar la pestaña tendrás que introducirla de nuevo. Las copias cifradas y la recuperación tienen sus propias frases de seguridad.</p>
+    <p id="rumbo-access-status" role="status" aria-live="polite"></p>
+  </dialog>
   <dialog id="detail-dialog"><div class="dialog-head"><h2 id="dialog-title">Detalle</h2><button class="plain close" id="dialog-close" aria-label="Cerrar">✕</button></div><div id="dialog-content"></div><div class="dialog-footer"><a id="official-link" class="button primary" href="#" target="_blank" rel="noopener noreferrer">Ver fuente oficial ↗</a><button id="dialog-done" class="button secondary">Cerrar</button></div></dialog>
 </body>
 </html>

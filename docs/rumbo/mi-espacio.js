@@ -110,21 +110,46 @@ function render(){
  }
 }
 $('esp-password').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();$('esp-connect').click();}});
-$('esp-connect').addEventListener('click',async()=>{
- if(busy)return;
- const pass=$('esp-password').value;
- if(!pass){mark('Introduce la contraseña privada.');return;}
+async function enterPrivate(pass,share){
+ if(busy||!pass)return;
  token=pass;lock(true);
- try{await load();await unlockDraft();$('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-form').hidden=true;$('esp-disconnect').hidden=false;$('esp-password').value='';if(draftWritable)mark('Acceso autorizado.');window.RumboSession?.unlock(pass);}
- catch(e){token='';mark('No se pudo acceder: '+e.message);}
+ try{
+  await load();await unlockDraft();
+  $('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-form').hidden=true;
+  $('esp-disconnect').hidden=false;$('esp-password').value='';
+  if(draftWritable)mark('Acceso autorizado.');
+  if(share)window.RumboSession?.unlock(pass);
+ }catch(e){token='';mark('No se pudo acceder: '+e.message);}
  finally{lock(false);}
-});
-$('esp-disconnect').addEventListener('click',async()=>{
- if(busy)return;clearTimeout(timer);stopDictation();lock(true);
+}
+async function leavePrivate(share=true){
+ if(busy||!token)return;
+ clearTimeout(timer);stopDictation();lock(true);
  try{if(dirty)await persistDraft($('esp-text').value);await saveQueue;}
  catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return;}
- token='';window.RumboSession?.lock();key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
- $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;$('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';mark('Sesión cerrada.');lock(false);
+ token='';if(share)window.RumboSession?.lock();
+ key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
+ $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
+ $('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';
+ mark('Sesión cerrada.');lock(false);
+}
+$('esp-connect').addEventListener('click',()=>{
+ const pass=$('esp-password').value;
+ if(!pass){mark('Introduce la contraseña privada.');return;}
+ void enterPrivate(pass,true);
+});
+$('esp-disconnect').addEventListener('click',()=>{void leavePrivate(true);});
+function connectIfShared(){
+ if(token||busy||!window.RumboSession?.available())return;
+ if(window.RumboNavigation?.current()!=='mi-espacio')return;
+ void enterPrivate(window.RumboSession.use(),false);
+}
+window.RumboSession?.subscribe(available=>{
+ if(available)connectIfShared();
+ else if(token&&!busy)void leavePrivate(false);
+});
+window.addEventListener('rumbo:route-changed',e=>{
+ if(e.detail?.route==='mi-espacio')connectIfShared();
 });
 $('esp-save').addEventListener('click',async()=>{
  if(busy)return;
