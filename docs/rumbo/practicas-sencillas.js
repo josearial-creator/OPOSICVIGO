@@ -338,7 +338,7 @@ function mount(){
   const label=$('ps-login-label'),input=$('ps-password');
   if(!label||!input)return;
   label.hidden=Boolean(available);input.hidden=Boolean(available);
-  if(available){password=window.RumboSession?.use()||'';input.value='';message('ps-sync-status','Acceso privado disponible. Pulsa «Conectar y sincronizar» si quieres sincronizar tus prácticas.');}
+  if(available){input.value='';message('ps-sync-status','Acceso privado disponible. Pulsa «Conectar y sincronizar» si quieres sincronizar tus prácticas.');}
   else{password='';input.value='';message('ps-sync-status','Sincronización privada desconectada.');}
  }
  window.RumboSession?.subscribe(updateSharedAccess);
