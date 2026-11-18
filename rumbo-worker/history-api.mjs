@@ -7,7 +7,7 @@ const b64=s=>typeof s==='string'&&/^[A-Za-z0-9+/]+={0,2}$/.test(s);
 const valid=v=>v&&typeof v==='object'&&!Array.isArray(v)&&
  Object.keys(v).sort().join(',')==='cipher,count,createdAt,id,iv,salt,version'&&
  v.version===1&&validId(v.id)&&Number.isInteger(v.count)&&v.count>0&&v.count<=5000&&
- typeof v.createdAt==='string'&&/^\\d{4}-\\d{2}-\\d{2}T/.test(v.createdAt)&&Number.isFinite(Date.parse(v.createdAt))&&
+ typeof v.createdAt==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(v.createdAt)&&Number.isFinite(Date.parse(v.createdAt))&&
  b64(v.salt)&&v.salt.length===24&&b64(v.iv)&&v.iv.length===16&&
  b64(v.cipher)&&v.cipher.length>=24&&v.cipher.length<=6000000;
 export async function historyApi(request,env,path){
