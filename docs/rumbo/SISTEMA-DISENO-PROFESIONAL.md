@@ -47,3 +47,11 @@ La comprobación de `localStorage` antes de escribir evita sobrescribir cambios 
 - Rutinas y pausa de 10 segundos se sitúan debajo de la tarea principal. Mantienen sus funciones, temporizador y almacenamiento independiente.
 - La pantalla se puede consultar sin escribir en almacenes. El inicio del temporizador exige una acción adicional explícita.
 - Prueba visual y de interacción en 320/390/560/768/1120 px y revisión en teléfono real pendientes de validación.
+
+## Acceso único en la pestaña (18/11/2026)
+- Contraseña privada verificada con GET /notes en el Worker fijo. Solo permanece en memoria de esta pestaña; no se guarda en storage, cookies ni URL.
+- Mi espacio y Entrenamiento vuelven a autenticar y descifrar los registros en el dispositivo; la pantalla se abre al entrar en cada apartado.
+- El borrador de Mi espacio conserva su clave derivada con PBKDF2 y AES-GCM, y se intenta conservar antes de cerrar.
+- Las prácticas anteriores solo sincronizan al pulsar el botón. Gemini y dictado requieren consentimiento independiente.
+- Las frases de cifrado de copias, recuperación de ChatGPT y aplicaciones externas permanecen independientes.
+- Limitación: tras recargar o cerrar esta pestaña hay que introducir otra vez la contraseña. No es una sesión revocable en el servidor ni persistente (ver docs/SESION-PERSISTENTE-FASE-2.md).
