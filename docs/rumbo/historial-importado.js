@@ -81,7 +81,7 @@ root.innerHTML=`<div class="panel-head"><div><div class="eyebrow">TUS DATOS ANTE
  </section>
  <div class="historic-import">
  <h3>Importar mis registros anteriores</h3>
- <p>Selecciona la copia preparada de 132 registros o los archivos originales <code>rumbo-reflexiones-chatgpt</code> y <code>rumbo-diario</code>. Puedes seleccionar más de un archivo. Se añaden únicamente las entradas nuevas: no se borran ni sustituyen las anteriores.</p>
+ <p>Selecciona tu copia JSON de 132 registros o los archivos originales <code>rumbo-reflexiones-chatgpt</code> y <code>rumbo-diario</code>. Puedes seleccionar más de un archivo. Se añaden únicamente las entradas nuevas: no se borran ni sustituyen las anteriores.</p>
  <label>Archivos JSON de Rumbo<input id="historic-files" type="file" multiple accept=".json,application/json"></label>
  <div class="historic-toolbar"><button class="button primary" id="historic-import" type="button">Importar sin duplicar</button><button class="button secondary" id="historic-export" type="button">Exportar historial recuperado</button></div>
  <p id="historic-status" role="status" aria-live="polite"></p>
@@ -220,6 +220,16 @@ $('historic-vault-persist').addEventListener('click',async()=>{
  }catch(e){message(e.message);}
 });
 paint();
+window.addEventListener('rumbo:historial-actualizado',()=>{
+ if(locked)return;
+ try{
+  const raw=localStorage.getItem(KEY);
+  const updated=raw?JSON.parse(raw):empty();
+  if(!validStore(updated))return;
+  state=updated;shown=20;paint();
+  void refreshVault().catch(()=>{});
+ }catch{}
+});
 if(locked)message('No se puede leer el historial guardado. No se sobrescribirá ningún registro.');
 (async()=>{
  try{
