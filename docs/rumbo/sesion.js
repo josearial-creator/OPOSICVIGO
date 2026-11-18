@@ -66,10 +66,11 @@
   finally{submit.disabled=false;}
  });
  logout.addEventListener('click',()=>{
-  const disconnect=document.getElementById('esp-disconnect');
-  if(disconnect&&!disconnect.hidden&&!disconnect.disabled){dialog.close();disconnect.click();return;}
+  // Preguntar antes de descartar campos ABCD incluso si Mi espacio también está conectado.
   const fields=[...document.querySelectorAll('#er-form textarea')];
   if(fields.some(e=>e.value.trim())&&!confirm('El registro de entrenamiento que estás escribiendo no se ha guardado. ¿Cerrar acceso y descartar ese texto?'))return;
+  const disconnect=document.getElementById('esp-disconnect');
+  if(disconnect&&!disconnect.hidden&&!disconnect.disabled){dialog.close();disconnect.click();return;}
   lock();status.textContent='Acceso privado cerrado en esta pestaña.';dialog.close();
  });
  renderAccess();
