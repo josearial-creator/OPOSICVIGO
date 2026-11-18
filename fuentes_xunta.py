@@ -7,7 +7,7 @@ anuncios oficiales; la interfaz cierra automáticamente los plazos vencidos.
 from copy import deepcopy
 
 OEP_2026 = "https://www.xunta.gal/dog/Publicados/2026/20260508/AnuncioG0597-040526-0004_es.html"
-DOG_SUBALTERNO = "https://www.xunta.gal/dog/Publicados/2026/20261030/AnuncioG0597-261026-0001_gl.html"
+DOG_SUBALTERNO = "https://www.xunta.gal/dog/Publicados/2026/20261030/AnuncioG0597-261026-0001_es.html"
 DOG_AUX_DI = "https://www.xunta.gal/dog/Publicados/2026/20261106/AnuncioG0597-301026-0009_es.html"
 PORTAL = "https://www.xunta.gal/es/funcion-publica/procesos-selectivos/consulta"
 FECHA_VERIFICACION = "2026-11-18"
