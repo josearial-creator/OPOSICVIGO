@@ -1,3 +1,4 @@
+const go=async(page,id)=>{await page.evaluate(id=>{location.hash=id;},id);await page.waitForFunction(id=>document.body.dataset.rumboRoute===id,id);};
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -20,7 +21,7 @@ await page.addInitScript(()=>{
     records,favorites:[],notes:{},previousKeys:[],lastSuccess:null
   }));
 });
-await page.goto('http://127.0.0.1:8086');
+await page.goto('http://127.0.0.1:8086/#convocatorias');
 await page.locator('#rows tr').first().waitFor();
 await page.getByText('Total conservado: 133',{exact:false}).waitFor();
 assert.equal(await page.locator('#count-total').innerText(),'133');
@@ -34,9 +35,11 @@ assert.match(await page.locator('#today-actions').innerText(),/Marca con ☆/);
 await page.locator('#rows tr').filter({hasText:'Administrativa/o'}).getByRole('button',{name:'Alternar favorito'}).click();
 assert.match(await page.locator('#today-metrics').innerText(),/Favoritas abiertas según fuente/);
 assert.equal(await page.locator('#today-metrics .today-metric strong').first().innerText(),'1');
+await go(page,'panel-hoy');
 await page.locator('#today-actions').getByRole('button',{name:'Ver ficha'}).click();
 assert.match(await page.locator('#detail-dialog').innerText(),/Administrativa\/o/);
 await page.locator('#dialog-done').click();
+await go(page,'ev-diary');
 await page.locator('#ev-quick-form textarea').fill('Una situación concreta para recordar.');
 await page.locator('#ev-quick-form button').click();
 const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')));

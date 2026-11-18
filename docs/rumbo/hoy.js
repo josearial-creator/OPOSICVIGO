@@ -47,7 +47,7 @@ function render({records,favorites,newKeys,recordKey,statusType,openDetail,goFav
   list.replaceChildren();
   if(!featured.length){
     const msg=el('p','today-empty','Todavía no tienes convocatorias favoritas. Marca con ☆ las que te interesen para verlas aquí.');
-    const action=el('button','button secondary','Explorar convocatorias');action.type='button';action.onclick=()=>byId('convocatorias').scrollIntoView({behavior:'smooth'});
+    const action=el('button','button secondary','Explorar convocatorias');action.type='button';action.onclick=()=>{if(!window.RumboNavigation?.go('convocatorias'))location.hash='convocatorias';};
     list.append(msg,action);return;
   }
   featured.forEach(r=>{

@@ -236,6 +236,7 @@ function renderProductivity(){
 function render(){renderTasks();renderTimer();renderProductivity();updateAvailability();}
 window.RumboAssistant={
  getSnapshot:()=>JSON.parse(JSON.stringify(state)),
+ getTimerSnapshot:()=>state.timer?{...state.timer,seconds:timerSeconds()}:null,
  addTask:(text,projectId)=>{
   const title=String(text||'').trim();
   if(locked||!title||title.length>1000)return false;

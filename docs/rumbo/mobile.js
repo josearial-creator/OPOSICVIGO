@@ -17,7 +17,8 @@
   };
   const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Más'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));
-  const aliases = {'diario-menu':'mi-espacio'};
+  const aliases = {'diario-menu':'mi-espacio',hoy:'mi-dia',estudio:'productividad',diario:'mi-espacio',planificacion:'proyectos'};
+  const labels=new Map(Object.values(groups).flat().map(([id,label])=>[id,label]));
   const nav = document.createElement('nav');
   nav.className = 'rumbo-section-nav';
   nav.setAttribute('aria-label','Apartados de Rumbo');
@@ -70,17 +71,33 @@
       else tab.removeAttribute('aria-current');
     }
     renderNav(group,route);
-    // En ordenador, la portada conserva el resumen inicial; elegir un apartado activa su pantalla exclusiva.
-    document.body.classList.toggle('rumbo-separated',mobile.matches||Boolean(location.hash));
-    if(scroll)requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));
+    // Una sola pantalla también al entrar sin fragmento desde un ordenador.
+    document.body.classList.add('rumbo-separated');
+    const label=labels.get(route)||'Portada';
+    document.title=label+' · Rumbo';
+    const breadcrumb=document.querySelector('.breadcrumb strong');
+    if(breadcrumb)breadcrumb.textContent=label;
+    for(const a of document.querySelectorAll('[data-nav]')){
+      a.classList.toggle('active',a.dataset.nav===route);
+      if(a.dataset.nav===route)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+    }
+    window.dispatchEvent(new CustomEvent('rumbo:route-changed',{detail:{route,group}}));
+    if(scroll)requestAnimationFrame(()=>{
+      window.scrollTo({top:0,behavior:'instant'});
+      if(document.querySelector('dialog[open]'))return;
+      const target=route==='inicio'?document.querySelector('.hero-line'):document.getElementById(route==='favoritos'?'convocatorias':route);
+      const heading=target?.querySelector('h1,h2')||target?.querySelector('h3');
+      if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+    });
   }
   function fromHash(){
     let hash='';
     try{hash=decodeURIComponent(location.hash.slice(1));}catch{hash=location.hash.slice(1);}
     const id=aliases[hash]||hash;
-    return routeGroups.has(id)?id:(hash?active:'inicio');
+    return routeGroups.has(id)?id:'inicio';
   }
   function update(){show(fromHash(),true);}
+  window.RumboNavigation={current:()=>active,resolve:id=>aliases[id]||id,go:route=>{const id=aliases[route]||route;if(!routeGroups.has(id))return false;if(location.hash==='#'+id)show(id,true);else location.hash=id;return true;}};
   for(const tab of tabs){
     tab.addEventListener('click',()=>{
       if(tab.getAttribute('href')===location.hash)show(fromHash(),true);

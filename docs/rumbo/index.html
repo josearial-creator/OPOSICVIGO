@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="organizacion.css">
   <script defer src="organizacion.js"></script>
   <script defer src="mobile.js"></script>
+  <script defer src="bloque-presente.js"></script>
   <script defer src="anytype-link.js"></script>
   <script defer src="copias.js"></script>
   <link rel="stylesheet" href="redisenio.css">
@@ -72,7 +73,7 @@
             </div>
           </div>
           <div class="hero-art" aria-hidden="true"><div class="hero-circle"><span class="hero-art-letter">R</span></div><div class="hero-floating hero-floating-top"><span class="hero-floating-dot"></span> ENFOQUE</div><div class="hero-floating hero-floating-bottom">TU SIGUIENTE PASO <span>↗</span></div></div>
-          <button class="button secondary hero-refresh" id="refresh" type="button">↻ Actualizar convocatorias</button>
+          
         </div>
         <nav class="quick-actions" data-mobile-screen="hoy" aria-label="Accesos rápidos">
           <a class="quick-action quick-action-today" href="#mi-dia"><span class="quick-icon" aria-hidden="true">◷</span><span class="quick-copy"><strong>Mi día</strong><small>Prioridades y tareas</small></span><span class="quick-arrow" aria-hidden="true">↗</span></a>
@@ -116,7 +117,7 @@
         <section id="proyectos" data-mobile-screen="mas" class="panel org-section" aria-label="Proyectos y planificación"></section>
         <section class="panel" data-mobile-screen="oposiciones" id="apuntes-estudio" aria-label="Apuntes de estudio"></section>
         <section class="panel" data-mobile-screen="oposiciones" id="convocatorias">
-          <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
+          <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><button class="button secondary" id="refresh" type="button">↻ Actualizar convocatorias</button><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
           <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="pendiente">Pendiente</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
           <div class="result-row"><span id="result-label">Cargando…</span><button class="plain" type="button" id="clear">Limpiar filtros</button></div>
           <div class="table-scroll"><table><thead><tr><th>Puesto / grupo</th><th>Organismo</th><th>Plazas</th><th>Discapacidad</th><th>Situación</th><th>Prioridad</th><th>Fin del plazo</th><th class="right">Acciones</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -136,7 +137,7 @@
     <a href="#mi-dia" data-mobile-tab="hoy" aria-label="Hoy"><span aria-hidden="true">⌂</span>Hoy</a>
     <a href="#convocatorias" data-mobile-tab="oposiciones" aria-label="Oposiciones"><span aria-hidden="true">▤</span>Oposiciones</a>
     <a href="#mi-espacio" data-mobile-tab="diario" aria-label="Diario"><span aria-hidden="true">✎</span>Diario</a>
-    <a href="#productividad" data-mobile-tab="mas" aria-label="Más herramientas"><span aria-hidden="true">☷</span>Más</a>
+    <a href="#productividad" data-mobile-tab="mas" aria-label="Productividad y herramientas"><span aria-hidden="true">◷</span>Foco</a>
   </nav>
   <p id="rumbo-offline" class="offline-notice" role="status" hidden>Sin conexión. Puedes consultar datos locales; los cambios y consultas del servidor requieren Internet.</p>
   <button id="need-stop" class="assistant-stop-button" type="button">Necesito parar</button>
