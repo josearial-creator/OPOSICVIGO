@@ -311,7 +311,7 @@ function mount(){
   '<div class="ps-buttons"><button class="button secondary" id="ps-export" type="button">Exportar copia JSON</button>'+
   '<label class="button secondary" for="ps-import">Importar copia</label><input type="file" id="ps-import" accept=".json,application/json" hidden></div>'+
   '<p class="ps-caption">La sincronización necesita que el backend privado /training esté publicado. La contraseña solo permanece en la memoria de esta pestaña y los datos se cifran antes de enviarse.</p>'+
-  '<label for="ps-password">Contraseña privada de Rumbo</label><input id="ps-password" type="password" autocomplete="off" placeholder="Contraseña privada">'+
+  '<label id="ps-login-label" for="ps-password">Contraseña privada de Rumbo</label><input id="ps-password" type="password" autocomplete="off" placeholder="Contraseña privada">'+
   '<div class="ps-buttons"><button class="button secondary" id="ps-sync" type="button">Conectar y sincronizar</button>'+
   '<button class="button secondary" id="ps-lock" type="button">Desconectar</button></div>'+
   '<p id="ps-sync-status" class="ps-message" role="status" aria-live="polite">La sincronización es opcional y no está activada.</p></details></div>';
@@ -328,12 +328,21 @@ function mount(){
  $('ps-export').onclick=exportBackup;
  $('ps-import').onchange=e=>{void importBackup(e.target.files?.[0]);e.target.value='';};
  $('ps-sync').onclick=()=>{
-  const value=$('ps-password').value;
-  if(!value){message('ps-sync-status','Introduce la contraseña privada para conectar.');return;}
+  const value=$('ps-password').value||window.RumboSession?.use();
+  if(!value){message('ps-sync-status','Abre el acceso privado de Rumbo o introduce tu contraseña.');return;}
   password=value;$('ps-password').value='';
   void syncNow();
  };
  $('ps-lock').onclick=()=>{password='';$('ps-password').value='';message('ps-sync-status','Desconectado. Tus registros locales se conservan.');};
+ function updateSharedAccess(available){
+  const label=$('ps-login-label'),input=$('ps-password');
+  if(!label||!input)return;
+  label.hidden=Boolean(available);input.hidden=Boolean(available);
+  if(available){password=window.RumboSession?.use()||'';input.value='';message('ps-sync-status','Acceso privado disponible. Pulsa «Conectar y sincronizar» si quieres sincronizar tus prácticas.');}
+  else{password='';input.value='';message('ps-sync-status','Sincronización privada desconectada.');}
+ }
+ window.RumboSession?.subscribe(updateSharedAccess);
+ if(window.RumboSession?.available())updateSharedAccess(true);
  focus=restoreFocus();
  if(focus)$('ps-task').value=focus.task;
  refresh();tickFocus();
