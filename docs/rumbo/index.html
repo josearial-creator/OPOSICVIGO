@@ -7,6 +7,7 @@
   <meta name="description" content="Rumbo: organiza tu día, sigue tus oposiciones y guarda tus notas personales en un espacio claro.">
   <title>Rumbo · Tu espacio personal</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="xunta-seguimiento.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <meta name="theme-color" content="#10192f">
@@ -118,9 +119,20 @@
         <section class="panel" data-mobile-screen="oposiciones" id="apuntes-estudio" aria-label="Apuntes de estudio"></section>
         <section class="panel" data-mobile-screen="oposiciones" id="convocatorias">
           <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><button class="button secondary" id="refresh" type="button">↻ Actualizar convocatorias</button><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
-          <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="pendiente">Pendiente</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
+          <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="convocatoria_pendiente">Pendiente de convocatoria</option><option value="pendiente">Convocada · pendiente de plazo</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
           <div class="result-row"><span id="result-label">Cargando…</span><button class="plain" type="button" id="clear">Limpiar filtros</button></div>
           <div class="table-scroll"><table><thead><tr><th>Puesto / grupo</th><th>Organismo</th><th>Plazas</th><th>Discapacidad</th><th>Situación</th><th>Prioridad</th><th>Fin del plazo</th><th class="right">Acciones</th></tr></thead><tbody id="rows"></tbody></table></div>
+          <section class="xunta-shortcuts" aria-label="Seguimiento de oposiciones de la Xunta">
+            <div><strong>Xunta de Galicia</strong><p>Guarda las que te interesen con ☆. Diferenciamos una oferta de plazas de la apertura real del plazo de solicitudes.</p></div>
+            <div class="xunta-actions" role="group" aria-label="Ver oposiciones de la Xunta por estado">
+              <button class="button secondary" type="button" id="xunta-all">Todas las de la Xunta</button>
+              <button class="button secondary" type="button" id="xunta-no-convocada">Pendientes de convocatoria</button>
+              <button class="button secondary" type="button" id="xunta-no-plazo">Convocadas sin plazo abierto</button>
+              <button class="button secondary" type="button" id="xunta-abiertas">Inscripción abierta</button>
+              <button class="button secondary" type="button" id="xunta-guardadas">Mis guardadas</button>
+            </div>
+            <small>Estados según publicaciones oficiales registradas. Un plazo sin fechas comprobadas nunca aparece como abierto. Revisa el DOG antes de presentar la solicitud.</small>
+          </section>
           <p class="empty hidden" id="empty">No se encontraron convocatorias con estos filtros.</p>
         </section>
         <section class="note" data-mobile-screen="oposiciones" aria-label="Información importante"><strong>Información orientativa</strong><p>Consulta siempre las bases oficiales antes de inscribirte. «En proceso» no significa que la inscripción esté abierta. Los datos de discapacidad general e intelectual se muestran por separado cuando la fuente los proporciona.</p></section>
