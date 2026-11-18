@@ -149,7 +149,22 @@ function render() {
     cell(tr,badge(statusLabel[statusType(r)],statusClass[statusType(r)]));
     cell(tr,badge(r.prioridad || 'Por verificar', r.prioridad==='Alta'?'high':r.prioridad==='Media'?'medium':'low'));
     cell(tr,r._rumboFeedMissing ? 'Por verificar (fecha histórica: '+(r.fin || 'no consta')+')' : (r.fin ? String(r.fin) : 'Por verificar'));
-    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ const was=state.favorites.has(key);was?state.favorites.delete(key):state.favorites.add(key);if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}render(); });
+    tr.dataset.recordKey=key;
+    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆');
+    star.type='button';star.setAttribute('aria-label','Alternar favorito');
+    star.setAttribute('aria-pressed',String(state.favorites.has(key)));
+    star.title=state.favorites.has(key)?'Quitar de favoritas':'Añadir a favoritas';
+    star.addEventListener('click',event=>{
+      const keyboard=event.detail===0,index=[...$('rows').children].indexOf(tr),was=state.favorites.has(key);
+      was?state.favorites.delete(key):state.favorites.add(key);
+      if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}
+      render();
+      if(keyboard){
+        const rows=[...$('rows').children],same=rows.find(row=>row.dataset.recordKey===key);
+        const target=(same||rows[Math.min(index,rows.length-1)])?.querySelector('button[aria-label="Alternar favorito"]');
+        if(target)target.focus();else{$('result-label').tabIndex=-1;$('result-label').focus();}
+      }
+    });
     const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right';
     const labels=['Puesto / grupo','Organismo','Plazas','Discapacidad','Situación','Prioridad','Fin del plazo','Acciones'];
     Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
@@ -206,7 +221,7 @@ function importJson(file) {
   };reader.readAsText(file,'utf-8');
 }
 function exportJson(){const blob=new Blob([JSON.stringify(state.records,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download='convocatorias_rumbo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
+function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();if(!window.RumboNavigation)document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
 function setup(){
   $('today').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   loadSaved();render();if(state.records.length)renderStatus(`Copia local: ${state.records.length} convocatorias. Última sincronización: ${formatTime(state.lastSuccess)}`);

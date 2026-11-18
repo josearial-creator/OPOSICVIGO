@@ -1,0 +1,61 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const base='http://127.0.0.1:8086/';
+const feed=[{puesto:'Auxiliar de prueba',organismo:'Concello sintético',grupo:'C2',plazas:2,fuente:'https://example.test/a'},{puesto:'Administrativo de prueba',organismo:'Concello sintético',grupo:'C1',plazas:1,fuente:'https://example.test/b'}];
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),headless:true,args:['--no-sandbox']});
+ try{
+  for(const width of [390,1120]){
+   const context=await browser.newContext({viewport:{width,height:840},serviceWorkers:'block'});
+   const page=await context.newPage(), errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:feed}));
+   await page.goto(base+'#mi-dia');
+   const action=page.locator('#assistant-focus-next');
+   assert.equal(await action.isDisabled(),true,'Sin tarea no hay bloque');
+   await page.locator('#assistant-capture input').fill('Repasar legislación');
+   await page.locator('#assistant-capture button[type=submit]').click();
+   assert.equal(await action.isEnabled(),true);
+   await page.locator('.assistant-inbox-details summary').click();
+   await page.locator('#assistant-inbox').getByRole('button',{name:'Priorizar'}).first().click();
+   await action.click();await page.locator('#productividad').waitFor({state:'visible'});
+   assert.equal(await page.locator('#assistant-timer-title').inputValue(),'Repasar legislación');
+   assert.equal(await page.locator('#assistant-duration').inputValue(),'10');
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer),null,'Preparar no inicia sin consentimiento');
+   await page.locator('#assistant-start').click();
+   assert.equal(await page.locator('#assistant-start').isDisabled(),true,'Evitar sesiones simultáneas');
+   await page.locator('#assistant-pause').click();
+   await page.goto(base+'#proyectos');
+   await page.locator('#org-new-project').evaluate(el=>el.open=true);
+   await page.locator('#org-project-form [name=name]').fill('Proyecto concluido');
+   await page.locator('#org-project-form [name=next]').fill('Acción ya terminada');
+   await page.locator('#org-project-form button[type=submit]').click();
+   await page.locator('#org-projects').getByRole('button',{name:'Terminar',exact:true}).click();
+   await page.goto(base+'#productividad');
+   assert.equal((await page.locator('#assistant-project option').allTextContents()).includes('Proyecto concluido'),false,'No ofrecer proyectos terminados');
+   await page.goto(base+'#convocatorias');
+   await page.locator('#rows tr').first().waitFor({state:'attached'});
+   const star=page.locator('#rows tr').first().getByRole('button',{name:'Alternar favorito'});
+   await star.focus();await page.keyboard.press('Enter');
+   assert.equal(await page.locator('#rows tr').first().getByRole('button',{name:'Alternar favorito'}).getAttribute('aria-pressed'),'true');
+   assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),'Alternar favorito','Foco después del render');
+   const before=await page.evaluate(()=>localStorage.getItem('rumbo-asistente-v1'));
+   await page.goto(base+'#mi-dia');await page.locator('#assistant-focus-next').click();await page.locator('#productividad').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-asistente-v1')),before,'Preparar bloque no escribe');
+   assert.deepEqual(errors,[]);
+   const second=await context.newPage();
+   await second.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:feed}));
+   await page.goto(base+'#mi-dia');await second.goto(base+'#mi-dia');
+   await page.locator('#assistant-capture input').fill('Tarea de primera pestaña');
+   await page.locator('#assistant-capture button[type=submit]').click();
+   await second.locator('#assistant-capture input').fill('Tarea obsoleta de segunda pestaña');
+   await second.locator('#assistant-capture button[type=submit]').click();
+   const current=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')));
+   assert.equal(current.items.some(x=>x.text==='Tarea de primera pestaña'),true);
+   assert.equal(current.items.some(x=>x.text==='Tarea obsoleta de segunda pestaña'),false);
+   assert.match(await second.locator('#assistant-message').innerText(),/otra pestaña/i);
+   await second.close();await context.close();
+  }
+  console.log('PASS: inicio de foco, filtro de proyectos, favoritos con teclado y conflicto entre pestañas.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

@@ -427,3 +427,11 @@ body.rumbo-separated .page>.panel{border-radius:var(--rumbo-radius-card)}
   .rumbo-section-links a[aria-current="page"],.mobile-tabbar a[aria-current="page"]{border:2px solid Highlight}
   :focus-visible{outline:3px solid Highlight}
 }
+
+/* Acción principal de Mi día y transición al temporizador. */
+.assistant-next-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.assistant-next-actions .button{min-height:46px;flex:1 1 160px;white-space:normal;text-align:center}
+.assistant-next-actions .button:disabled{opacity:.58;cursor:not-allowed;box-shadow:none}
+#assistant-task-hint:empty{display:none}
+#assistant-task-hint{margin:7px 0 0;color:var(--rumbo-muted)}
+@media(max-width:560px){.assistant-next-actions .button{flex-basis:100%}}

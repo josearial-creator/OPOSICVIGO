@@ -27,3 +27,11 @@
 
 ## Alcance actual y límites
 Esta entrega implementa una primera unificación visual y prueba automatizada de navegación. **No** acredita todavía una auditoría WCAG completa, objetivos Web Vitals medidos ni prueba manual en teléfono. Cambios funcionales y backend quedan fuera de alcance.
+
+## Revisión de operatividad (18/11/2026)
+- Mi día: «Preparar un bloque» lleva al temporizador con el título original y el siguiente paso visible, pero **no** inicia una sesión ni cambia datos sin acción del usuario.
+- Duración sugerida por energía: 5, 10 o 15 minutos, editable antes de pulsar «Iniciar».
+- Productividad: se excluyen proyectos con estado «Terminado».
+- Mi día y Proyectos: bloqueo de guardados obsoletos si otra pestaña ha modificado los datos, con indicación de recarga.
+- Oposiciones: favoritos con estado `aria-pressed` y restauración de foco al usarlos con teclado. No se fuerza el desplazamiento al navegar a Favoritas con enrutado moderno.
+- Sin migrar datos, cambiar servicios privados ni fusionar ramas de autenticación.

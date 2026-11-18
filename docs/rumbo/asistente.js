@@ -15,17 +15,24 @@ const validItem=x=>x&&typeof x.id==='string'&&typeof x.text==='string'&&x.text.l
 const validSession=x=>x&&typeof x.id==='string'&&typeof x.title==='string'&&x.title.length>0&&x.title.length<=120&&AREAS.includes(x.area)&&validDate(x.date)&&Number.isInteger(x.seconds)&&x.seconds>=60&&x.seconds<=86400&&['temporizador','manual'].includes(x.source);
 const validTimer=t=>t===null||(t&&typeof t.title==='string'&&t.title.trim()&&t.title.length<=120&&AREAS.includes(t.area)&&Number.isInteger(t.target)&&[300,600,900,1500,2700].includes(t.target)&&Number.isFinite(t.elapsed)&&t.elapsed>=0&&t.elapsed<=t.target&&(t.startedAt===null||(Number.isFinite(t.startedAt)&&t.startedAt>0))&&typeof t.warned==='boolean'&&(t.taskId===null||typeof t.taskId==='string'));
 const valid=d=>d&&d.version===1&&Array.isArray(d.items)&&d.items.length<=10000&&d.items.every(validItem)&&Array.isArray(d.priorityIds)&&d.priorityIds.length<=3&&d.priorityIds.every(x=>typeof x==='string')&&Array.isArray(d.sessions)&&d.sessions.length<=15000&&d.sessions.every(validSession)&&validTimer(d.timer)&&['baja','media','alta'].includes(d.energy)&&d.event&&typeof d.event.title==='string'&&typeof d.event.at==='string';
-let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false;
-try{const saved=localStorage.getItem(KEY);if(saved){let p=JSON.parse(saved);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
+let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false,savedRaw=null;
+try{savedRaw=localStorage.getItem(KEY);if(savedRaw){const p=JSON.parse(savedRaw);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
 function note(s){$('assistant-message').textContent=s;}
-function save(){if(locked){note('Hay una copia incompatible guardada. No la sobrescribiré; exporta los datos antes de continuar.');return false;}try{localStorage.setItem(KEY,JSON.stringify(state));window.dispatchEvent(new Event('rumbo:assistant-changed'));return true;}catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}}
+function save(){
+ if(locked){note('No se puede guardar sin revisar los datos existentes. Conserva una copia y recarga la página.');return false;}
+ try{
+  if(localStorage.getItem(KEY)!==savedRaw){locked=true;note('Otra pestaña modificó Mi día o Productividad. No se sobrescribió nada. Recarga la página para continuar.');return false;}
+  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);savedRaw=raw;
+  window.dispatchEvent(new Event('rumbo:assistant-changed'));return true;
+ }catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}
+}
 function option(s,v){const x=el('option','',s);x.value=v===undefined?s:v;return x;}
 function selectAreas(id){AREAS.forEach(a=>$(id).add(option(a)));}
 function linkBtn(label,fn,style='secondary'){const x=el('button','button '+style,label);x.type='button';x.addEventListener('click',fn);return x;}
 home.innerHTML=[
 '<div class="assistant-head"><div><div class="eyebrow">UN PASO CADA VEZ</div><h2>Mi día</h2><p id="assistant-date"></p></div><a class="button secondary" href="#productividad">Empezar un bloque</a></div>',
 '<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card"><h3>Mis tres prioridades como máximo</h3>',
-'<div id="assistant-priorities"></div><button id="assistant-what" type="button" class="button primary">¿Qué hago ahora?</button>',
+'<div id="assistant-priorities"></div><div class="assistant-next-actions"><button id="assistant-focus-next" type="button" class="button primary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
 '<div id="assistant-advice" class="assistant-recommendation" aria-live="polite">Una acción pequeña es suficiente para empezar.</div></div>',
 '<div class="assistant-card"><h3>Captura rápida</h3><form id="assistant-capture" class="assistant-inline"><label>Escribe lo que necesitas recordar<input name="text" maxlength="1000" required placeholder="Ej.: Llamar al médico, preparar una entrevista..."></label><button class="button primary" type="submit">Guardar</button></form>',
 '<p class="assistant-muted">Se guarda sin clasificar y sin enviar el texto a IA. Puedes organizarlo más tarde.</p>',
@@ -39,7 +46,7 @@ home.innerHTML=[
 prod.innerHTML=[
 '<div class="assistant-head"><div><div class="eyebrow">SIN PRESIÓN POR COMPLETARLO TODO</div><h2>Productividad</h2><p>Registra lo que haces, cuenta también el descanso y termina cuando lo necesites.</p></div></div>',
 '<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card">',
-'<h3>Temporizador</h3><label>Actividad<input id="assistant-timer-title" maxlength="120" placeholder="Ej.: Preparar oposición"></label>',
+'<h3>Temporizador</h3><label>Actividad<input id="assistant-timer-title" maxlength="120" placeholder="Ej.: Preparar oposición"></label><p id="assistant-task-hint" class="assistant-muted" role="status" aria-live="polite"></p>',
 '<div class="assistant-inline"><label>Área<select id="assistant-timer-area"></select></label><label>Proyecto (opcional)<select id="assistant-project"><option value="">Sin proyecto</option></select></label>',
 '<label>Duración<select id="assistant-duration"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15" selected>15 minutos</option><option value="25">25 minutos</option><option value="45">45 minutos</option></select></label></div>',
 '<div id="assistant-clock" class="assistant-clock">00:00:00</div><div id="assistant-timer-state" class="assistant-timer-state">El cronómetro empieza cuando tú quieras.</div>',
@@ -64,7 +71,7 @@ function refreshProjectOptions(){
  for(const id of ['assistant-project','assistant-manual-project']){
   const box=$(id),selected=box.value;
   box.replaceChildren(option('Sin proyecto',''));
-  options.filter(p=>p.status!=='terminado').forEach(p=>box.add(option(p.name,p.id)));
+  options.filter(p=>p.status!=='Terminado').forEach(p=>box.add(option(p.name,p.id)));
   if([...box.options].some(x=>x.value===selected))box.value=selected;
  }
 }
@@ -95,6 +102,9 @@ function chooseAdvice(){
 }
 function commitRender(msg){if(save()){render();if(msg)note(msg);}}
 function renderTasks(){
+ const next=activeItem(),focus=$('assistant-focus-next');
+ focus.disabled=!state.timer&&!next;
+ focus.textContent=state.timer?'Ver mi bloque':'Preparar un bloque';
  const p=$('assistant-priorities');p.replaceChildren();
  const ids=state.priorityIds.filter(id=>state.items.some(t=>t.id===id&&!t.done));
  if(ids.length===0)p.append(el('p','assistant-muted','Sin prioridades elegidas. Selecciona una desde tu bandeja.'));
@@ -130,6 +140,18 @@ $('assistant-energy').addEventListener('change',e=>{state.energy=e.target.value;
  commitRender();updateAvailability();
 }));
 $('assistant-what').addEventListener('click',chooseAdvice);
+$('assistant-focus-next').addEventListener('click',()=>{
+ if(!state.timer){
+  const item=activeItem();if(!item)return;
+  $('assistant-timer-title').value=item.text.slice(0,120);
+  $('assistant-task-hint').textContent=item.nextStep?'Siguiente paso: '+item.nextStep:'Actividad preparada: elige la duración y pulsa Iniciar.';
+  // Preselección reversible: la sesión comienza solo al pulsar Iniciar.
+  $('assistant-duration').value=state.energy==='baja'?'5':state.energy==='alta'?'15':'10';
+  const project=$('assistant-project');
+  if(item.projectId&&[...project.options].some(o=>o.value===item.projectId))project.value=item.projectId;
+ }
+ if(!window.RumboNavigation?.go('productividad'))location.hash='#productividad';
+});
 $('assistant-timer-area').value='Estudio y oposiciones';
 function timerSeconds(t=state.timer){if(!t)return 0;return Math.min(t.target,t.elapsed+(t.startedAt===null?0:Math.max(0,Math.floor((Date.now()-t.startedAt)/1000))));}
 function pauseTimer(){const t=state.timer;if(!t||t.startedAt===null)return;t.elapsed=timerSeconds(t);t.startedAt=null;commitRender('Temporizador en pausa.');}

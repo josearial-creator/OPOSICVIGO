@@ -22,7 +22,7 @@
     mas: [['productividad','Productividad'],['proyectos','Proyectos'],
       ['metricas-personales','Métricas'],['copias-rumbo','Copias']]
   };
-  const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Más'};
+  const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Foco y herramientas'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));
   const aliases = {'diario-menu':'mi-espacio',hoy:'mi-dia',estudio:'productividad',diario:'mi-espacio',planificacion:'proyectos'};
   const labels=new Map(Object.values(groups).flat().map(([id,label])=>[id,label]));
