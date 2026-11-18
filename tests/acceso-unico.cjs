@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
-const URL='http://127.0.0.1:8086/';
+const baseUrl='http://127.0.0.1:8086/';
 const worker='https://rumbo-entrenador.jose-arial.workers.dev';
 const pass='contraseña sintética única 1234567890123';
 const auth='Rumbo '+Buffer.from(pass).toString('base64');
@@ -15,7 +15,7 @@ const auth='Rumbo '+Buffer.from(pass).toString('base64');
    await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[]}));
    await page.route(worker+'/**',route=>{
     const req=route.request(),path=new URL(req.url()).pathname;
-    const headers={'access-control-allow-origin':URL.slice(0,-1),'access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
+    const headers={'access-control-allow-origin':baseUrl.slice(0,-1),'access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
     accessCalls.push({path,auth:req.headers().authorization});
     if(req.headers().authorization!==auth)return route.fulfill({status:401,headers,json:{error:'Acceso denegado'}});
@@ -23,7 +23,7 @@ const auth='Rumbo '+Buffer.from(pass).toString('base64');
     if(path==='/training'&&req.method()==='GET')return route.fulfill({status:200,headers,json:{records:[]}});
     return route.fulfill({status:404,headers,json:{error:'Ruta no configurada'}});
    });
-   await page.goto(URL+'#mi-espacio');
+   await page.goto(baseUrl+'#mi-espacio');
    assert.equal(await page.evaluate(()=>window.RumboSession.available()),false);
    await page.locator('#rumbo-access-open').click();
    await page.locator('#rumbo-access-password').fill('contraseña incorrecta');
