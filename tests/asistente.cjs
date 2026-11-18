@@ -1,3 +1,4 @@
+const go=async(page,id)=>{await page.evaluate(id=>{location.hash=id;},id);await page.waitForFunction(id=>document.body.dataset.rumboRoute===id,id);};
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -5,10 +6,11 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH===
 const context=await browser.newContext({acceptDownloads:true,viewport:{width:1280,height:900}});
 const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[{puesto:'Auxiliar Administrativo',organismo:'Concello de Vigo',plazas:3,grupo:'C2',tipo:'Turno libre',estado:'Convocada',fuente:'https://sede.vigo.org'}]}));
-await page.goto('http://127.0.0.1:8086');
+await page.goto('http://127.0.0.1:8086/#convocatorias');
 await page.locator('#rows tr').first().waitFor();
 await page.getByRole('button',{name:'Alternar favorito'}).first().click();
 const oldStore=await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1'));
+await go(page,'mi-dia');
 await page.locator('#assistant-capture input').fill('Preparar la entrevista');
 await page.locator('#assistant-capture button').click();
 await page.locator('.assistant-inbox-details summary').click();
@@ -16,6 +18,7 @@ await page.locator('#assistant-inbox').getByRole('button',{name:'Priorizar'}).fi
 assert.match(await page.locator('#assistant-priorities').innerText(),/Preparar la entrevista/);
 await page.getByRole('button',{name:'¿Qué hago ahora?'}).click();
 assert.match(await page.locator('#assistant-advice').innerText(),/Una acción/);
+await go(page,'productividad');
 await page.locator('#assistant-timer-title').fill('Preparar la entrevista');
 await page.locator('#assistant-duration').selectOption('5');
 await page.locator('#assistant-start').click();
@@ -61,6 +64,7 @@ await page.locator('#stop-park').click();
 assert.match(await page.locator('#assistant-total').innerText(),/35 min/);
 let newState=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')));
 assert.equal(newState.sessions.length,2);assert.equal(newState.sessions[1].seconds,300);
+await go(page,'mi-dia');
 const captured=await page.locator('#assistant-capture input');
 await captured.fill('<img src=x onerror=alert(1)>');await page.locator('#assistant-capture button').click();
 assert.equal(await page.locator('#mi-dia img').count(),0);

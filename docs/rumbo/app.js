@@ -155,7 +155,7 @@ function render() {
     Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
     fragment.append(tr);
   }); $('rows').append(fragment);
-  if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); $('convocatorias').scrollIntoView({behavior:'smooth'}); }});
+  if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); if(!window.RumboNavigation?.go('favoritos'))location.hash='favoritos'; }});
 }
 function historicalDate(r,value) { return r._rumboFeedMissing ? 'Histórico, por verificar: '+(value || 'no consta') : (value || 'No verificado'); }
 function openDetail(r) {
@@ -206,7 +206,7 @@ function importJson(file) {
   };reader.readAsText(file,'utf-8');
 }
 function exportJson(){const blob=new Blob([JSON.stringify(state.records,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download='convocatorias_rumbo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-function applyHash(){const target=location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
+function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
 function setup(){
   $('today').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   loadSaved();render();if(state.records.length)renderStatus(`Copia local: ${state.records.length} convocatorias. Última sincronización: ${formatTime(state.lastSuccess)}`);

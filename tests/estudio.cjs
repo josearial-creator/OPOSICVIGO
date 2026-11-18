@@ -4,7 +4,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  try{
  const page=await browser.newPage();
  await page.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Auxiliar de prueba',organismo:'Vigo'}]}));
- await page.goto('http://127.0.0.1:8086');
+ await page.goto('http://127.0.0.1:8086/#convocatorias');
  await page.getByRole('button',{name:'Detalle',exact:true}).click();
  await page.getByRole('textbox',{name:'Notas personales (solo en este navegador)'}).fill('Apunte anterior');
  await page.locator('#dialog-done').click();

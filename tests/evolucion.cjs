@@ -1,3 +1,4 @@
+const go=async(page,id)=>{await page.evaluate(id=>{location.hash=id;},id);await page.waitForFunction(id=>document.body.dataset.rumboRoute===id,id);};
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -7,12 +8,13 @@ await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({js
 // Esta prueba cubre el entrenador histórico; la interfaz actual se verifica en entrenamiento-browser.cjs.
 // Omitimos solo el script de prácticas nuevas en este navegador para recuperar el formulario histórico.
 await page.route('**/practicas-sencillas.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:'/* modo histórico de prueba, sin borrar datos */'}));
-await page.goto('http://127.0.0.1:8086');await page.locator('#rows button').first().waitFor();
+await page.goto('http://127.0.0.1:8086/#convocatorias');await page.locator('#rows button').first().waitFor();
 await page.getByRole('button',{name:'Alternar favorito'}).click();
 await page.getByRole('button',{name:'Detalle',exact:true}).click();await page.locator('#dialog-content textarea').fill('Nota original conservada');await page.locator('#dialog-done').click();
 const original=await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1'));
 assert.equal(await page.locator('.ev-history').count(),3);
 assert.match(await page.locator('#mi-evolucion').innerText(),/Modo manual por defecto/);
+await go(page,'ev-training');
 await page.locator('#ev-start [name=skill]').selectOption('1');await page.locator('#ev-start button').click();
 await page.locator('[name="before-nerviosismo"]').fill('7');await page.locator('#ev-exercise button.primary').click();
 await page.locator('#ev-exercise [name=response]').fill('Entiendo que hay errores. ¿Puedes darme un ejemplo? Hagamos una pausa y revisémoslo.');
@@ -26,7 +28,9 @@ await page.addInitScript(()=>{let d;try{d=JSON.parse(localStorage.getItem('rumbo
 let data=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')));
 assert.equal(data.sessions.length,2);assert.equal(data.sessions[1].completed,true);assert.equal(data.sessions[1].exercises[0].skills[1],87.5);assert.equal(data.sessions[1].exercises[0].before.nerviosismo,7);assert.equal(data.sessions[1].exercises[0].after.nerviosismo,7);
 const current=JSON.parse(await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1'))), prior=JSON.parse(original);delete current.lastSuccess;delete prior.lastSuccess;assert.deepEqual(current,prior);
+await go(page,'ev-diary');
 await page.locator('#ev-real-form [name=context]').fill('<img src=x onerror=alert(1)>');for(const name of ['response','felt','improve'])await page.locator(`#ev-real-form [name=${name}]`).fill('Registro personal');await page.locator('#ev-real-form button').click();assert.equal(await page.locator('#mi-evolucion img').count(),0);
+await go(page,'mi-evolucion');
 await page.locator('#ev-goal-form input').fill('Practicar dos semanas');await page.locator('#ev-goal-form button').click();await page.locator('[data-goal]').last().check();await page.reload();assert.equal(await page.locator('[data-goal]').last().isChecked(),true);
 // Six distinct sessions are required for trends; scores do not depend on emotions.
 await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('rumbo-evolucion-v1'));const template=d.sessions[1];for(let i=0;i<5;i++)d.sessions.push({...template,id:'test-'+i,date:new Date(2026,9,18+i).toISOString(),exercises:[{...template.exercises[0],skills:{1:i<2?65:90}}]});localStorage.setItem('rumbo-evolucion-v1',JSON.stringify(d));});await page.reload();assert.match(await page.locator('#mi-evolucion').innerText(),/Últimas 3 frente a 3 anteriores/);

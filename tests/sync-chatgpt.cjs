@@ -9,7 +9,7 @@ const assert=require('node:assert/strict');
     return route.fulfill({json:[{puesto:'Prueba',organismo:'Vigo'}]});
   });
   try{
-    await page.goto('http://127.0.0.1:8086');
+    await page.goto('http://127.0.0.1:8086/#rumbo-chatgpt-sync');
     await page.locator('#rs-pass').fill('frase-recup-muy-larga-2026');
     const download=page.waitForEvent('download');
     await page.locator('#rs-generate').click();

@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
  await page.addInitScript(seed=>{if(!sessionStorage.getItem('seeded')){localStorage.setItem('rumbo-replica-v1',JSON.stringify(seed));sessionStorage.setItem('seeded','1');}},seed);
  const snapshot=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-replica-v1')));
  const refresh=async()=>{await page.locator('#refresh').click();await page.waitForFunction(()=>!document.getElementById('refresh').disabled);};
- await page.goto('http://127.0.0.1:8086');await page.waitForFunction(()=>!document.getElementById('refresh').disabled);
+ await page.goto('http://127.0.0.1:8086/#convocatorias');await page.waitForFunction(()=>!document.getElementById('refresh').disabled);
  let data=await snapshot();assert.equal(data.records.length,132);assert.equal(data.favorites.length,2);assert.deepEqual(Object.values(data.notes).sort(),['Nota coincidente','Nota histórica']);
  assert.equal(data.records.find(r=>r.convocatoria_id==='exp-0').plazas,5);
  const before=data;await refresh();await page.reload();await page.waitForFunction(()=>!document.getElementById('refresh').disabled);data=await snapshot();delete before.lastSuccess;delete data.lastSuccess;assert.deepEqual(data,before);
@@ -37,7 +37,7 @@ const assert=require('node:assert/strict');
  await refresh();assert.match(await page.locator('#status').innerText(),/no se pudo guardar/);assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1')),intact);
  await page.evaluate(()=>Storage.prototype.setItem=window.originalSetItem);
  // A stale tab cannot overwrite a note written by another tab.
- const second=await context.newPage();await second.route('https://raw.githubusercontent.com/**',r=>r.abort());await second.goto('http://127.0.0.1:8086');await second.evaluate(()=>{const d=JSON.parse(localStorage.getItem('rumbo-replica-v1'));d.notes.external='Nota de otra pestaña';localStorage.setItem('rumbo-replica-v1',JSON.stringify(d));});
+ const second=await context.newPage();await second.route('https://raw.githubusercontent.com/**',r=>r.abort());await second.goto('http://127.0.0.1:8086/#convocatorias');await second.evaluate(()=>{const d=JSON.parse(localStorage.getItem('rumbo-replica-v1'));d.notes.external='Nota de otra pestaña';localStorage.setItem('rumbo-replica-v1',JSON.stringify(d));});
  await refresh();assert.equal((await snapshot()).notes.external,'Nota de otra pestaña');assert.match(await page.locator('#status').innerText(),/no se pudo guardar/);await second.close();
  assert.deepEqual(errors,[]);
  await context.close();
@@ -45,7 +45,7 @@ const assert=require('node:assert/strict');
  const bad=await browser.newPage({serviceWorkers:'block'});
  await bad.route('https://raw.githubusercontent.com/**',r=>r.fulfill({json:[{puesto:'Remota'}]}));
  await bad.addInitScript(()=>localStorage.setItem('rumbo-replica-v1','{broken'));
- await bad.goto('http://127.0.0.1:8086');assert.equal(await bad.evaluate(()=>localStorage.getItem('rumbo-replica-v1')),'{broken');assert.match(await bad.locator('#status').innerText(),/Se conserva intacta/);await bad.close();
+ await bad.goto('http://127.0.0.1:8086/#convocatorias');assert.equal(await bad.evaluate(()=>localStorage.getItem('rumbo-replica-v1')),'{broken');assert.match(await bad.locator('#status').innerText(),/Se conserva intacta/);await bad.close();
  console.log('PASS conservación: migración, 131 fichas, identidad oficial, ediciones, notas, favoritos, recarga, historial, reaparición, feed inválido, cuota, pestañas y copia dañada.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
