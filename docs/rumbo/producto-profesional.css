@@ -485,3 +485,28 @@ body.rumbo-separated .page>.panel{border-radius:var(--rumbo-radius-card)}
  #mi-dia .assistant-today-grid>.assistant-card{padding:15px 13px}
  #mi-dia>.routine-panel{margin:0 14px 18px}
 }
+
+/* Acceso único: diálogo desde cualquier pantalla, sin guardar secretos. */
+.topbar .rumbo-access-open{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:9px 13px;border:1px solid #bddbd6;border-radius:11px;background:#edf8f4;color:#135e56;font-weight:750;font-size:13px;cursor:pointer}
+.topbar .rumbo-access-open[data-connected="true"]{background:#dff3e9;border-color:#99cfbd;color:#105648}
+.rumbo-access-dialog{width:min(460px,calc(100vw - 22px));max-height:90dvh;border:1px solid #d9e8e7;border-radius:20px;padding:20px;box-shadow:0 22px 80px #152b4255;color:#1d3546}
+.rumbo-access-dialog::backdrop{background:rgba(12,30,45,.62)}
+.rumbo-access-dialog .rumbo-access-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
+.rumbo-access-dialog h2{font-size:20px;margin:0;letter-spacing:-.5px;color:#152f40}
+.rumbo-access-dialog p{font-size:14px;line-height:1.5}
+.rumbo-access-dialog form{display:grid;gap:12px}
+.rumbo-access-dialog form label{font-size:13px;font-weight:700;color:#274a5b}
+.rumbo-access-dialog input{font:inherit;width:100%;box-sizing:border-box;min-height:48px;border:1px solid #b7cdd5;border-radius:11px;padding:11px}
+.rumbo-access-dialog .button{min-height:44px;padding:9px 14px;cursor:pointer}
+.rumbo-access-dialog .button.primary{background:var(--rumbo-brand);color:white;border-color:var(--rumbo-brand)}
+.rumbo-access-dialog .button:disabled{opacity:.55;cursor:wait}
+.rumbo-access-dialog .rumbo-access-note{font-size:12px;color:#556d7a;margin:16px 0 5px}
+#rumbo-access-status{min-height:1.2em;color:#28596b}
+#rumbo-access-credentials[hidden],#rumbo-access-connected[hidden]{display:none!important}
+#ps-login-label[hidden],#ps-password[hidden]{display:none!important}
+@media(max-width:560px){
+ .topbar .ev-mobile-link{display:none}
+ .topbar .rumbo-access-open{min-height:42px;padding:8px 10px;font-size:12px;white-space:nowrap}
+ .topbar .top-date{display:none}
+ .rumbo-access-dialog{padding:16px}
+}
