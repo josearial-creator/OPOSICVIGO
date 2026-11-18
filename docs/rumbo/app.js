@@ -1,7 +1,12 @@
 'use strict';
 
 // Código independiente. Los datos oficiales se obtienen del repositorio público indicado.
-const FEED_URL = 'https://raw.githubusercontent.com/josearial-creator/OPOSICVIGO/main/docs/importar_rumbo.json';
+const MAIN_FEED_URL = 'https://raw.githubusercontent.com/josearial-creator/OPOSICVIGO/main/docs/importar_rumbo.json';
+// En previews de Vercel leer el catálogo de la MISMA rama que se está probando;
+// el feed de main todavía no tiene las novedades hasta que se apruebe el PR.
+const PREVIEW_FEED = location.hostname.endsWith('.vercel.app') &&
+  !['oposicvigo.vercel.app','josearial-creatorgithubio.vercel.app'].includes(location.hostname);
+const FEED_URL = PREVIEW_FEED ? new URL('../importar_rumbo.json',location.href).href : MAIN_FEED_URL;
 const STORE = 'rumbo-replica-v1';
 const $ = id => document.getElementById(id);
 const state = { records: [], favorites: new Set(), previousKeys: new Set(), newKeys: new Set(), notes: {}, lastSuccess: null };
