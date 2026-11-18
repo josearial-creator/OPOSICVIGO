@@ -11,6 +11,8 @@ assert.equal(status({...full,fin:'2099-02-30'}),'verificar','Las fechas imposibl
 assert.equal(status({...full,fin:'2001-01-01'}),'cerrada','Una fecha vencida no puede anunciarse como abierta');
 assert.equal(status({...full,inicio:'2098-01-01'}),'pendiente','Una fecha futura todavía no está abierta');
 assert.equal(status({...full,_rumboFeedMissing:true}),'verificar','Un registro histórico no prueba la apertura');
+assert.equal(status({...full,inscripcion:'No convocada',estado:'OEP 2026 aprobada · pendiente de convocatoria individual'}),'convocatoria_pendiente');
+assert.equal(status({...full,inscripcion:'Pendiente',inicio:'2099-01-01',fin:'2099-01-30'}),'pendiente');
 assert.equal(status({...full,estado:'Revisión de solicitudes'}),'seguimiento');
 assert.equal(status({...full,inscripcion:'Por verificar'}),'verificar');
 assert.equal(status({...full,inscripcion:'Cerrada'}),'cerrada');
