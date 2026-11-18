@@ -67,6 +67,7 @@
     window.RumboAnytypeRefresh?.();
   }
   function show(route,scroll){
+    const focusAtTransition=document.activeElement;
     active=route;
     const group=routeGroups.get(route)||'hoy';
     document.body.dataset.mobileView=group;
@@ -90,8 +91,14 @@
     }
     window.dispatchEvent(new CustomEvent('rumbo:route-changed',{detail:{route,group}}));
     if(scroll)requestAnimationFrame(()=>{
-      window.scrollTo({top:0,behavior:'instant'});
+      // El usuario puede haber enfocado ya un control mientras se cambiaba de
+      // pantalla: no robarle ese foco con un callback de navegación retrasado.
+      const focusedNow=document.activeElement;
+      if(focusedNow!==focusAtTransition &&
+         focusedNow!==document.body &&
+         focusedNow!==document.documentElement)return;
       if(document.querySelector('dialog[open]'))return;
+      window.scrollTo({top:0,behavior:'instant'});
       const target=route==='inicio'?document.querySelector('.hero-line'):document.getElementById(route==='favoritos'?'convocatorias':route);
       const heading=target?.querySelector('h1,h2')||target?.querySelector('h3');
       if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
