@@ -505,8 +505,11 @@ body.rumbo-separated .page>.panel{border-radius:var(--rumbo-radius-card)}
 #rumbo-access-credentials[hidden],#rumbo-access-connected[hidden]{display:none!important}
 #ps-login-label[hidden],#ps-password[hidden]{display:none!important}
 @media(max-width:560px){
- .topbar .ev-mobile-link{display:none}
+ .topbar .ev-mobile-link{display:inline-flex;min-height:40px;padding:8px 9px;font-size:12px}
  .topbar .rumbo-access-open{min-height:42px;padding:8px 10px;font-size:12px;white-space:nowrap}
  .topbar .top-date{display:none}
  .rumbo-access-dialog{padding:16px}
 }
+
+@media(max-width:430px){.topbar .topbar-monogram{display:none}.topbar .topbar-identity{gap:0}}
+@media(max-width:350px){.topbar .ev-mobile-link{display:none}.topbar .topbar-eyebrow{display:none}}
