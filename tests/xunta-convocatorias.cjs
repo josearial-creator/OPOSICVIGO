@@ -15,7 +15,7 @@ assert.equal(xunta.filter(r=>r.inscripcion==='Abierta').length,2);
    await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:all}));
    await page.goto('http://127.0.0.1:8086/#convocatorias');
    const panel=page.locator('#convocatorias');
-   await panel.locator('tr').first().waitFor();
+   await page.locator('#source option[value="Xunta de Galicia"]').waitFor({state:'attached'});
    assert.equal(await panel.locator('#xunta-no-convocada').count(),1,'Los filtros deben estar dentro de Convocatorias');
    await panel.locator('#xunta-no-convocada').click();
    assert.equal(await page.locator('#source').inputValue(),'Xunta de Galicia');
