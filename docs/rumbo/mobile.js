@@ -4,6 +4,13 @@
   const tabs = [...document.querySelectorAll('[data-mobile-tab]')];
   const page = document.querySelector('.page');
   if (!page) return;
+  // Saltar los menús no cambia la ruta ni escribe en el almacenamiento.
+  const skipLink = document.querySelector('.rumbo-skip-link');
+  skipLink?.addEventListener('click', event => {
+    event.preventDefault();
+    page.focus({preventScroll:true});
+    page.scrollIntoView({block:'start',behavior:'auto'});
+  });
 
   // La navegación es solo visual: no cambia almacenes ni datos personales.
   const sections = [...page.querySelectorAll(':scope > [data-mobile-screen]')];
