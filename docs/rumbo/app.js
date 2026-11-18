@@ -4,7 +4,7 @@
 const MAIN_FEED_URL = 'https://raw.githubusercontent.com/josearial-creator/OPOSICVIGO/main/docs/importar_rumbo.json';
 // En previews de Vercel leer el catálogo de la MISMA rama que se está probando;
 // el feed de main todavía no tiene las novedades hasta que se apruebe el PR.
-const PREVIEW_FEED = location.hostname.endsWith('.vercel.app') &&
+const PREVIEW_FEED = typeof location !== 'undefined' && location.hostname.endsWith('.vercel.app') &&
   !['oposicvigo.vercel.app','josearial-creatorgithubio.vercel.app'].includes(location.hostname);
 const FEED_URL = PREVIEW_FEED ? new URL('../importar_rumbo.json',location.href).href : MAIN_FEED_URL;
 const STORE = 'rumbo-replica-v1';
