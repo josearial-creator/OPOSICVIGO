@@ -15,7 +15,7 @@ const validItem=x=>x&&typeof x.id==='string'&&typeof x.text==='string'&&x.text.l
 const validSession=x=>x&&typeof x.id==='string'&&typeof x.title==='string'&&x.title.length>0&&x.title.length<=120&&AREAS.includes(x.area)&&validDate(x.date)&&Number.isInteger(x.seconds)&&x.seconds>=60&&x.seconds<=86400&&['temporizador','manual'].includes(x.source);
 const validTimer=t=>t===null||(t&&typeof t.title==='string'&&t.title.trim()&&t.title.length<=120&&AREAS.includes(t.area)&&Number.isInteger(t.target)&&[300,600,900,1500,2700].includes(t.target)&&Number.isFinite(t.elapsed)&&t.elapsed>=0&&t.elapsed<=t.target&&(t.startedAt===null||(Number.isFinite(t.startedAt)&&t.startedAt>0))&&typeof t.warned==='boolean'&&(t.taskId===null||typeof t.taskId==='string'));
 const valid=d=>d&&d.version===1&&Array.isArray(d.items)&&d.items.length<=10000&&d.items.every(validItem)&&Array.isArray(d.priorityIds)&&d.priorityIds.length<=3&&d.priorityIds.every(x=>typeof x==='string')&&Array.isArray(d.sessions)&&d.sessions.length<=15000&&d.sessions.every(validSession)&&validTimer(d.timer)&&['baja','media','alta'].includes(d.energy)&&d.event&&typeof d.event.title==='string'&&typeof d.event.at==='string';
-let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false,savedRaw=null;
+let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false,savedRaw=null,preparedTaskId=null,preparedTitle='';
 try{savedRaw=localStorage.getItem(KEY);if(savedRaw){const p=JSON.parse(savedRaw);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
 function note(s){$('assistant-message').textContent=s;}
 function save(){
@@ -143,7 +143,8 @@ $('assistant-what').addEventListener('click',chooseAdvice);
 $('assistant-focus-next').addEventListener('click',()=>{
  if(!state.timer){
   const item=activeItem();if(!item)return;
-  $('assistant-timer-title').value=item.text.slice(0,120);
+  preparedTaskId=item.id;preparedTitle=item.text.slice(0,120);
+  $('assistant-timer-title').value=preparedTitle;
   $('assistant-task-hint').textContent=item.nextStep?'Siguiente paso: '+item.nextStep:'Actividad preparada: elige la duración y pulsa Iniciar.';
   // Preselección reversible: la sesión comienza solo al pulsar Iniciar.
   $('assistant-duration').value=state.energy==='baja'?'5':state.energy==='alta'?'15':'10';
@@ -151,6 +152,11 @@ $('assistant-focus-next').addEventListener('click',()=>{
   if(item.projectId&&[...project.options].some(o=>o.value===item.projectId))project.value=item.projectId;
  }
  if(!window.RumboNavigation?.go('productividad'))location.hash='#productividad';
+});
+$('assistant-timer-title').addEventListener('input',()=>{
+ if($('assistant-timer-title').value!==preparedTitle){
+  preparedTaskId=null;preparedTitle='';$('assistant-task-hint').textContent='';
+ }
 });
 $('assistant-timer-area').value='Estudio y oposiciones';
 function timerSeconds(t=state.timer){if(!t)return 0;return Math.min(t.target,t.elapsed+(t.startedAt===null?0:Math.max(0,Math.floor((Date.now()-t.startedAt)/1000))));}
@@ -210,7 +216,11 @@ $('assistant-start').addEventListener('click',()=>{
  const title=$('assistant-timer-title').value.trim()||activeItem()?.text||'',area=$('assistant-timer-area').value,target=Number($('assistant-duration').value)*60;
  if(!title||title.length>120){note('Escribe el nombre de la actividad o selecciona una prioridad.');return;}
  if(!AREAS.includes(area)||![300,600,900,1500,2700].includes(target))return;
- const matched=state.items.find(x=>!x.done&&x.text===title);
+ // Un título de captura puede superar el límite visual de 120 caracteres.
+ const matched=preparedTaskId&&title===preparedTitle
+  ?state.items.find(x=>!x.done&&x.id===preparedTaskId)
+  :state.items.find(x=>!x.done&&x.text===title);
+ preparedTaskId=null;preparedTitle='';
  state.timer={title,area,target,elapsed:0,startedAt:Date.now(),warned:false,taskId:matched?.id||null,projectId:$('assistant-project').value||matched?.projectId||null};
  commitRender('Temporizador iniciado.');
 });

@@ -54,7 +54,36 @@ const feed=[{puesto:'Auxiliar de prueba',organismo:'Concello sintético',grupo:'
    assert.equal(current.items.some(x=>x.text==='Tarea de primera pestaña'),true);
    assert.equal(current.items.some(x=>x.text==='Tarea obsoleta de segunda pestaña'),false);
    assert.match(await second.locator('#assistant-message').innerText(),/otra pestaña/i);
-   await second.close();await context.close();
+   await second.close();
+   // Proyectos: una pestaña antigua tampoco puede sobrescribir un alta reciente.
+   const other=await context.newPage();
+   await other.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:feed}));
+   await page.goto(base+'#proyectos');await other.goto(base+'#proyectos');
+   await page.locator('#org-new-project').evaluate(el=>el.open=true);
+   await other.locator('#org-new-project').evaluate(el=>el.open=true);
+   await page.locator('#org-project-form [name=name]').fill('Proyecto actual');
+   await page.locator('#org-project-form button[type=submit]').click();
+   await other.locator('#org-project-form [name=name]').fill('Proyecto obsoleto');
+   await other.locator('#org-project-form button[type=submit]').click();
+   const currentProjects=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-organizacion-v1')));
+   assert.equal(currentProjects.projects.some(x=>x.name==='Proyecto actual'),true);
+   assert.equal(currentProjects.projects.some(x=>x.name==='Proyecto obsoleto'),false);
+   assert.match(await other.locator('#org-status').innerText(),/otra pestaña/i);
+   await other.close();await context.close();
+   // Texto largo: la sesión mantiene el identificador completo de la tarea.
+   const isolated=await browser.newContext({viewport:{width,height:840},serviceWorkers:'block'});
+   const longPage=await isolated.newPage();
+   await longPage.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:feed}));
+   await longPage.goto(base+'#mi-dia');
+   const longTitle='Preparar una tarea extensa con detalles y requisitos concretos '.repeat(3);
+   await longPage.locator('#assistant-capture input').fill(longTitle);
+   await longPage.locator('#assistant-capture button[type=submit]').click();
+   const original=await longPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).items[0].id);
+   await longPage.locator('#assistant-focus-next').click();
+   await longPage.locator('#assistant-start').click();
+   const linked=await longPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer.taskId);
+   assert.equal(linked,original,'La tarea conserva su relación aunque el título visual sea abreviado');
+   await isolated.close();
   }
   console.log('PASS: inicio de foco, filtro de proyectos, favoritos con teclado y conflicto entre pestañas.');
  }finally{await browser.close();}

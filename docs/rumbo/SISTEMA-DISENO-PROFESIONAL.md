@@ -35,3 +35,6 @@ Esta entrega implementa una primera unificación visual y prueba automatizada de
 - Mi día y Proyectos: bloqueo de guardados obsoletos si otra pestaña ha modificado los datos, con indicación de recarga.
 - Oposiciones: favoritos con estado `aria-pressed` y restauración de foco al usarlos con teclado. No se fuerza el desplazamiento al navegar a Favoritas con enrutado moderno.
 - Sin migrar datos, cambiar servicios privados ni fusionar ramas de autenticación.
+
+### Limitación de concurrencia
+La comprobación de `localStorage` antes de escribir evita sobrescribir cambios ya observables de otra pestaña, pero la operación lectura/escritura no es una transacción atómica. No reemplaza bloqueo transaccional, sincronización multi-dispositivo o versiones de servidor. Para preservar datos, la aplicación solicita recarga al detectar una copia obsoleta.
