@@ -39,7 +39,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.evaluate(()=>window.RumboSession.available()),false);
   assert.equal(await ai.locator('input[type=password]').inputValue(),'','Al cerrar sesión se limpia el acceso de IA');
   assert.equal(await reuse.isDisabled(),true);
-  await page.locator('#esp-disconnect').click();
+  await page.locator('#esp-private').waitFor({state:'hidden'});
   assert.equal(await page.locator('#esp-private').isVisible(),false);
   assert.equal(await page.evaluate(()=>window.RumboSession.available()),false);
   await page.reload();
