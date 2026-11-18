@@ -435,3 +435,53 @@ body.rumbo-separated .page>.panel{border-radius:var(--rumbo-radius-card)}
 #assistant-task-hint:empty{display:none}
 #assistant-task-hint{margin:7px 0 0;color:var(--rumbo-muted)}
 @media(max-width:560px){.assistant-next-actions .button{flex-basis:100%}}
+
+/* Mi día · interfaz de acción única. Las opciones están disponibles, no compiten con la tarea. */
+#mi-dia .assistant-body{padding-top:4px}
+#mi-dia .assistant-head{padding-bottom:16px}
+#mi-dia .assistant-now-card{
+  padding:clamp(18px,3vw,28px);border:1px solid #b9dcd4;
+  background:linear-gradient(112deg,#ecf8f4 0%,#fff 64%);
+  border-radius:20px;box-shadow:0 4px 14px rgba(18,62,61,.045)
+}
+#mi-dia .assistant-now-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#mi-dia .assistant-now-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#0b6e64}
+#mi-dia .assistant-now-state{display:inline-block;padding:5px 10px;background:#e0f2ed;color:#165b53;border-radius:40px;font-size:12px;font-weight:700}
+#mi-dia .assistant-now-card h3{font-size:14px;color:#486275;letter-spacing:0;margin:17px 0 8px;font-weight:650}
+#mi-dia .assistant-now-task{font-size:clamp(19px,2.3vw,26px);font-weight:750;line-height:1.28;letter-spacing:-.5px;color:#19384a;margin:0;overflow-wrap:anywhere}
+#mi-dia .assistant-now-step{font-size:14px;line-height:1.6;color:#4a6071;margin:10px 0 0;overflow-wrap:anywhere}
+#mi-dia .assistant-time-available{font-size:13px;font-weight:650;color:#365d68;background:#f4f9f9;border-radius:10px;padding:9px 11px;margin:12px 0 0}
+#mi-dia .assistant-time-available[hidden],#mi-dia .assistant-recommendation[hidden]{display:none!important}
+#mi-dia .assistant-next-actions{margin-top:22px}
+#mi-dia .assistant-next-actions .button{min-height:48px}
+#mi-dia .assistant-next-actions .button.primary{flex:1 1 210px}
+#mi-dia .assistant-next-actions .button.secondary{flex:0 1 auto}
+#mi-dia .assistant-recommendation{margin-top:14px}
+#mi-dia .assistant-today-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:14px}
+#mi-dia .assistant-today-grid>.assistant-card{border-color:#e0e9ed;border-radius:17px;min-width:0}
+#mi-dia .assistant-disclosure{border:1px solid #dce6ec;border-radius:12px;background:#fff;margin-top:8px;overflow:hidden}
+#mi-dia .assistant-disclosure summary{cursor:pointer;min-height:48px;display:flex;justify-content:space-between;align-items:center;padding:11px 13px;font-size:13px;font-weight:750;color:#294c60;gap:10px}
+#mi-dia .assistant-disclosure summary:hover{background:#f0f8f6}
+#mi-dia .assistant-disclosure summary:focus-visible{outline:3px solid #0b7167;outline-offset:-3px}
+#mi-dia .assistant-disclosure summary::marker{color:#0b7167}
+#mi-dia .assistant-disclosure>div,#mi-dia .assistant-disclosure>.assistant-inline,#mi-dia .assistant-disclosure>label{padding:8px 13px 13px}
+#mi-dia .assistant-disclosure .assistant-priority{margin-bottom:6px}
+#mi-dia .assistant-disclosure .assistant-event-label{margin:0 13px 13px}
+#mi-dia .assistant-inbox-details{padding-top:16px;margin-top:16px}
+#mi-dia>.routine-panel{margin:0 24px 24px;background:#fbfdfd;box-shadow:none;border:1px solid #e2eaf0}
+#mi-dia .routine-head{align-items:center}
+#mi-dia .routine-head h3{font-size:17px;margin:4px 0}
+#mi-dia .routine-head #routine-focus{font-size:12px;font-weight:500;color:#627889;margin:4px 0 0}
+#mi-dia .routine-grid{margin-top:14px}
+@media(max-width:850px){
+ #mi-dia .assistant-today-grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ #mi-dia .assistant-now-card{padding:18px 15px;border-radius:16px}
+ #mi-dia .assistant-now-task{font-size:20px}
+ #mi-dia .assistant-next-actions{gap:8px}
+ #mi-dia .assistant-next-actions .button{flex:1 1 100%;width:100%}
+ #mi-dia .assistant-today-grid{gap:10px;margin-top:12px}
+ #mi-dia .assistant-today-grid>.assistant-card{padding:15px 13px}
+ #mi-dia>.routine-panel{margin:0 14px 18px}
+}

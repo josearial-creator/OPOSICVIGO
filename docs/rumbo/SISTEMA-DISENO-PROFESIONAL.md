@@ -38,3 +38,12 @@ Esta entrega implementa una primera unificación visual y prueba automatizada de
 
 ### Limitación de concurrencia
 La comprobación de `localStorage` antes de escribir evita sobrescribir cambios ya observables de otra pestaña, pero la operación lectura/escritura no es una transacción atómica. No reemplaza bloqueo transaccional, sincronización multi-dispositivo o versiones de servidor. Para preservar datos, la aplicación solicita recarga al detectar una copia obsoleta.
+
+## Mi día · flujo de acción única (iteración 3, 18/11/2026)
+- El bloque inicial **Tu siguiente acción** muestra un pendiente principal (prioridad 1 o primera tarea sin completar), su siguiente paso y un único botón primario para preparar foco. Si ya hay temporizador, muestra su estado y permite volver.
+- Los controles de prioridades y energía/compromisos pasan a paneles plegables, pero la **captura rápida** y la bandeja siguen accesibles. La visibilidad de esos paneles no se persiste ni altera los registros.
+- Los consejos bajo demanda se ocultan al actualizar la tarea para no presentar recomendaciones desactualizadas.
+- El aviso de próximo compromiso solo aparece cuando se ha registrado una fecha.
+- Rutinas y pausa de 10 segundos se sitúan debajo de la tarea principal. Mantienen sus funciones, temporizador y almacenamiento independiente.
+- La pantalla se puede consultar sin escribir en almacenes. El inicio del temporizador exige una acción adicional explícita.
+- Prueba visual y de interacción en 320/390/560/768/1120 px y revisión en teléfono real pendientes de validación.

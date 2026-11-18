@@ -13,7 +13,7 @@ let savedRaw=null,state={version:1,days:{}},locked=false;
 try{savedRaw=localStorage.getItem(KEY);if(savedRaw){const data=JSON.parse(savedRaw);if(!validStore(data))throw Error('incompatible');state=data;}}catch{locked=true;}
 const panel=document.createElement('section');panel.className='routine-panel';panel.setAttribute('aria-label','Prioridad, rutinas y pausa');
 panel.innerHTML=[
-'<div class="routine-head"><div><p class="routine-eyebrow">HOY · UN PASO CADA VEZ</p><h3>Tu siguiente paso</h3><p id="routine-focus">Elige una prioridad en Mi día.</p></div><a class="button secondary" href="#productividad">Empezar un bloque</a></div>',
+'<div class="routine-head"><div><p class="routine-eyebrow">HERRAMIENTAS DE APOYO</p><h3>Rutinas y pausa consciente</h3><p id="routine-focus">Elige una prioridad en Mi día.</p></div></div>',
 '<div class="routine-grid"><div><h4>Mis tres rutinas</h4><div id="routine-list" class="routine-list"></div></div>',
 '<div><h4>Pausa de 10 segundos</h4><p class="routine-help">Antes de cambiar de tarea, observa el impulso y decide después.</p>',
 '<div class="routine-actions"><button type="button" id="routine-start" class="button primary">Iniciar pausa</button><button type="button" id="routine-cancel" class="button secondary" hidden>Cancelar</button></div>',
@@ -23,7 +23,7 @@ panel.innerHTML=[
 '<p class="routine-footnote">Registro voluntario en este navegador. No es una evaluación clínica ni una alarma del dispositivo. Se incluye en las copias cifradas de Rumbo.</p>',
 '<p id="routine-message" class="routine-message" role="status" aria-live="polite"></p>'
 ].join('');
-home.prepend(panel);
+home.append(panel);
 const list=$('routine-list'),start=$('routine-start'),cancel=$('routine-cancel'),clock=$('routine-clock'),decisions=$('routine-decisions');
 const checkboxes=new Map();
 for(const [id,label] of TASKS){

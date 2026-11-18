@@ -30,18 +30,31 @@ function option(s,v){const x=el('option','',s);x.value=v===undefined?s:v;return 
 function selectAreas(id){AREAS.forEach(a=>$(id).add(option(a)));}
 function linkBtn(label,fn,style='secondary'){const x=el('button','button '+style,label);x.type='button';x.addEventListener('click',fn);return x;}
 home.innerHTML=[
-'<div class="assistant-head"><div><div class="eyebrow">UN PASO CADA VEZ</div><h2>Mi día</h2><p id="assistant-date"></p></div><a class="button secondary" href="#productividad">Empezar un bloque</a></div>',
-'<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card"><h3>Mis tres prioridades como máximo</h3>',
-'<div id="assistant-priorities"></div><div class="assistant-next-actions"><button id="assistant-focus-next" type="button" class="button primary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
-'<div id="assistant-advice" class="assistant-recommendation" aria-live="polite">Una acción pequeña es suficiente para empezar.</div></div>',
-'<div class="assistant-card"><h3>Captura rápida</h3><form id="assistant-capture" class="assistant-inline"><label>Escribe lo que necesitas recordar<input name="text" maxlength="1000" required placeholder="Ej.: Llamar al médico, preparar una entrevista..."></label><button class="button primary" type="submit">Guardar</button></form>',
-'<p class="assistant-muted">Se guarda sin clasificar y sin enviar el texto a IA. Puedes organizarlo más tarde.</p>',
+'<div class="assistant-head"><div><div class="eyebrow">UN PASO CADA VEZ</div><h2>Mi día</h2><p id="assistant-date"></p></div></div>',
+'<div class="assistant-body">',
+'<section class="assistant-now-card" aria-labelledby="assistant-now-heading">',
+'<div class="assistant-now-top"><span class="assistant-now-eyebrow">LO IMPORTANTE AHORA</span><span id="assistant-now-state" class="assistant-now-state"></span></div>',
+'<h3 id="assistant-now-heading">Tu siguiente acción</h3>',
+'<p id="assistant-now-task" class="assistant-now-task">Elige una tarea para empezar.</p>',
+'<p id="assistant-now-step" class="assistant-now-step"></p>',
+'<p id="assistant-time-available" class="assistant-time-available" hidden></p>',
+'<div class="assistant-next-actions"><button id="assistant-focus-next" type="button" class="button primary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
+'<p id="assistant-advice" class="assistant-recommendation" role="status" aria-live="polite" hidden></p>',
+'</section>',
+'<div class="assistant-today-grid">',
+'<section class="assistant-card assistant-capture-card" aria-labelledby="assistant-capture-heading"><h3 id="assistant-capture-heading">Anotar y seguir</h3>',
+'<form id="assistant-capture" class="assistant-inline"><label>Anota algo sin interrumpir tu día<input name="text" maxlength="1000" required placeholder="Ej.: Llamar, repasar, preguntar…"></label><button class="button primary" type="submit">Guardar</button></form>',
+'<p class="assistant-muted">Queda en tu bandeja para otro momento.</p>',
+'<p class="assistant-status" id="assistant-message" role="status" aria-live="polite"></p></section>',
+'<section class="assistant-card assistant-options-card" aria-labelledby="assistant-options-heading"><h3 id="assistant-options-heading">Organizar cuando quieras</h3>',
+'<details id="assistant-priority-details" class="assistant-disclosure"><summary>Mis prioridades <span id="assistant-priority-count"></span></summary><div id="assistant-priorities"></div></details>',
+'<details id="assistant-planning-details" class="assistant-disclosure"><summary>Energía y compromisos</summary>',
 '<div class="assistant-inline"><label>Mi energía<select id="assistant-energy"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option></select></label>',
 '<label>Próximo compromiso (opcional)<input type="datetime-local" id="assistant-event-at"></label></div>',
-'<label style="margin-top:9px">Compromiso (opcional)<input id="assistant-event-title" maxlength="120" placeholder="Ej.: Recoger a los niños"></label>',
-'<div class="assistant-status" id="assistant-time-available"></div></div></div>',
+'<label class="assistant-event-label">Compromiso (opcional)<input id="assistant-event-title" maxlength="120" placeholder="Ej.: Recoger a los niños"></label></details>',
+'</section></div>',
 '<details class="assistant-inbox-details"><summary id="assistant-inbox-count">Bandeja de entrada</summary><div id="assistant-inbox"></div></details>',
-'<p class="assistant-status" id="assistant-message" role="status" aria-live="polite"></p></div>'
+'</div>'
 ].join('');
 prod.innerHTML=[
 '<div class="assistant-head"><div><div class="eyebrow">SIN PRESIÓN POR COMPLETARLO TODO</div><h2>Productividad</h2><p>Registra lo que haces, cuenta también el descanso y termina cuando lo necesites.</p></div></div>',
@@ -86,7 +99,8 @@ function activeItem(){return state.priorityIds.map(id=>state.items.find(x=>x.id=
 function updateAvailability(){
  const at=state.event.at,when=at?new Date(at).getTime():NaN,n=Math.ceil((when-Date.now())/60000);
  const output=$('assistant-time-available');
- output.textContent=!Number.isFinite(n)?'Sin próximo compromiso registrado.':n>0?'Quedan '+n+' min hasta '+(state.event.title||'el próximo compromiso')+'.':'El próximo compromiso registrado ya ha llegado o ha pasado.';
+ output.hidden=!Number.isFinite(n);
+ output.textContent=!Number.isFinite(n)?'':n>0?'Próximo compromiso: '+(state.event.title||'sin título')+' en '+n+' min.':'El compromiso registrado ya ha llegado o ha pasado.';
 }
 function chooseAdvice(){
  const current=state.timer;
@@ -99,14 +113,32 @@ function chooseAdvice(){
   else msg='No tienes prioridades pendientes. Puedes descansar o guardar una idea en la bandeja de entrada.';
  }
  $('assistant-advice').textContent=msg;
+ $('assistant-advice').hidden=false;
 }
 function commitRender(msg){if(save()){render();if(msg)note(msg);}}
 function renderTasks(){
  const next=activeItem(),focus=$('assistant-focus-next');
- focus.disabled=!state.timer&&!next;
- focus.textContent=state.timer?'Ver mi bloque':'Preparar un bloque';
- const p=$('assistant-priorities');p.replaceChildren();
  const ids=state.priorityIds.filter(id=>state.items.some(t=>t.id===id&&!t.done));
+ const running=state.timer,task=$('assistant-now-task'),step=$('assistant-now-step'),tag=$('assistant-now-state');
+ focus.disabled=locked||!running&&!next;
+ focus.textContent=running?'Ver mi bloque':'Preparar un bloque';
+ $('assistant-priority-count').textContent=ids.length+'/3';
+ if(running){
+  task.textContent=running.title;
+  tag.textContent=running.startedAt!==null?'Bloque en curso':running.warned?'Intervalo cumplido':'Bloque en pausa';
+  const linked=state.items.find(item=>item.id===running.taskId);
+  step.textContent=linked?.nextStep?'Siguiente paso: '+linked.nextStep:'Puedes continuar o aparcar esta actividad.';
+ }else if(next){
+  task.textContent=next.text;
+  tag.textContent=ids.length?'Prioridad elegida':'De tu bandeja';
+  step.textContent=next.nextStep?'Siguiente paso: '+next.nextStep:'Empieza con una acción pequeña; no necesitas terminarlo todo.';
+ }else{
+  task.textContent='Todavía no hay una tarea pendiente.';
+  tag.textContent='Sin pendiente';
+  step.textContent='Anota una tarea abajo. Aparecerá aquí para que puedas empezar.';
+ }
+ $('assistant-advice').hidden=true;
+ const p=$('assistant-priorities');p.replaceChildren();
  if(ids.length===0)p.append(el('p','assistant-muted','Sin prioridades elegidas. Selecciona una desde tu bandeja.'));
  ids.forEach((id,i)=>{const t=state.items.find(x=>x.id===id),box=el('div','assistant-priority');
   box.append(el('strong','',i===0?'Principal':'Secundaria'),el('span','',t.nextStep||t.text));
