@@ -37,10 +37,14 @@
   <link rel="stylesheet" href="redisenio.css">
   <link rel="stylesheet" href="rutinas-hoy.css">
   <link rel="stylesheet" href="historial-importado.css">
+  <link rel="stylesheet" href="producto-profesional.css">
+  <link rel="stylesheet" href="xunta-seguimiento.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
+  <script defer src="historial-nube.js"></script>
 </head>
 <body>
+  <a class="rumbo-skip-link" href="#contenido-principal">Saltar al contenido principal</a>
   <div class="shell">
     <aside class="sidebar">
       <a class="brand" href="#inicio" aria-label="Rumbo, inicio"><span class="brand-mark">R</span><span>Rumbo<small>Tu espacio personal</small></span></a>
@@ -57,8 +61,8 @@
       <div class="sidebar-bottom"><span class="pulse"></span> Datos de fuentes oficiales<br><small>Concello de Vigo · SERGAS · ampliable</small></div>
     </aside>
     <main class="main" id="inicio">
-      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
-      <div class="page">
+      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><button class="button secondary rumbo-access-open" type="button" id="rumbo-access-open" aria-haspopup="dialog" aria-controls="rumbo-access-dialog">Acceso privado</button><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
+      <div class="page" id="contenido-principal" tabindex="-1">
         <details id="diario-menu" class="ev-nav-tree ev-mobile-tree" data-mobile-screen="diario" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
         <details class="ev-nav-tree ev-mobile-tree study-nav" data-mobile-screen="oposiciones" open><summary>Estudio</summary><div class="ev-nav-children"><a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span aria-hidden="true">▤</span> Convocatorias</a><a class="nav-link" href="#apuntes-estudio" data-nav="apuntes-estudio"><span aria-hidden="true">✎</span> Apuntes de estudio</a><a class="nav-link" href="#favoritos" data-nav="favoritos"><span aria-hidden="true">☆</span> Favoritos</a></div></details>
         <nav class="assistant-mobile-nav" aria-label="Asistente móvil"><a href="#mi-dia">Mi día</a><a href="#productividad">Productividad</a><a href="#proyectos">Proyectos</a><a href="#ev-diary">Diario</a></nav>
@@ -118,9 +122,20 @@
         <section class="panel" data-mobile-screen="oposiciones" id="apuntes-estudio" aria-label="Apuntes de estudio"></section>
         <section class="panel" data-mobile-screen="oposiciones" id="convocatorias">
           <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><button class="button secondary" id="refresh" type="button">↻ Actualizar convocatorias</button><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
-          <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="pendiente">Pendiente</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
+          <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="convocatoria_pendiente">Pendiente de convocatoria</option><option value="pendiente">Convocada · pendiente de plazo</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
           <div class="result-row"><span id="result-label">Cargando…</span><button class="plain" type="button" id="clear">Limpiar filtros</button></div>
           <div class="table-scroll"><table><thead><tr><th>Puesto / grupo</th><th>Organismo</th><th>Plazas</th><th>Discapacidad</th><th>Situación</th><th>Prioridad</th><th>Fin del plazo</th><th class="right">Acciones</th></tr></thead><tbody id="rows"></tbody></table></div>
+          <section class="xunta-shortcuts" aria-label="Seguimiento de oposiciones de la Xunta">
+            <div><strong>Xunta de Galicia</strong><p>Guarda las que te interesen con ☆. Diferenciamos una oferta de plazas de la apertura real del plazo de solicitudes.</p></div>
+            <div class="xunta-actions" role="group" aria-label="Ver oposiciones de la Xunta por estado">
+              <button class="button secondary" type="button" id="xunta-all">Todas las de la Xunta</button>
+              <button class="button secondary" type="button" id="xunta-no-convocada">Pendientes de convocatoria</button>
+              <button class="button secondary" type="button" id="xunta-no-plazo">Convocadas sin plazo abierto</button>
+              <button class="button secondary" type="button" id="xunta-abiertas">Inscripción abierta</button>
+              <button class="button secondary" type="button" id="xunta-guardadas">Mis guardadas</button>
+            </div>
+            <small>Situación según publicaciones oficiales registradas. Un plazo sin fechas comprobadas nunca aparece como abierto. Revisa el DOG antes de inscribirte.</small>
+          </section>
           <p class="empty hidden" id="empty">No se encontraron convocatorias con estos filtros.</p>
         </section>
         <section class="note" data-mobile-screen="oposiciones" aria-label="Información importante"><strong>Información orientativa</strong><p>Consulta siempre las bases oficiales antes de inscribirte. «En proceso» no significa que la inscripción esté abierta. Los datos de discapacidad general e intelectual se muestran por separado cuando la fuente los proporciona.</p></section>
@@ -142,6 +157,23 @@
   <p id="rumbo-offline" class="offline-notice" role="status" hidden>Sin conexión. Puedes consultar datos locales; los cambios y consultas del servidor requieren Internet.</p>
   <button id="need-stop" class="assistant-stop-button" type="button">Necesito parar</button>
   <dialog id="assistant-stop-dialog" class="assistant-stop-dialog" aria-labelledby="stop-dialog-heading"><h2 id="stop-dialog-heading">Puedes dejarlo aquí</h2><p>No necesitas terminarlo todo ahora. Guarda dónde continuar.</p><label>¿Qué estás haciendo?<input id="stop-current" maxlength="120"></label><p class="assistant-stop-question">¿Es necesario resolverlo ahora? Puedes decidir que no.</p><label>Siguiente paso que quieres dejar guardado<textarea id="stop-next" rows="3" maxlength="250" placeholder="Ej.: Revisar el apartado 3 otro día"></textarea></label><div class="assistant-stop-actions"><button type="button" class="button primary" id="stop-park">Aparcar y cerrar</button><button type="button" class="button secondary" id="stop-done">He terminado</button><button type="button" class="button secondary" id="stop-close">Volver</button></div></dialog>
+  <dialog id="rumbo-access-dialog" class="rumbo-access-dialog" aria-labelledby="rumbo-access-heading">
+    <div class="rumbo-access-head"><h2 id="rumbo-access-heading">Acceso privado de Rumbo</h2><button id="rumbo-access-close" type="button" class="button secondary" aria-label="Cerrar ventana">Cerrar</button></div>
+    <div id="rumbo-access-credentials">
+      <p>Introduce una sola vez tu contraseña privada para acceder a Mi espacio y Entrenamiento en esta pestaña.</p>
+      <form id="rumbo-access-form">
+        <label for="rumbo-access-password">Contraseña privada de Rumbo</label>
+        <input id="rumbo-access-password" type="password" autocomplete="off" required maxlength="4096">
+        <button type="submit" id="rumbo-access-submit" class="button primary">Abrir acceso privado</button>
+      </form>
+    </div>
+    <div id="rumbo-access-connected" hidden>
+      <p>Acceso verificado. Puedes cambiar de apartado sin volver a escribir la contraseña.</p>
+      <button id="rumbo-access-logout" class="button secondary" type="button">Cerrar acceso en esta pestaña</button>
+    </div>
+    <p class="rumbo-access-note">La contraseña solo permanece en memoria. Al recargar o cerrar la pestaña tendrás que introducirla de nuevo. Las copias cifradas y la recuperación tienen sus propias frases de seguridad.</p>
+    <p id="rumbo-access-status" role="status" aria-live="polite"></p>
+  </dialog>
   <dialog id="detail-dialog"><div class="dialog-head"><h2 id="dialog-title">Detalle</h2><button class="plain close" id="dialog-close" aria-label="Cerrar">✕</button></div><div id="dialog-content"></div><div class="dialog-footer"><a id="official-link" class="button primary" href="#" target="_blank" rel="noopener noreferrer">Ver fuente oficial ↗</a><button id="dialog-done" class="button secondary">Cerrar</button></div></dialog>
 </body>
 </html>

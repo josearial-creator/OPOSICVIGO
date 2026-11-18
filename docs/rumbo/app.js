@@ -1,7 +1,11 @@
 'use strict';
 
 // Código independiente. Los datos oficiales se obtienen del repositorio público indicado.
-const FEED_URL = 'https://raw.githubusercontent.com/josearial-creator/OPOSICVIGO/main/docs/importar_rumbo.json';
+const MAIN_FEED_URL = 'https://raw.githubusercontent.com/josearial-creator/OPOSICVIGO/main/docs/importar_rumbo.json';
+// La versión de revisión carga el feed de su propio despliegue, no el viejo main.
+const PREVIEW_FEED = typeof location !== 'undefined' && location.hostname.endsWith('.vercel.app') &&
+  !['oposicvigo.vercel.app','josearial-creatorgithubio.vercel.app'].includes(location.hostname);
+const FEED_URL = PREVIEW_FEED ? new URL('../importar_rumbo.json',location.href).href : MAIN_FEED_URL;
 const STORE = 'rumbo-replica-v1';
 const $ = id => document.getElementById(id);
 const state = { records: [], favorites: new Set(), previousKeys: new Set(), newKeys: new Set(), notes: {}, lastSuccess: null };
@@ -94,6 +98,7 @@ function statusType(r) {
   if (r._rumboFeedMissing) return 'verificar';
   const explicit=escapeKey(r.inscripcion),s=escapeKey(r.estado);
   if(explicit==='cerrada')return 'cerrada';
+  if(explicit==='no convocada')return 'convocatoria_pendiente';
   if(explicit==='pendiente')return 'pendiente';
   if(explicit==='por verificar')return 'verificar';
   const claimsOpen=explicit==='abierta'||(!explicit&&s.includes('presentación de solicitudes'));
@@ -104,13 +109,14 @@ function statusType(r) {
     if(todayDay()>until)return 'cerrada';
     return 'abierta';
   }
+  if (s.includes('pendiente de convocatoria')) return 'convocatoria_pendiente';
   if (s.includes('pendiente de abrir')) return 'pendiente';
   if (s.includes('inscripción cerrada') || s.includes('inscripcion cerrada')) return 'cerrada';
   if (s.includes('por verificar')) return 'verificar';
   return 'seguimiento';
 }
-const statusLabel = { abierta: 'Inscripción abierta', cerrada: 'Inscripción cerrada', pendiente: 'Pendiente de abrir', verificar: 'Por verificar', seguimiento: 'En seguimiento' };
-const statusClass = { abierta: 'open', cerrada: 'closed', pendiente: 'pending', verificar: 'verify', seguimiento: 'follow' };
+const statusLabel = { abierta: 'Inscripción abierta', cerrada: 'Inscripción cerrada', pendiente: 'Pendiente de plazo', convocatoria_pendiente: 'Pendiente de convocatoria', verificar: 'Por verificar', seguimiento: 'En seguimiento' };
+const statusClass = { abierta: 'open', cerrada: 'closed', pendiente: 'pending', convocatoria_pendiente: 'pending', verificar: 'verify', seguimiento: 'follow' };
 function disability(r) { const val = Number(r.discapacidad_general); return (Number.isFinite(val) && val > 0) || escapeKey(r.discapacidad) === 'si'; }
 function safeUrl(u) { try { const p = new URL(String(u)); return /^https?:$/.test(p.protocol) ? p.href : null; } catch (_) { return null; } }
 function renderStatus(message, kind = '') { $('status').textContent = message; $('status').className = 'status ' + kind; }
@@ -128,13 +134,18 @@ function filtered() {
     if (q && ![r.puesto,r.organismo,r.ubicacion,r.estado,r.tipo,r.grupo].map(escapeKey).join(' ').includes(q)) return false;
     return true;
   }).sort((a,b) => {
-    const score=x=>({abierta:0,pendiente:1,seguimiento:2,verificar:3,cerrada:4}[statusType(x)] ?? 5);
+    const score=x=>({abierta:0,pendiente:1,convocatoria_pendiente:2,seguimiento:3,verificar:4,cerrada:5}[statusType(x)] ?? 6);
     return score(a)-score(b) || (a.prioridad==='Alta'?-1:1)-(b.prioridad==='Alta'?-1:1) || String(a.puesto).localeCompare(String(b.puesto),'es');
   });
 }
 function badge(label, css) { return node('span','badge '+css,label); }
 function cell(tr, content) { const td=node('td'); if (typeof content==='string' || typeof content==='number') td.textContent=String(content); else if (content) td.append(content); tr.append(td); return td; }
 function render() {
+  // Las actualizaciones del feed también reconstruyen las filas. Si el usuario
+  // tiene enfocado un favorito, no debe perder el teclado ni saltar al inicio.
+  const oldFocus=document.activeElement;
+  const focusedFavorite=oldFocus?.matches?.('button[aria-label="Alternar favorito"]')
+    ?oldFocus.closest('tr[data-record-key]')?.dataset.recordKey:null;
   updateStats(); updateSourceOptions();
   window.dispatchEvent(new Event('rumbo:study-updated'));
   const data=filtered(); $('result-label').textContent = `${data.length} convocatoria${data.length===1?'':'s'} encontrada${data.length===1?'':'s'}`; $('rows').replaceChildren(); $('empty').classList.toggle('hidden', Boolean(data.length));
@@ -149,19 +160,40 @@ function render() {
     cell(tr,badge(statusLabel[statusType(r)],statusClass[statusType(r)]));
     cell(tr,badge(r.prioridad || 'Por verificar', r.prioridad==='Alta'?'high':r.prioridad==='Media'?'medium':'low'));
     cell(tr,r._rumboFeedMissing ? 'Por verificar (fecha histórica: '+(r.fin || 'no consta')+')' : (r.fin ? String(r.fin) : 'Por verificar'));
-    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆'); star.type='button'; star.setAttribute('aria-label','Alternar favorito'); star.addEventListener('click',()=>{ const was=state.favorites.has(key);was?state.favorites.delete(key):state.favorites.add(key);if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}render(); });
+    tr.dataset.recordKey=key;
+    const acts=node('div','row-actions'), star=node('button','icon-button'+(state.favorites.has(key)?' faved':''),state.favorites.has(key)?'★':'☆');
+    star.type='button';star.setAttribute('aria-label','Alternar favorito');
+    star.setAttribute('aria-pressed',String(state.favorites.has(key)));
+    star.title=state.favorites.has(key)?'Quitar de favoritas':'Añadir a favoritas';
+    star.addEventListener('click',event=>{
+      const keyboard=event.detail===0,index=[...$('rows').children].indexOf(tr),was=state.favorites.has(key);
+      was?state.favorites.delete(key):state.favorites.add(key);
+      if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}
+      render();
+      if(keyboard){
+        const rows=[...$('rows').children],same=rows.find(row=>row.dataset.recordKey===key);
+        const target=(same||rows[Math.min(index,rows.length-1)])?.querySelector('button[aria-label="Alternar favorito"]');
+        if(target)target.focus();else{$('result-label').tabIndex=-1;$('result-label').focus();}
+      }
+    });
     const detail=node('button','button secondary','Detalle'); detail.type='button'; detail.addEventListener('click',()=>openDetail(r)); acts.append(star,detail); const last=cell(tr,acts); last.className='right';
     const labels=['Puesto / grupo','Organismo','Plazas','Discapacidad','Situación','Prioridad','Fin del plazo','Acciones'];
     Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
     fragment.append(tr);
   }); $('rows').append(fragment);
+  if(focusedFavorite){
+    const row=[...$('rows').children].find(tr=>tr.dataset.recordKey===focusedFavorite);
+    row?.querySelector('button[aria-label="Alternar favorito"]')?.focus({preventScroll:true});
+  }
   if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); if(!window.RumboNavigation?.go('favoritos'))location.hash='favoritos'; }});
 }
 function historicalDate(r,value) { return r._rumboFeedMissing ? 'Histórico, por verificar: '+(value || 'no consta') : (value || 'No verificado'); }
 function openDetail(r) {
   const key=recordKey(r); $('dialog-title').textContent=r.puesto || 'Convocatoria'; const container=$('dialog-content'); container.replaceChildren(); const grid=node('div','detail-grid');
-  const fields=[['Organismo',r.organismo],['Grupo',r.grupo],['Ubicación',r.ubicacion],['Plazas turno libre',r.plazas],['Estado',r._rumboFeedMissing ? 'Por verificar · ausente de la fuente actual' : (r.estado || statusLabel[statusType(r)])],['Prioridad',r.prioridad],['Discapacidad general',r.discapacidad_general ?? (disability(r)?'Reserva indicada; sin número':'No indicada')],['Discapacidad intelectual',r.discapacidad_intelectual ?? 'No informada'],['Inicio del plazo',historicalDate(r,r.inicio)],['Fin del plazo',historicalDate(r,r.fin)]];
+  const fields=[['Organismo',r.organismo],['Grupo',r.grupo],['Ubicación',r.ubicacion],['Plazas acceso libre',r.plazas],...(r.plazas_totales!=null?[['Plazas totales (incluye promoción interna)',r.plazas_totales]]:[]),['Estado',r._rumboFeedMissing ? 'Por verificar · ausente de la fuente actual' : (r.estado || statusLabel[statusType(r)])],['Prioridad',r.prioridad],['Discapacidad general',r.discapacidad_general ?? (disability(r)?'Reserva indicada; sin número':'No indicada')],['Discapacidad intelectual',r.discapacidad_intelectual ?? 'No informada'],['Inicio del plazo',historicalDate(r,r.inicio)],['Fin del plazo',historicalDate(r,r.fin)],...(r.verificado_el?[['Fuente revisada',r.verificado_el]]:[])];
   fields.forEach(([label,value])=>{ const e=node('div','detail');e.append(node('span','',label),node('strong','',value ?? 'Por verificar'));grid.append(e); });container.append(grid);
+  if(r.detalle_estado)container.append(node('p','xunta-detail-note',r.detalle_estado));
+  if(safeUrl(r.fuente_seguimiento)){const a=node('a','xunta-follow-link','Consultar novedades oficiales de la Xunta ↗');a.href=safeUrl(r.fuente_seguimiento);a.target='_blank';a.rel='noopener noreferrer';container.append(a);}
   const label=node('label','detail');label.style.display='block';label.style.marginTop='23px';label.textContent='Notas personales (solo en este navegador)'; const note=node('textarea');note.value=state.notes[key]||''; note.rows=3; note.style.cssText='width:100%;margin-top:8px;padding:12px;border:1px solid #d7e2ed;border-radius:8px;resize:vertical';note.addEventListener('input',()=>{state.notes[key]=note.value;if(!save())renderStatus('No se pudo guardar la nota. Copia el texto antes de recargar; puede haber cambios en otra pestaña.','warning');});label.append(note);container.append(label);
   const direct=safeUrl(r.fuente_detalle),generic=safeUrl(r.fuente);
   const official=$('official-link');
@@ -206,11 +238,20 @@ function importJson(file) {
   };reader.readAsText(file,'utf-8');
 }
 function exportJson(){const blob=new Blob([JSON.stringify(state.records,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download='convocatorias_rumbo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
+function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();if(!window.RumboNavigation)document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
 function setup(){
   $('today').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   loadSaved();render();if(state.records.length)renderStatus(`Copia local: ${state.records.length} convocatorias. Última sincronización: ${formatTime(state.lastSuccess)}`);
   ['search','source','status-filter','disability-filter','priority-filter','only-favs'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+  const xuntaView=kind=>{
+    $('source').value='Xunta de Galicia';
+    $('status-filter').value=kind==='guardadas'?'':kind;
+    $('only-favs').checked=kind==='guardadas';
+    $('search').value='';
+    render();
+    document.getElementById('convocatorias').scrollIntoView({block:'start'});
+  };
+  [['xunta-all',''],['xunta-no-convocada','convocatoria_pendiente'],['xunta-no-plazo','pendiente'],['xunta-abiertas','abierta'],['xunta-guardadas','guardadas']].forEach(([id,kind])=>$(id)?.addEventListener('click',()=>xuntaView(kind)));
   $('refresh').addEventListener('click',loadRemote);$('import-file').addEventListener('change',event=>{importJson(event.target.files?.[0]);event.target.value='';});$('export').addEventListener('click',exportJson);
   $('clear').addEventListener('click',()=>{$('search').value='';$('source').value='';$('status-filter').value='';$('disability-filter').value='';$('priority-filter').value='';$('only-favs').checked=false;render();});
   $('dialog-close').addEventListener('click',()=>$('detail-dialog').close());$('dialog-done').addEventListener('click',()=>$('detail-dialog').close());

@@ -4,6 +4,13 @@
   const tabs = [...document.querySelectorAll('[data-mobile-tab]')];
   const page = document.querySelector('.page');
   if (!page) return;
+  // Saltar los menús no cambia la ruta ni escribe en el almacenamiento.
+  const skipLink = document.querySelector('.rumbo-skip-link');
+  skipLink?.addEventListener('click', event => {
+    event.preventDefault();
+    page.focus({preventScroll:true});
+    page.scrollIntoView({block:'start',behavior:'auto'});
+  });
 
   // La navegación es solo visual: no cambia almacenes ni datos personales.
   const sections = [...page.querySelectorAll(':scope > [data-mobile-screen]')];
@@ -15,7 +22,7 @@
     mas: [['productividad','Productividad'],['proyectos','Proyectos'],
       ['metricas-personales','Métricas'],['copias-rumbo','Copias']]
   };
-  const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Más'};
+  const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Foco y herramientas'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));
   const aliases = {'diario-menu':'mi-espacio',hoy:'mi-dia',estudio:'productividad',diario:'mi-espacio',planificacion:'proyectos'};
   const labels=new Map(Object.values(groups).flat().map(([id,label])=>[id,label]));
@@ -60,6 +67,7 @@
     window.RumboAnytypeRefresh?.();
   }
   function show(route,scroll){
+    const focusAtTransition=document.activeElement;
     active=route;
     const group=routeGroups.get(route)||'hoy';
     document.body.dataset.mobileView=group;
@@ -83,8 +91,14 @@
     }
     window.dispatchEvent(new CustomEvent('rumbo:route-changed',{detail:{route,group}}));
     if(scroll)requestAnimationFrame(()=>{
-      window.scrollTo({top:0,behavior:'instant'});
+      // El usuario puede haber enfocado ya un control mientras se cambiaba de
+      // pantalla: no robarle ese foco con un callback de navegación retrasado.
+      const focusedNow=document.activeElement;
+      if(focusedNow!==focusAtTransition &&
+         focusedNow!==document.body &&
+         focusedNow!==document.documentElement)return;
       if(document.querySelector('dialog[open]'))return;
+      window.scrollTo({top:0,behavior:'instant'});
       const target=route==='inicio'?document.querySelector('.hero-line'):document.getElementById(route==='favoritos'?'convocatorias':route);
       const heading=target?.querySelector('h1,h2')||target?.querySelector('h3');
       if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}

@@ -87,7 +87,7 @@ function mount(){
 <div class="er-grid"><div class="er-card"><h4>1. Pausa de 10 segundos</h4><p>Antes de cambiar de tarea, detente y decide si ese cambio es necesario.</p><button type="button" class="button primary" id="er-pause">Iniciar 10 segundos</button><p id="er-pause-state" role="status" aria-live="polite">Lista para practicar.</p></div>
 <div class="er-card"><h4>2. Detenerme · Analizar · Pensar · Ejecutar</h4><div class="er-steps"><span>Detenerme</span><span>Analizar</span><span>Pensar</span><span>Ejecutar</span></div><p>Reconoce la urgencia, observa la situación, elige una respuesta y realiza una sola acción.</p><button type="button" class="button secondary" id="er-start-dape">Practicar los cuatro pasos</button><p id="er-dape-state" role="status" aria-live="polite">Sin empezar.</p></div></div>
 <h4>3. Registro de situación, pensamiento, emoción y conducta</h4>
-<div id="er-login"><label>Contraseña privada de Rumbo<input type="password" id="er-pass" autocomplete="off" placeholder="No se guarda en el navegador"></label><div class="er-actions"><button type="button" class="button primary" id="er-connect">Conectar y sincronizar</button></div><p class="er-hint">Utiliza la misma contraseña de Mi espacio. El texto se cifra en este dispositivo antes de enviarlo a Cloudflare.</p></div>
+<div id="er-login"><p class="er-hint">Con un acceso privado abierto puedes entrar aquí sin repetir la contraseña.</p><label>Contraseña privada de Rumbo<input type="password" id="er-pass" autocomplete="off" placeholder="No se guarda en el navegador"></label><div class="er-actions"><button type="button" class="button primary" id="er-connect">Conectar y sincronizar</button></div><p class="er-hint">Utiliza la misma contraseña de Mi espacio. El texto se cifra en este dispositivo antes de enviarlo a Cloudflare.</p></div>
 <div id="er-private" hidden><div class="er-actions"><button type="button" class="button secondary" id="er-refresh">Recargar del servidor</button><button type="button" class="button secondary" id="er-lock">Cerrar acceso</button></div>
 <form id="er-form" class="er-form"><label>Situación<textarea name="situacion" required maxlength="3000" placeholder="¿Qué ocurrió?"></textarea></label><label>Pensamiento<textarea name="pensamiento" required maxlength="3000" placeholder="¿Qué pensé?"></textarea></label><label>Emoción<textarea name="emocion" required maxlength="3000" placeholder="¿Qué sentí?"></textarea></label><label>Conducta<textarea name="conducta" required maxlength="3000" placeholder="¿Qué hice?"></textarea></label><div><button type="submit" class="button primary" id="er-save">Guardar cifrado con fecha y hora</button></div></form>
 <div class="er-actions"><strong id="er-count">0 registros</strong><button type="button" class="button secondary" id="er-export">Exportar copia cifrada JSON</button></div>
@@ -109,9 +109,44 @@ function mount(){
  el.querySelector('#er-pause').onclick=()=>{if(timer)clearInterval(timer);const until=Date.now()+10000;const button=el.querySelector('#er-pause');button.disabled=true;timer=setInterval(()=>{const t=Math.max(0,Math.ceil((until-Date.now())/1000));el.querySelector('#er-pause-state').textContent=t?`Quedan ${t} segundos`:'Pausa completada. Decide si cambias de tarea.';if(!t){clearInterval(timer);timer=null;button.disabled=false;}},200);};
  const steps=['Detenerme: detecto la urgencia.','Analizar: observo lo que ocurre.','Pensar: elijo una respuesta útil.','Ejecutar: realizo una acción.'];
  el.querySelector('#er-start-dape').onclick=()=>{el.querySelector('#er-dape-state').textContent=steps[step];step=(step+1)%4;el.querySelector('#er-start-dape').textContent=step?'Siguiente paso':'Volver a practicar';};
- el.querySelector('#er-connect').onclick=async()=>{if(busy)return;const p=el.querySelector('#er-pass').value;if(!p){status('Introduce tu contraseña de Rumbo.');return;}busy=true;password=p;el.querySelector('#er-connect').disabled=true;try{await refresh();el.querySelector('#er-pass').value='';el.querySelector('#er-login').hidden=true;el.querySelector('#er-private').hidden=false;}catch(e){password='';status('No se pudo conectar: '+e.message);}finally{busy=false;el.querySelector('#er-connect').disabled=false;}};
+ async function connectTraining(p,share){
+  if(busy||!p)return;
+  busy=true;password=p;el.querySelector('#er-connect').disabled=true;
+  try{
+   await refresh();el.querySelector('#er-pass').value='';
+   el.querySelector('#er-login').hidden=true;el.querySelector('#er-private').hidden=false;
+   if(share)window.RumboSession?.unlock(p);
+  }catch(e){password='';status('No se pudo conectar: '+e.message);}
+  finally{busy=false;el.querySelector('#er-connect').disabled=false;}
+ }
+ function disconnectTraining(share){
+  if(busy)return;
+  const wasConnected=!!password;
+  password='';items=[];pending=null;el.querySelector('#er-form').reset();table();
+  el.querySelector('#er-private').hidden=true;el.querySelector('#er-login').hidden=false;
+  el.querySelector('#er-pass').value='';
+  status('Acceso cerrado. Los campos y registros visibles se han ocultado.');
+  if(share&&wasConnected)window.RumboSession?.lock();
+ }
+ function connectIfShared(){
+  if(password||busy||!window.RumboSession?.available())return;
+  if(window.RumboNavigation?.current()!=='ev-training')return;
+  void connectTraining(window.RumboSession.use(),false);
+ }
+ el.querySelector('#er-connect').onclick=()=>{
+  const p=el.querySelector('#er-pass').value||window.RumboSession?.use();
+  if(!p){status('Abre el acceso privado de Rumbo o introduce tu contraseña.');return;}
+  void connectTraining(p,true);
+ };
  el.querySelector('#er-refresh').onclick=async()=>{try{await refresh();}catch(e){status('No se pudo sincronizar: '+e.message);}};
- el.querySelector('#er-lock').onclick=()=>{password='';items=[];pending=null;el.querySelector('#er-form').reset();table();el.querySelector('#er-private').hidden=true;el.querySelector('#er-login').hidden=false;status('Acceso cerrado. Los campos y registros visibles se han ocultado.');};
+ el.querySelector('#er-lock').onclick=()=>disconnectTraining(true);
+ window.RumboSession?.subscribe(available=>{
+  if(available)connectIfShared();
+  else if(password&&!busy)disconnectTraining(false);
+ });
+ window.addEventListener('rumbo:route-changed',event=>{
+  if(event.detail?.route==='ev-training')connectIfShared();
+ });
  el.querySelector('#er-form').onsubmit=async e=>{e.preventDefault();if(busy||!password)return;const form=e.currentTarget,fd=new FormData(form);const fields={};for(const k of ['situacion','pensamiento','emocion','conducta']){fields[k]=String(fd.get(k)||'').trim();if(!fields[k])return;}
  busy=true;el.querySelector('#er-save').disabled=true;status('Cifrando y guardando…');
  try{

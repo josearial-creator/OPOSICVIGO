@@ -2,6 +2,7 @@ import json
 import time
 from pathlib import Path
 from actualizar import obtener_vigo
+from fuentes_xunta import obtener_xunta
 from fuentes_adicionales import (
     obtener_sergas, obtener_detalle_sergas, obtener_plazo_sergas
 )
@@ -80,11 +81,34 @@ try:
 except Exception as e:
     print("Error en catálogo SERGAS; se conservan datos:", e)
 
+# Conserva procesos Xunta y sus IDs en cada actualización.
+# La OEP no permite inferir plazos; solo el DOG justifica cada apertura.
+xunta_anterior = {
+    x["convocatoria_id"]: x for x in anteriores
+    if x.get("organismo") == "Xunta de Galicia" and x.get("convocatoria_id")
+}
+try:
+    xunta_catalogo = obtener_xunta()
+    if not xunta_catalogo:
+        raise ValueError("Catálogo Xunta vacío")
+    xunta = dict(xunta_anterior)
+    for ficha in xunta_catalogo:
+        key = ficha["convocatoria_id"]
+        anterior = xunta.get(key)
+        # No retroceder registros con verificación oficial posterior.
+        if anterior and str(anterior.get("verificado_el", "")) > str(ficha.get("verificado_el", "")):
+            continue
+        xunta[key] = {**(anterior or {}), **ficha}
+    print("Xunta (fichas oficiales):", len(xunta))
+except Exception as e:
+    print("Error en Xunta; se conservan datos:", e)
+    xunta = xunta_anterior
+
 otros = [
     x for x in anteriores
-    if x.get("organismo") not in ("Concello de Vigo", "SERGAS")
+    if x.get("organismo") not in ("Concello de Vigo", "SERGAS", "Xunta de Galicia")
 ]
-resultado = vigo + list(sergas.values()) + otros
+resultado = vigo + list(sergas.values()) + list(xunta.values()) + otros
 archivo.write_text(
     json.dumps(resultado, ensure_ascii=False, indent=2),
     encoding="utf-8"

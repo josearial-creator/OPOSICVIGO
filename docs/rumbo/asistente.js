@@ -15,31 +15,51 @@ const validItem=x=>x&&typeof x.id==='string'&&typeof x.text==='string'&&x.text.l
 const validSession=x=>x&&typeof x.id==='string'&&typeof x.title==='string'&&x.title.length>0&&x.title.length<=120&&AREAS.includes(x.area)&&validDate(x.date)&&Number.isInteger(x.seconds)&&x.seconds>=60&&x.seconds<=86400&&['temporizador','manual'].includes(x.source);
 const validTimer=t=>t===null||(t&&typeof t.title==='string'&&t.title.trim()&&t.title.length<=120&&AREAS.includes(t.area)&&Number.isInteger(t.target)&&[300,600,900,1500,2700].includes(t.target)&&Number.isFinite(t.elapsed)&&t.elapsed>=0&&t.elapsed<=t.target&&(t.startedAt===null||(Number.isFinite(t.startedAt)&&t.startedAt>0))&&typeof t.warned==='boolean'&&(t.taskId===null||typeof t.taskId==='string'));
 const valid=d=>d&&d.version===1&&Array.isArray(d.items)&&d.items.length<=10000&&d.items.every(validItem)&&Array.isArray(d.priorityIds)&&d.priorityIds.length<=3&&d.priorityIds.every(x=>typeof x==='string')&&Array.isArray(d.sessions)&&d.sessions.length<=15000&&d.sessions.every(validSession)&&validTimer(d.timer)&&['baja','media','alta'].includes(d.energy)&&d.event&&typeof d.event.title==='string'&&typeof d.event.at==='string';
-let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false;
-try{const saved=localStorage.getItem(KEY);if(saved){let p=JSON.parse(saved);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
+let state={version:1,items:[],priorityIds:[],sessions:[],timer:null,energy:'media',event:{title:'',at:''}},locked=false,savedRaw=null,preparedTaskId=null,preparedTitle='';
+try{savedRaw=localStorage.getItem(KEY);if(savedRaw){const p=JSON.parse(savedRaw);if(!valid(p))throw Error('invalid');state=p;}}catch{locked=true;}
 function note(s){$('assistant-message').textContent=s;}
-function save(){if(locked){note('Hay una copia incompatible guardada. No la sobrescribiré; exporta los datos antes de continuar.');return false;}try{localStorage.setItem(KEY,JSON.stringify(state));window.dispatchEvent(new Event('rumbo:assistant-changed'));return true;}catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}}
+function save(){
+ if(locked){note('No se puede guardar sin revisar los datos existentes. Conserva una copia y recarga la página.');return false;}
+ try{
+  if(localStorage.getItem(KEY)!==savedRaw){locked=true;note('Otra pestaña modificó Mi día o Productividad. No se sobrescribió nada. Recarga la página para continuar.');return false;}
+  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);savedRaw=raw;
+  window.dispatchEvent(new Event('rumbo:assistant-changed'));return true;
+ }catch{note('No se pudo guardar. Revisa el almacenamiento del navegador.');return false;}
+}
 function option(s,v){const x=el('option','',s);x.value=v===undefined?s:v;return x;}
 function selectAreas(id){AREAS.forEach(a=>$(id).add(option(a)));}
 function linkBtn(label,fn,style='secondary'){const x=el('button','button '+style,label);x.type='button';x.addEventListener('click',fn);return x;}
 home.innerHTML=[
-'<div class="assistant-head"><div><div class="eyebrow">UN PASO CADA VEZ</div><h2>Mi día</h2><p id="assistant-date"></p></div><a class="button secondary" href="#productividad">Empezar un bloque</a></div>',
-'<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card"><h3>Mis tres prioridades como máximo</h3>',
-'<div id="assistant-priorities"></div><button id="assistant-what" type="button" class="button primary">¿Qué hago ahora?</button>',
-'<div id="assistant-advice" class="assistant-recommendation" aria-live="polite">Una acción pequeña es suficiente para empezar.</div></div>',
-'<div class="assistant-card"><h3>Captura rápida</h3><form id="assistant-capture" class="assistant-inline"><label>Escribe lo que necesitas recordar<input name="text" maxlength="1000" required placeholder="Ej.: Llamar al médico, preparar una entrevista..."></label><button class="button primary" type="submit">Guardar</button></form>',
-'<p class="assistant-muted">Se guarda sin clasificar y sin enviar el texto a IA. Puedes organizarlo más tarde.</p>',
+'<div class="assistant-head"><div><div class="eyebrow">UN PASO CADA VEZ</div><h2>Mi día</h2><p id="assistant-date"></p></div></div>',
+'<div class="assistant-body">',
+'<section class="assistant-now-card" aria-labelledby="assistant-now-heading">',
+'<div class="assistant-now-top"><span class="assistant-now-eyebrow">LO IMPORTANTE AHORA</span><span id="assistant-now-state" class="assistant-now-state"></span></div>',
+'<h3 id="assistant-now-heading">Tu siguiente acción</h3>',
+'<p id="assistant-now-task" class="assistant-now-task">Elige una tarea para empezar.</p>',
+'<p id="assistant-now-step" class="assistant-now-step"></p>',
+'<p id="assistant-time-available" class="assistant-time-available" hidden></p>',
+'<div class="assistant-next-actions"><button id="assistant-focus-next" type="button" class="button primary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
+'<p id="assistant-advice" class="assistant-recommendation" role="status" aria-live="polite" hidden></p>',
+'</section>',
+'<div class="assistant-today-grid">',
+'<section class="assistant-card assistant-capture-card" aria-labelledby="assistant-capture-heading"><h3 id="assistant-capture-heading">Anotar y seguir</h3>',
+'<form id="assistant-capture" class="assistant-inline"><label>Anota algo sin interrumpir tu día<input name="text" maxlength="1000" required placeholder="Ej.: Llamar, repasar, preguntar…"></label><button class="button primary" type="submit">Guardar</button></form>',
+'<p class="assistant-muted">Queda en tu bandeja para otro momento.</p>',
+'<p class="assistant-status" id="assistant-message" role="status" aria-live="polite"></p></section>',
+'<section class="assistant-card assistant-options-card" aria-labelledby="assistant-options-heading"><h3 id="assistant-options-heading">Organizar cuando quieras</h3>',
+'<details id="assistant-priority-details" class="assistant-disclosure"><summary>Mis prioridades <span id="assistant-priority-count"></span></summary><div id="assistant-priorities"></div></details>',
+'<details id="assistant-planning-details" class="assistant-disclosure"><summary>Energía y compromisos</summary>',
 '<div class="assistant-inline"><label>Mi energía<select id="assistant-energy"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option></select></label>',
 '<label>Próximo compromiso (opcional)<input type="datetime-local" id="assistant-event-at"></label></div>',
-'<label style="margin-top:9px">Compromiso (opcional)<input id="assistant-event-title" maxlength="120" placeholder="Ej.: Recoger a los niños"></label>',
-'<div class="assistant-status" id="assistant-time-available"></div></div></div>',
+'<label class="assistant-event-label">Compromiso (opcional)<input id="assistant-event-title" maxlength="120" placeholder="Ej.: Recoger a los niños"></label></details>',
+'</section></div>',
 '<details class="assistant-inbox-details"><summary id="assistant-inbox-count">Bandeja de entrada</summary><div id="assistant-inbox"></div></details>',
-'<p class="assistant-status" id="assistant-message" role="status" aria-live="polite"></p></div>'
+'</div>'
 ].join('');
 prod.innerHTML=[
 '<div class="assistant-head"><div><div class="eyebrow">SIN PRESIÓN POR COMPLETARLO TODO</div><h2>Productividad</h2><p>Registra lo que haces, cuenta también el descanso y termina cuando lo necesites.</p></div></div>',
 '<div class="assistant-body"><div class="assistant-grid"><div class="assistant-card">',
-'<h3>Temporizador</h3><label>Actividad<input id="assistant-timer-title" maxlength="120" placeholder="Ej.: Preparar oposición"></label>',
+'<h3>Temporizador</h3><label>Actividad<input id="assistant-timer-title" maxlength="120" placeholder="Ej.: Preparar oposición"></label><p id="assistant-task-hint" class="assistant-muted" role="status" aria-live="polite"></p>',
 '<div class="assistant-inline"><label>Área<select id="assistant-timer-area"></select></label><label>Proyecto (opcional)<select id="assistant-project"><option value="">Sin proyecto</option></select></label>',
 '<label>Duración<select id="assistant-duration"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15" selected>15 minutos</option><option value="25">25 minutos</option><option value="45">45 minutos</option></select></label></div>',
 '<div id="assistant-clock" class="assistant-clock">00:00:00</div><div id="assistant-timer-state" class="assistant-timer-state">El cronómetro empieza cuando tú quieras.</div>',
@@ -64,7 +84,7 @@ function refreshProjectOptions(){
  for(const id of ['assistant-project','assistant-manual-project']){
   const box=$(id),selected=box.value;
   box.replaceChildren(option('Sin proyecto',''));
-  options.filter(p=>p.status!=='terminado').forEach(p=>box.add(option(p.name,p.id)));
+  options.filter(p=>p.status!=='Terminado').forEach(p=>box.add(option(p.name,p.id)));
   if([...box.options].some(x=>x.value===selected))box.value=selected;
  }
 }
@@ -79,7 +99,8 @@ function activeItem(){return state.priorityIds.map(id=>state.items.find(x=>x.id=
 function updateAvailability(){
  const at=state.event.at,when=at?new Date(at).getTime():NaN,n=Math.ceil((when-Date.now())/60000);
  const output=$('assistant-time-available');
- output.textContent=!Number.isFinite(n)?'Sin próximo compromiso registrado.':n>0?'Quedan '+n+' min hasta '+(state.event.title||'el próximo compromiso')+'.':'El próximo compromiso registrado ya ha llegado o ha pasado.';
+ output.hidden=!Number.isFinite(n);
+ output.textContent=!Number.isFinite(n)?'':n>0?'Próximo compromiso: '+(state.event.title||'sin título')+' en '+n+' min.':'El compromiso registrado ya ha llegado o ha pasado.';
 }
 function chooseAdvice(){
  const current=state.timer;
@@ -92,11 +113,32 @@ function chooseAdvice(){
   else msg='No tienes prioridades pendientes. Puedes descansar o guardar una idea en la bandeja de entrada.';
  }
  $('assistant-advice').textContent=msg;
+ $('assistant-advice').hidden=false;
 }
 function commitRender(msg){if(save()){render();if(msg)note(msg);}}
 function renderTasks(){
- const p=$('assistant-priorities');p.replaceChildren();
+ const next=activeItem(),focus=$('assistant-focus-next');
  const ids=state.priorityIds.filter(id=>state.items.some(t=>t.id===id&&!t.done));
+ const running=state.timer,task=$('assistant-now-task'),step=$('assistant-now-step'),tag=$('assistant-now-state');
+ focus.disabled=locked||!running&&!next;
+ focus.textContent=running?'Ver mi bloque':'Preparar un bloque';
+ $('assistant-priority-count').textContent=ids.length+'/3';
+ if(running){
+  task.textContent=running.title;
+  tag.textContent=running.startedAt!==null?'Bloque en curso':running.warned?'Intervalo cumplido':'Bloque en pausa';
+  const linked=state.items.find(item=>item.id===running.taskId);
+  step.textContent=linked?.nextStep?'Siguiente paso: '+linked.nextStep:'Puedes continuar o aparcar esta actividad.';
+ }else if(next){
+  task.textContent=next.text;
+  tag.textContent=ids.length?'Prioridad elegida':'De tu bandeja';
+  step.textContent=next.nextStep?'Siguiente paso: '+next.nextStep:'Empieza con una acción pequeña; no necesitas terminarlo todo.';
+ }else{
+  task.textContent='Todavía no hay una tarea pendiente.';
+  tag.textContent='Sin pendiente';
+  step.textContent='Anota una tarea abajo. Aparecerá aquí para que puedas empezar.';
+ }
+ $('assistant-advice').hidden=true;
+ const p=$('assistant-priorities');p.replaceChildren();
  if(ids.length===0)p.append(el('p','assistant-muted','Sin prioridades elegidas. Selecciona una desde tu bandeja.'));
  ids.forEach((id,i)=>{const t=state.items.find(x=>x.id===id),box=el('div','assistant-priority');
   box.append(el('strong','',i===0?'Principal':'Secundaria'),el('span','',t.nextStep||t.text));
@@ -130,6 +172,24 @@ $('assistant-energy').addEventListener('change',e=>{state.energy=e.target.value;
  commitRender();updateAvailability();
 }));
 $('assistant-what').addEventListener('click',chooseAdvice);
+$('assistant-focus-next').addEventListener('click',()=>{
+ if(!state.timer){
+  const item=activeItem();if(!item)return;
+  preparedTaskId=item.id;preparedTitle=item.text.slice(0,120);
+  $('assistant-timer-title').value=preparedTitle;
+  $('assistant-task-hint').textContent=item.nextStep?'Siguiente paso: '+item.nextStep:'Actividad preparada: elige la duración y pulsa Iniciar.';
+  // Preselección reversible: la sesión comienza solo al pulsar Iniciar.
+  $('assistant-duration').value=state.energy==='baja'?'5':state.energy==='alta'?'15':'10';
+  const project=$('assistant-project');
+  if(item.projectId&&[...project.options].some(o=>o.value===item.projectId))project.value=item.projectId;
+ }
+ if(!window.RumboNavigation?.go('productividad'))location.hash='#productividad';
+});
+$('assistant-timer-title').addEventListener('input',()=>{
+ if($('assistant-timer-title').value!==preparedTitle){
+  preparedTaskId=null;preparedTitle='';$('assistant-task-hint').textContent='';
+ }
+});
 $('assistant-timer-area').value='Estudio y oposiciones';
 function timerSeconds(t=state.timer){if(!t)return 0;return Math.min(t.target,t.elapsed+(t.startedAt===null?0:Math.max(0,Math.floor((Date.now()-t.startedAt)/1000))));}
 function pauseTimer(){const t=state.timer;if(!t||t.startedAt===null)return;t.elapsed=timerSeconds(t);t.startedAt=null;commitRender('Temporizador en pausa.');}
@@ -188,7 +248,11 @@ $('assistant-start').addEventListener('click',()=>{
  const title=$('assistant-timer-title').value.trim()||activeItem()?.text||'',area=$('assistant-timer-area').value,target=Number($('assistant-duration').value)*60;
  if(!title||title.length>120){note('Escribe el nombre de la actividad o selecciona una prioridad.');return;}
  if(!AREAS.includes(area)||![300,600,900,1500,2700].includes(target))return;
- const matched=state.items.find(x=>!x.done&&x.text===title);
+ // Un título de captura puede superar el límite visual de 120 caracteres.
+ const matched=preparedTaskId&&title===preparedTitle
+  ?state.items.find(x=>!x.done&&x.id===preparedTaskId)
+  :state.items.find(x=>!x.done&&x.text===title);
+ preparedTaskId=null;preparedTitle='';
  state.timer={title,area,target,elapsed:0,startedAt:Date.now(),warned:false,taskId:matched?.id||null,projectId:$('assistant-project').value||matched?.projectId||null};
  commitRender('Temporizador iniciado.');
 });

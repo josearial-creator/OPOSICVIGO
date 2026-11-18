@@ -10,7 +10,7 @@ window.RumboAI={mount(box,d,skills,prompt){
  const panel=el('details'),summary=el('summary','Conexión de IA y voz · opcional');panel.append(summary);
  const explanation=el('p','Gemini requiere un backend privado configurado en Workers Free y un proyecto sin facturación. La clave Gemini nunca se introduce aquí. Sin conexión real, el entrenamiento sigue siendo manual.');panel.append(explanation);
  const urlLabel=el('label','URL HTTPS del Worker'),url=el('input');url.type='url';url.value=endpoint;url.placeholder='https://rumbo-entrenador.tu-cuenta.workers.dev';urlLabel.append(url);
- const accessLabel=el('label','Contraseña privada de Rumbo (no es la clave Gemini)'),access=el('input');access.type='password';access.autocomplete='off';access.value=token;accessLabel.append(access);
+ const accessLabel=el('label','Contraseña privada de Rumbo (no es la clave Gemini)'),access=el('input');access.type='password';access.autocomplete='off';access.value=window.RumboSession?.use()||token;accessLabel.append(access);
  const useSession=button('Usar sesión de Mi espacio',()=>{
    const current=window.RumboSession?.use();
    if(!current){status.textContent='Abre primero Mi espacio e inicia sesión. No se guardan contraseñas en el navegador.';panel.open=true;return;}
@@ -23,6 +23,7 @@ window.RumboAI={mount(box,d,skills,prompt){
  panel.append(urlLabel,accessLabel,useSession,checkLabel,voiceLabel,button('Guardar conexión para esta sesión',()=>{try{const parsed=new URL(url.value);if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.search||parsed.hash||parsed.pathname!=='/')throw Error();endpoint=parsed.origin;token=access.value;consent=check.checked;voiceConsent=voiceCheck.checked;try{localStorage.setItem('rumbo-ai-endpoint',endpoint);}catch{}status.textContent='Configuración guardada. No se ha comprobado el servicio. La contraseña permanece solo en memoria.';}catch{status.textContent='Introduce únicamente el origen HTTPS del Worker, sin rutas ni parámetros.';}}),button('Desconectar',()=>{token='';consent=false;voiceConsent=false;access.value='';check.checked=false;voiceCheck.checked=false;window.speechSynthesis?.cancel();if(recognizer)recognizer.abort();status.textContent='Desconectado. No se ha borrado ningún historial.';}),status);
  unsubscribeSession=window.RumboSession?.subscribe(available=>{
    useSession.disabled=!available;
+   if(available){access.value=window.RumboSession?.use()||'';status.textContent='Acceso privado disponible. Revisa y guarda el consentimiento antes de utilizar IA.';}
    if(!available){token='';access.value='';consent=false;check.checked=false;status.textContent='Sesión privada cerrada. Conecta otra vez para utilizar IA.';}
  });
  useSession.disabled=!window.RumboSession?.available();

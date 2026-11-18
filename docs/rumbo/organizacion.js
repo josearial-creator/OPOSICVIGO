@@ -24,10 +24,16 @@ function validate(d){
  const park=p=>p&&short(p.id,100)&&dateTime(p.at)&&short(p.title,120);
  return d?.version===1&&Array.isArray(d.projects)&&d.projects.length<=1000&&d.projects.every(project)&&Array.isArray(d.reviews)&&d.reviews.length<=2000&&d.reviews.every(review)&&Array.isArray(d.plans)&&d.plans.length<=500&&d.plans.every(plan)&&Array.isArray(d.parks)&&d.parks.length<=10000&&d.parks.every(park);
 }
-let state={version:1,projects:[],reviews:[],plans:[],parks:[]},locked=false;
-try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(!validate(p))throw Error('invalid');state=p;}}catch{locked=true;}
+let state={version:1,projects:[],reviews:[],plans:[],parks:[]},locked=false,savedRaw=null;
+try{savedRaw=localStorage.getItem(KEY);if(savedRaw){const p=JSON.parse(savedRaw);if(!validate(p))throw Error('invalid');state=p;}}catch{locked=true;}
 function status(text){$('org-status').textContent=text;}
-function save(){if(locked){status('No se ha sobrescrito una copia que no se puede leer. Exporta tus datos antes de modificarla.');return false;}try{localStorage.setItem(KEY,JSON.stringify(state));return true;}catch{status('No se pudieron guardar los cambios. Comprueba el almacenamiento del navegador.');return false;}}
+function save(){
+ if(locked){status('No se guardó: recarga antes de editar o conserva una copia de los datos.');return false;}
+ try{
+  if(localStorage.getItem(KEY)!==savedRaw){locked=true;status('Otra pestaña cambió tus proyectos. No se sobrescribió nada. Recarga la página antes de continuar.');return false;}
+  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);savedRaw=raw;return true;
+ }catch{status('No se pudieron guardar los cambios. Comprueba el almacenamiento del navegador.');return false;}
+}
 function projects(){return state.projects.map(p=>({id:p.id,name:p.name,area:p.area,status:p.status}));}
 window.RumboOrganization={listProjects:projects};
 const getAssistant=()=>{
