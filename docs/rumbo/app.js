@@ -135,6 +135,11 @@ function filtered() {
 function badge(label, css) { return node('span','badge '+css,label); }
 function cell(tr, content) { const td=node('td'); if (typeof content==='string' || typeof content==='number') td.textContent=String(content); else if (content) td.append(content); tr.append(td); return td; }
 function render() {
+  // Las actualizaciones del feed también reconstruyen las filas. Si el usuario
+  // tiene enfocado un favorito, no debe perder el teclado ni saltar al inicio.
+  const oldFocus=document.activeElement;
+  const focusedFavorite=oldFocus?.matches?.('button[aria-label="Alternar favorito"]')
+    ?oldFocus.closest('tr[data-record-key]')?.dataset.recordKey:null;
   updateStats(); updateSourceOptions();
   window.dispatchEvent(new Event('rumbo:study-updated'));
   const data=filtered(); $('result-label').textContent = `${data.length} convocatoria${data.length===1?'':'s'} encontrada${data.length===1?'':'s'}`; $('rows').replaceChildren(); $('empty').classList.toggle('hidden', Boolean(data.length));
@@ -170,6 +175,10 @@ function render() {
     Array.from(tr.children).forEach((td,i)=>td.dataset.label=labels[i]);
     fragment.append(tr);
   }); $('rows').append(fragment);
+  if(focusedFavorite){
+    const row=[...$('rows').children].find(tr=>tr.dataset.recordKey===focusedFavorite);
+    row?.querySelector('button[aria-label="Alternar favorito"]')?.focus({preventScroll:true});
+  }
   if (window.RumboHome) window.RumboHome.render({records: state.records, favorites: state.favorites, newKeys: state.newKeys, recordKey, statusType, openDetail, goFavorites: () => { $('only-favs').checked=true; render(); if(!window.RumboNavigation?.go('favoritos'))location.hash='favoritos'; }});
 }
 function historicalDate(r,value) { return r._rumboFeedMissing ? 'Histórico, por verificar: '+(value || 'no consta') : (value || 'No verificado'); }
