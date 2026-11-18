@@ -100,6 +100,8 @@
     const raw=serialize(result);
     try{localStorage.setItem(KEY,raw);}catch{throw Error('El navegador no pudo actualizar el historial. La copia de seguridad independiente sigue archivada.');}
     if(localStorage.getItem(KEY)!==raw)throw Error('La comprobación del guardado local falló. Revisa el archivo de seguridad.');
+    if(added>0)window.dispatchEvent(new Event('rumbo:historial-actualizado'));
+
     return {store:result,added,total:result.entries.length,hash};
   }
   const serial=fn=>{const task=sequence.then(fn);sequence=task.catch(()=>{});return task;};
