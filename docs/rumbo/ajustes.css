@@ -52,7 +52,8 @@
 #ps-export,
 #ps-import,
 #ps-app label[for="ps-import"],
-.rumbo-technical-hidden{display:none!important}
+.rumbo-technical-hidden,
+label:has(#org-import),label:has(#ev-import),label:has(#assistant-import){display:none!important}
 #historial-rumbo #historic-status{font-size:12px;line-height:1.5;margin:12px 0;color:#375d6e}
 body[data-rumbo-maintenance="history"] #historial-rumbo .historic-import{display:block!important}
 @media(max-width:560px){
