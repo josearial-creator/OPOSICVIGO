@@ -43,7 +43,7 @@ const {chromium}=require('playwright');
   assert.equal(await page.locator('#esp-private').isVisible(),false);
   assert.equal(await page.evaluate(()=>window.RumboSession.available()),false);
   await page.reload();
-  assert.equal(await page.evaluate(()=>window.RumboSession.available()),false,'La credencial nunca sobrevive a recargas');
+  assert.equal(await page.evaluate(()=>window.RumboSession.available()),false,'El cierre explícito elimina el acceso recordado');
   console.log('PASS: sesión en memoria, cierre y recarga sin credenciales almacenadas.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
