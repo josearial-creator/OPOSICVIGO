@@ -18,13 +18,13 @@
     hoy: [['inicio','Portada'],['mi-dia','Mi día'],['panel-hoy','Mi radar']],
     oposiciones: [['convocatorias','Convocatorias'],['favoritos','Favoritas'],['apuntes-estudio','Apuntes']],
     diario: [['mi-espacio','Mi espacio'],['ev-diary','Diario'],['historial-rumbo','Historial'],
-      ['mi-evolucion','Mis prácticas'],['ev-training','Entrenamiento'],['rumbo-chatgpt-sync','ChatGPT']],
+      ['mi-evolucion','Mis prácticas'],['ev-training','Entrenamiento']],
     mas: [['productividad','Productividad'],['proyectos','Proyectos'],
       ['metricas-personales','Métricas'],['copias-rumbo','Copias']]
   };
   const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Foco y herramientas'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));
-  const aliases = {'diario-menu':'mi-espacio',hoy:'mi-dia',estudio:'productividad',diario:'mi-espacio',planificacion:'proyectos'};
+  const aliases = {'diario-menu':'mi-espacio',hoy:'mi-dia',estudio:'productividad',diario:'mi-espacio',planificacion:'proyectos','rumbo-chatgpt-sync':'inicio'};
   const labels=new Map(Object.values(groups).flat().map(([id,label])=>[id,label]));
   const nav = document.createElement('nav');
   nav.className = 'rumbo-section-nav';
@@ -75,7 +75,11 @@
     document.body.dataset.mobileView=group;
     document.body.dataset.mobileReady=mobile.matches?'true':'false';
     document.body.dataset.rumboRoute=route;
-    for(const el of sections)el.classList.toggle('rumbo-section-hidden',!visible(el,route));
+    for(const el of sections){
+      // El formulario de ChatGPT ha sido trasladado a Ajustes y no es una pantalla.
+      if(el.id==='rumbo-chatgpt-sync')continue;
+      el.classList.toggle('rumbo-section-hidden',!visible(el,route));
+    }
     for(const tab of tabs){
       if(tab.dataset.mobileTab===group)tab.setAttribute('aria-current','page');
       else tab.removeAttribute('aria-current');
