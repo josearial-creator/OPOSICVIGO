@@ -1,0 +1,46 @@
+/* Chat discreto de Rumbo: cerrado por defecto, sin invadir contenido ni navegación. */
+#rumbo-chat{position:fixed;right:18px;bottom:18px;z-index:1030;font:inherit}
+.rumbo-chat-toggle{min-height:46px;border:1px solid #16787e;border-radius:18px;padding:10px 17px;
+ background:#115d67;color:#fff;box-shadow:0 8px 30px #153a4a36;font:600 13px/1.3 inherit;cursor:pointer}
+.rumbo-chat-toggle:hover{background:#094d58}
+.rumbo-chat-toggle:focus-visible,.rumbo-chat-panel button:focus-visible,.rumbo-chat-panel textarea:focus-visible{
+ outline:3px solid #15aaba;outline-offset:2px}
+.rumbo-chat-panel[hidden]{display:none!important}
+.rumbo-chat-panel{position:absolute;right:0;bottom:58px;box-sizing:border-box;width:min(372px,calc(100vw - 24px));
+ height:min(530px,calc(100dvh - 115px));display:flex;flex-direction:column;overflow:hidden;
+ border-radius:20px;border:1px solid #d5e4eb;background:#fff;color:#193648;box-shadow:0 24px 70px #102b4170}
+.rumbo-chat-head{padding:15px 16px;display:flex;justify-content:space-between;align-items:center;
+ background:#f4fafb;border-bottom:1px solid #deeaee}
+.rumbo-chat-head strong{display:block;font-size:14px;font-weight:750}
+.rumbo-chat-head span{display:block;color:#526e7b;font-size:12px;margin-top:2px}
+.rumbo-chat-head button{width:38px;height:38px;min-width:38px;border:1px solid #d7e5e8;border-radius:11px;
+ background:#fff;color:#23445b;font-size:18px;cursor:pointer}
+.rumbo-chat-messages{flex:1;min-height:90px;overflow-y:auto;overscroll-behavior:contain;
+ display:flex;flex-direction:column;gap:12px;padding:16px 14px}
+.rumbo-chat-bubble{max-width:94%;padding:11px 13px;border-radius:15px;font-size:13px;line-height:1.55;
+ white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.rumbo-chat-assistant{align-self:flex-start;background:#f0f5f7;color:#254354;border-bottom-left-radius:4px}
+.rumbo-chat-user{align-self:flex-end;background:#0b6473;color:#fff;border-bottom-right-radius:4px}
+.rumbo-chat-suggestions{padding:8px 12px 7px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #e7eef1}
+.rumbo-chat-suggestions button{padding:7px 9px;background:#f2f8fa;border:1px solid #d8e8eb;border-radius:12px;
+ color:#2c5967;font-size:11px;min-height:32px;cursor:pointer}
+.rumbo-chat-form{padding:5px 12px 10px}
+.rumbo-chat-form label{display:block;font-size:12px;font-weight:600;margin-bottom:5px}
+.rumbo-chat-composer{display:flex;gap:7px;align-items:stretch}
+.rumbo-chat-composer textarea{width:100%;min-width:0;max-height:100px;resize:vertical;
+ font:inherit;font-size:13px;line-height:1.45;border:1px solid #cbdce4;border-radius:12px;padding:9px}
+.rumbo-chat-composer button{min-width:69px;border:0;border-radius:11px;background:#106a77;color:#fff;
+ font-size:12px;font-weight:700;cursor:pointer}
+.rumbo-chat-composer button:disabled{opacity:.55;cursor:wait}
+.rumbo-chat-ai{padding:0 12px 5px;flex:0 0 auto;border-top:1px solid #e7edf1}
+.rumbo-chat-ai summary{padding:9px 0;font-size:11px;color:#33586b;font-weight:700;cursor:pointer}
+.rumbo-chat-ai label,.rumbo-chat-ai p{display:block;font-size:11px;line-height:1.5;color:#526878;margin:6px 0}
+.rumbo-chat-ai input{width:16px;height:16px;vertical-align:middle;margin-right:5px}
+.rumbo-chat-status{padding:0 12px 12px;color:#526878;font-size:11px;line-height:1.4;margin:0}
+@media(max-width:560px){
+ #rumbo-chat{right:12px;bottom:calc(81px + env(safe-area-inset-bottom));z-index:980}
+ .rumbo-chat-panel{bottom:59px;width:calc(100vw - 24px);max-width:390px;
+ height:min(530px,calc(100dvh - 175px));max-height:calc(100dvh - 175px)}
+ .rumbo-chat-toggle{min-height:46px;padding:10px 14px}
+}
+@media(prefers-reduced-motion:reduce){#rumbo-chat *{scroll-behavior:auto}}
