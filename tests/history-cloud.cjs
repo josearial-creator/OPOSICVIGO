@@ -41,6 +41,7 @@ const password='clave-demo-historial-cifrado-de-32-caracteres',expected='Rumbo '
    id:'registro-'+i,recordedAt:'2026-11-05T12:00:00Z',date:'2026-11-05',title:'Reflexión '+i,summary:'DATO PRIVADO SINTETICO '+i,reported:'Solo para esta prueba'
   })),psychology:{days:[{date:'2026-11-05',situations:Array.from({length:10},(_,i)=>({id:'situacion-'+i,text:'Situación '+i})),quick:{text:'Apunte sintético'}}]}};
   await page.locator('#historic-files').setInputFiles({name:'132-ficticios.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(synthetic))});
+  await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-history]').click();
   await page.locator('#historic-import').click();
   await page.locator('#historic-status').getByText(/132 nuevos registros/i).waitFor();
   await page.locator('#historic-cloud-status').getByText(/132 registros guardados en Cloudflare/i).waitFor({timeout:60000});
