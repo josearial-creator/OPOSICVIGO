@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="organizacion.css">
   <script defer src="organizacion.js"></script>
   <script defer src="mobile.js"></script>
+  <script defer src="actualizaciones.js"></script>
   <script defer src="bloque-presente.js"></script>
   <script defer src="anytype-link.js"></script>
   <script defer src="copias.js"></script>
@@ -43,6 +44,7 @@
   <link rel="stylesheet" href="xunta-seguimiento.css">
   <link rel="stylesheet" href="seguimiento-prioritario.css">
   <link rel="stylesheet" href="ajustes.css">
+  <link rel="stylesheet" href="actualizaciones.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
   <script defer src="historial-nube.js"></script>
@@ -50,6 +52,10 @@
 </head>
 <body>
   <a class="rumbo-skip-link" href="#contenido-principal">Saltar al contenido principal</a>
+  <aside id="rumbo-update-banner" class="rumbo-update-banner" aria-label="Actualización disponible" role="status" hidden>
+    <div><strong>Nueva versión de Rumbo</strong><p>Actualiza la aplicación sin borrar tus registros guardados.</p></div>
+    <div class="rumbo-update-actions"><button id="rumbo-update-apply" type="button" class="button primary">Actualizar ahora</button><button id="rumbo-update-later" type="button" class="button secondary">Más tarde</button></div>
+  </aside>
   <div class="shell">
     <aside class="sidebar">
       <a class="brand" href="#inicio" aria-label="Rumbo, inicio"><span class="brand-mark">R</span><span>Rumbo<small>Tu espacio personal</small></span></a>
@@ -220,6 +226,11 @@
           <button type="button" data-settings-click="ps-export"><strong>Exportar prácticas</strong><span>Descargar los ejercicios registrados</span></button>
         </div>
       </details>
+      <section class="rumbo-settings-group rumbo-update-settings" aria-labelledby="rumbo-update-heading">
+        <h3 id="rumbo-update-heading">Versión de la aplicación</h3>
+        <p id="rumbo-update-status" role="status" aria-live="polite">Puedes comprobar si hay una versión nueva sin tocar tus datos guardados.</p>
+        <div class="rumbo-update-settings-actions"><button id="rumbo-update-check" type="button" class="button secondary">Comprobar actualizaciones</button><button id="rumbo-update-apply-settings" type="button" class="button primary" hidden>Actualizar ahora</button></div>
+      </section>
       <p id="rumbo-settings-status" class="rumbo-settings-status" role="status" aria-live="polite"></p>
       <p class="rumbo-settings-warning">Los datos de tus archivos se procesan en este dispositivo. Las copias JSON sin cifrar deben guardarse en un lugar privado. Las operaciones de recuperación mantienen sus confirmaciones de seguridad.</p>
     </div>
