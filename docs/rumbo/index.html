@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="estudio.css">
   <link rel="stylesheet" href="evolucion.css">
   <script defer src="sesion.js"></script>
+  <script defer src="favoritos-nube.js"></script>
   <script defer src="voz-ia.js"></script>
   <script defer src="balance-semanal.js"></script>
   <script defer src="evolucion.js"></script>
@@ -131,7 +132,8 @@
               <button id="my-followup-all" type="button" class="button secondary">Ver todas mis guardadas</button>
             </div>
             <div id="my-followup-list" class="my-followup-list"></div>
-            <p class="my-followup-help">Las estrellas y los apuntes se guardan en este navegador. Verifica los plazos en la fuente oficial.</p>
+            <div class="favorites-cloud-strip"><p id="favorites-sync-status" role="status" aria-live="polite">Favoritos guardados en este dispositivo.</p><button type="button" id="favorites-sync-now" class="button secondary" hidden>Sincronizar ahora</button></div>
+            <p class="my-followup-help">Las anotaciones siguen siendo locales; la sincronización cifrada solo incluye las estrellas. Verifica los plazos en la fuente oficial.</p>
           </section>
           <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="convocatoria_pendiente">Pendiente de convocatoria</option><option value="pendiente">Convocada · pendiente de plazo</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
           <div class="result-row"><span id="result-label">Cargando…</span><button class="plain" type="button" id="clear">Limpiar filtros</button></div>
