@@ -28,7 +28,7 @@ await page.locator('#dialog-done').click();
 await page.locator('[data-mobile-tab="diario"]').click();await page.locator('#mi-espacio').waitFor({state:'visible'});
 assert.equal(await page.locator('#mi-evolucion').isVisible(),false,'No mostrar toda la página de diario mediante scroll');
 await page.locator('[data-mobile-tab="mas"]').click();await page.locator('#productividad').waitFor({state:'visible'});
-await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();await page.locator('#copias-rumbo').waitFor({state:'visible'});
+await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-route="copias-rumbo"]').click();await page.locator('#copias-rumbo').waitFor({state:'visible'});
 await page.locator('#backup-pass').fill('frase-muy-segura-123');
 await page.locator('#backup-repeat').fill('frase-muy-segura-123');
 const download=page.waitForEvent('download');await page.locator('#backup-export').click();
