@@ -7,6 +7,8 @@ workers_dev = true
 ALLOWED_ORIGIN = "https://josearial-creator.github.io,https://oposicvigo.vercel.app,https://josearial-creatorgithubio.vercel.app"
 # Fail closed until the owner verifies BOTH accounts have no billing enabled.
 FREE_TIER_CONFIRMED = "false"
+# API OpenAI desactivada: exige aprobación de facturación y clave en secreto Worker.
+OPENAI_RUMBO_CHAT_ENABLED = "false"
 
 [observability]
 enabled = false
