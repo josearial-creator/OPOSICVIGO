@@ -56,7 +56,6 @@
    const iv=crypto.getRandomValues(new Uint8Array(12));
    const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(pass));
    await write(key,{version:1,iv:Array.from(iv),cipher:Array.from(new Uint8Array(cipher))});
-   localStorage.removeItem(REVOKED); // Se elimina la marca de una sesión anterior tras guardar otra válida.
  }
  async function restore(){
    if(localStorage.getItem(REVOKED))return null;
@@ -68,11 +67,13 @@
    const pass=dec.decode(plain);
    return pass.length>0&&pass.length<=4096?pass:null;
  }
+ function markRevoked(){localStorage.setItem(REVOKED,crypto.randomUUID());}
+ function activate(){localStorage.removeItem(REVOKED);}
  function revoke(){
    // Barrera SINCRÓNICA: aunque se recargue mientras IndexedDB borra,
    // una sesión revocada nunca se restaura automáticamente.
-   localStorage.setItem(REVOKED,crypto.randomUUID());
+   markRevoked();
    return clear();
  }
- window.RumboRemember=Object.freeze({remember,restore,revoke,revokedKey:REVOKED});
+ window.RumboRemember=Object.freeze({remember,restore,revoke,markRevoked,activate,revokedKey:REVOKED});
 })();
