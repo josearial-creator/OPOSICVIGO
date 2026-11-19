@@ -338,6 +338,20 @@ window.RumboFavoritesLink=Object.freeze({
     render();return true;
   }
 });
+// Vista de solo lectura para el asistente. Nunca incluye notas privadas ni textos del diario.
+window.RumboChatData=Object.freeze({
+ snapshot(){
+   return {
+     records:state.records.map(r=>({
+       key:recordKey(r),title:String(r.puesto||'').slice(0,180),
+       organismo:String(r.organismo||'').slice(0,120),
+       fin:String(r.fin||'').slice(0,120),
+       estado:String(r.inscripcion||r.estado||'').slice(0,120)
+     })),
+     favorites:[...state.favorites]
+   };
+ }
+});
 window.RumboStudyStore = {
  snapshot: () => ({records:state.records.map(r=>({key:recordKey(r),title:r.puesto,organismo:r.organismo})),notes:{...state.notes}}),
  write: (key,text) => {
