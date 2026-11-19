@@ -47,7 +47,8 @@
 #esp-export,
 #ps-export,
 #ps-import,
-#ps-app label[for="ps-import"]{display:none!important}
+#ps-app label[for="ps-import"],
+.rumbo-technical-hidden{display:none!important}
 #historial-rumbo #historic-status{font-size:12px;line-height:1.5;margin:12px 0;color:#375d6e}
 body[data-rumbo-maintenance="history"] #historial-rumbo .historic-import{display:block!important}
 @media(max-width:560px){
@@ -58,3 +59,5 @@ body[data-rumbo-maintenance="history"] #historial-rumbo .historic-import{display
  .rumbo-settings-grid button{min-height:64px}
  .rumbo-settings-open{min-width:44px;min-height:44px}
 }
+
+@media(max-width:430px){.topbar .ev-mobile-link{display:none!important}.rumbo-settings-open{width:44px;min-width:44px}}
