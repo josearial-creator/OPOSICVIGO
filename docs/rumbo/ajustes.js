@@ -18,16 +18,18 @@
  const metrics=history?.querySelector('.historic-metrics');
  if(metrics&&historicStatus)metrics.after(historicStatus);
  // Esconder también la etiqueta del selector de archivos, no solo el input.
- for(const id of ['org-import','ps-import']){
+ for(const id of ['org-import','ps-import','ev-import','assistant-import']){
    document.getElementById(id)?.closest('label')?.classList.add('rumbo-technical-hidden');
  }
  const files={
    'import-file':'convocatorias',
    'history-home-file':'historial-rumbo',
    'org-import':'proyectos',
-   'ps-import':'mi-evolucion'
+   'ps-import':'mi-evolucion',
+   'ev-import':'mi-evolucion',
+   'assistant-import':'productividad'
  };
- const actions=new Set(['export','historic-export','org-export','study-export','esp-export','ps-export']);
+ const actions=new Set(['export','historic-export','org-export','study-export','esp-export','ps-export','ev-export','assistant-export-json','assistant-export-csv','er-export']);
  open.addEventListener('click',()=>{
    say('');
    dialog.showModal();
