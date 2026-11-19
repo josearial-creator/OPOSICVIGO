@@ -53,11 +53,12 @@
    dialog.showModal();
    close.focus();
  });
- close.addEventListener('click',()=>dialog.close());
- dialog.addEventListener('close',()=>{
-   // Las frases de recuperación nunca deben permanecer visibles al reabrir Ajustes.
+ const clearChatSecrets=()=>{
+   // No conservar frases de recuperación en campos cuando se cierra Ajustes.
    for(const id of ['rs-pass','rs-restore-pass']){const field=document.getElementById(id);if(field)field.value='';}
- });
+ };
+ close.addEventListener('click',()=>{clearChatSecrets();dialog.close();});
+ dialog.addEventListener('close',clearChatSecrets);
  const logout=document.getElementById('rumbo-settings-logout');
  logout?.addEventListener('click',async()=>{
    if(logout.disabled)return;
