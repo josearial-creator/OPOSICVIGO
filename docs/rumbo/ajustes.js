@@ -16,6 +16,10 @@
  const historicStatus=document.getElementById('historic-status');
  const metrics=history?.querySelector('.historic-metrics');
  if(metrics&&historicStatus)metrics.after(historicStatus);
+ // Esconder también la etiqueta del selector de archivos, no solo el input.
+ for(const id of ['org-import','ps-import']){
+   document.getElementById(id)?.closest('label')?.classList.add('rumbo-technical-hidden');
+ }
  const files={
    'import-file':'convocatorias',
    'history-home-file':'historial-rumbo',
