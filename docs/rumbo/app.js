@@ -232,6 +232,7 @@ function render() {
       const keyboard=event.detail===0,index=[...$('rows').children].indexOf(tr),was=state.favorites.has(key);
       was?state.favorites.delete(key):state.favorites.add(key);
       if(!save()){was?state.favorites.add(key):state.favorites.delete(key);renderStatus('No se pudo guardar el favorito. Puede haber cambios en otra pestaña; conserva una copia y recarga.','warning');}
+      else window.dispatchEvent(new CustomEvent('rumbo:favorites-updated',{detail:{key,selected:!was}}));
       render();
       if(keyboard){
         const rows=[...$('rows').children],same=rows.find(row=>row.dataset.recordKey===key);
@@ -304,6 +305,11 @@ function exportJson(){const blob=new Blob([JSON.stringify(state.records,null,2)]
 function applyHash(){const target=window.RumboNavigation?.resolve(location.hash.slice(1))||location.hash.slice(1);document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===target ||(!target && a.dataset.nav==='inicio')));if(target==='favoritos'){$('only-favs').checked=true;render();if(!window.RumboNavigation)document.getElementById('convocatorias').scrollIntoView();}else if(target==='convocatorias'){$('only-favs').checked=false;render();}}
 function setup(){
   $('today').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Favoritos actualizados en otra pestaña del mismo dispositivo: no mantener una copia antigua en memoria.
+  window.addEventListener('storage',event=>{
+    if(event.key!==STORE||storageUnreadable)return;
+    loadSaved();render();
+  });
   loadSaved();render();if(state.records.length)renderStatus(`Copia local: ${state.records.length} convocatorias. Última sincronización: ${formatTime(state.lastSuccess)}`);
   ['search','source','status-filter','disability-filter','priority-filter','only-favs'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
   const xuntaView=kind=>{
@@ -321,6 +327,17 @@ function setup(){
   $('dialog-close').addEventListener('click',()=>$('detail-dialog').close());$('dialog-done').addEventListener('click',()=>$('detail-dialog').close());
   window.addEventListener('hashchange',applyHash);applyHash();loadRemote();setInterval(loadRemote,30*60*1000);
 }
+// Interfaz restringida para que la sincronización cifrada no altere notas ni convocatorias.
+window.RumboFavoritesLink=Object.freeze({
+  get:()=>[...state.favorites],
+  apply(keys){
+    if(!Array.isArray(keys)||keys.length>2500||keys.some(k=>typeof k!=='string'||k.length>1400))return false;
+    const previous=state.favorites;
+    state.favorites=new Set(keys);
+    if(!save()){state.favorites=previous;renderStatus('Otra pestaña cambió el almacenamiento. Sincronización no aplicada; vuelve a intentarlo.','warning');return false;}
+    render();return true;
+  }
+});
 window.RumboStudyStore = {
  snapshot: () => ({records:state.records.map(r=>({key:recordKey(r),title:r.puesto,organismo:r.organismo})),notes:{...state.notes}}),
  write: (key,text) => {
