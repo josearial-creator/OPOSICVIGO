@@ -36,6 +36,18 @@
    close.focus();
  });
  close.addEventListener('click',()=>dialog.close());
+ const logout=document.getElementById('rumbo-settings-logout');
+ logout?.addEventListener('click',async()=>{
+   if(logout.disabled)return;
+   logout.disabled=true;say('Cerrando acceso privado y conservando los borradores…');
+   try{
+     if(await window.RumboSession?.signOut()){
+       say('Sesión cerrada en este navegador.');
+       dialog.close();
+     }else say('Cierre cancelado. Conserva los cambios pendientes antes de salir.');
+   }catch(error){say('No se pudo completar el cierre: '+error.message);}
+   finally{logout.disabled=false;}
+ });
  dialog.addEventListener('click',event=>{
    if(event.target===dialog)dialog.close();
  });
