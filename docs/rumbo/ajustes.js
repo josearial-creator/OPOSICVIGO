@@ -4,6 +4,24 @@
  const dialog=document.getElementById('rumbo-settings-dialog');
  if(!open||!dialog)return;
  const close=document.getElementById('rumbo-settings-close');
+ // El formulario de ChatGPT es un único nodo: moverlo mantiene sus claves IndexedDB,
+ // sus listeners de cifrado y la importación sin crear un segundo formulario.
+ const chatSection=document.getElementById('rumbo-chatgpt-sync');
+ const chatHost=document.getElementById('rumbo-settings-chatgpt-host');
+ const chatDetails=document.getElementById('rumbo-settings-chatgpt');
+ if(chatSection&&chatHost&&chatDetails){
+   chatSection.removeAttribute('data-mobile-screen');
+   chatSection.classList.remove('panel','rumbo-section-hidden');
+   chatSection.classList.add('rumbo-settings-chatgpt-panel');
+   chatHost.append(chatSection);
+ }
+ const openChat=()=>{
+   if(!chatDetails||!chatSection)return;
+   if(!dialog.open)dialog.showModal();
+   chatDetails.open=true;
+   chatDetails.scrollIntoView({block:'nearest',behavior:'auto'});
+   chatDetails.querySelector('summary')?.focus({preventScroll:true});
+ };
  const status=document.getElementById('rumbo-settings-status');
  const say=value=>{if(status)status.textContent=value;};
  const navigate=route=>{
@@ -36,6 +54,10 @@
    close.focus();
  });
  close.addEventListener('click',()=>dialog.close());
+ dialog.addEventListener('close',()=>{
+   // Las frases de recuperación nunca deben permanecer visibles al reabrir Ajustes.
+   for(const id of ['rs-pass','rs-restore-pass']){const field=document.getElementById(id);if(field)field.value='';}
+ });
  const logout=document.getElementById('rumbo-settings-logout');
  logout?.addEventListener('click',async()=>{
    if(logout.disabled)return;
@@ -52,6 +74,8 @@
    if(event.target===dialog)dialog.close();
  });
  dialog.addEventListener('click',event=>{
+   const chatButton=event.target.closest('[data-settings-chatgpt]');
+   if(chatButton&&dialog.contains(chatButton)){openChat();return;}
    const routeButton=event.target.closest('[data-settings-route]');
    if(routeButton&&dialog.contains(routeButton)){
      navigate(routeButton.dataset.settingsRoute);
@@ -97,5 +121,9 @@
  window.addEventListener('rumbo:route-changed',event=>{
    if(event.detail?.route!=='historial-rumbo')delete document.body.dataset.rumboMaintenance;
  });
- window.RumboSettings=Object.freeze({open:()=>open.click()});
+ // Enlaces antiguos de ChatGPT siguen funcionando, pero abren Ajustes.
+ const oldChatLink=()=>{if(location.hash==='#rumbo-chatgpt-sync')openChat();};
+ window.addEventListener('hashchange',oldChatLink);
+ oldChatLink();
+ window.RumboSettings=Object.freeze({open:()=>open.click(),openChat});
 })();
