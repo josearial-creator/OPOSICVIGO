@@ -58,12 +58,12 @@
        return;
      }
      const oneTime=()=>{
-       input.removeEventListener('change',oneTime);
+       // Captura antes de que el importador original borre input.value.
        if(!input.files?.length)return;
        dialog.close();
        if(id!=='history-home-file'&&!window.RumboNavigation?.go(files[id]))location.hash=files[id];
      };
-     input.addEventListener('change',oneTime,{once:true});
+     input.addEventListener('change',oneTime,{once:true,capture:true});
      input.click(); // Gesto directo: navegador abre selector de archivo original.
      return;
    }
