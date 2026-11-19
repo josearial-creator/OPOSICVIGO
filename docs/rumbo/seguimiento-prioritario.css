@@ -16,3 +16,10 @@
 .my-followup-help{font-size:11px;line-height:1.5;margin:11px 0 0;color:var(--muted,#637586)}
 .my-followup-heading [hidden]{display:none!important}
 @media(max-width:560px){.my-followup{padding:13px}.my-followup-heading .button{width:100%}.my-followup-list{grid-template-columns:1fr}.my-followup-item{padding:13px}}
+
+/* Favoritos: estado de sincronización visible sin ocupar el espacio de tareas. */
+.favorites-cloud-strip{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;padding:12px 0 5px;border-top:1px solid #e1ebef}
+.favorites-cloud-strip p{min-width:0;flex:1;margin:0;font-size:12px;line-height:1.5;color:#405a68;overflow-wrap:anywhere}
+.favorites-cloud-strip .button{flex:0 0 auto;min-height:44px;font-size:12px}
+.favorites-cloud-strip [hidden]{display:none!important}
+@media(max-width:560px){.favorites-cloud-strip{flex-wrap:wrap}.favorites-cloud-strip .button{width:100%}}
