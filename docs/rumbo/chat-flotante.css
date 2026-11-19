@@ -44,3 +44,10 @@
  .rumbo-chat-toggle{min-height:46px;padding:10px 14px}
 }
 @media(prefers-reduced-motion:reduce){#rumbo-chat *{scroll-behavior:auto}}
+
+/* Enlaces directos: táctiles, legibles y consistentes con la navegación. */
+.rumbo-chat-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:9px 12px;border-top:1px solid #e7eef1}
+.rumbo-chat-shortcuts a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:5px 3px;box-sizing:border-box;border-radius:10px;background:#edf6f7;color:#175365;text-decoration:none;font-size:12px;font-weight:650}
+.rumbo-chat-shortcuts a:hover{background:#daedef}
+.rumbo-chat-shortcuts a:focus-visible{outline:3px solid #15aaba;outline-offset:2px}
+@media(max-width:360px){.rumbo-chat-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
