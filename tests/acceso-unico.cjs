@@ -4,6 +4,8 @@ const baseUrl='http://127.0.0.1:8086/';
 const worker='https://rumbo-entrenador.jose-arial.workers.dev';
 const pass='contraseña sintética única 1234567890123';
 const auth='Rumbo '+Buffer.from(pass).toString('base64');
+const forbidden='origen-de-prueba';
+const forbiddenAuth='Rumbo '+Buffer.from(forbidden).toString('base64');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  try{
@@ -18,6 +20,7 @@ const auth='Rumbo '+Buffer.from(pass).toString('base64');
     const headers={'access-control-allow-origin':baseUrl.slice(0,-1),'access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
     accessCalls.push({path,auth:req.headers().authorization});
+    if(req.headers().authorization===forbiddenAuth)return route.fulfill({status:403,headers,json:{error:'Origen no autorizado'}});
     if(req.headers().authorization!==auth)return route.fulfill({status:401,headers,json:{error:'Acceso denegado'}});
     if(path==='/notes'&&req.method()==='GET')return route.fulfill({status:200,headers,json:{notes:[]}});
     if(path==='/training'&&req.method()==='GET')return route.fulfill({status:200,headers,json:{records:[]}});
@@ -30,6 +33,10 @@ const auth='Rumbo '+Buffer.from(pass).toString('base64');
    await page.locator('#rumbo-access-submit').click();
    await page.locator('#rumbo-access-status').getByText(/incorrecta|denegado/i).waitFor();
    assert.equal(await page.evaluate(()=>window.RumboSession.available()),false,'Contraseña inválida no abre sesión');
+   await page.locator('#rumbo-access-password').fill(forbidden);
+   await page.locator('#rumbo-access-submit').click();
+   await page.locator('#rumbo-access-status').getByText(/dirección web no está autorizada/i).waitFor();
+   assert.equal(await page.evaluate(()=>window.RumboSession.available()),false,'Origen rechazado nunca inicia sesión');
    await page.locator('#rumbo-access-password').fill(pass);
    await page.locator('#rumbo-access-submit').click();
    await page.locator('#rumbo-access-dialog').waitFor({state:'hidden'});
