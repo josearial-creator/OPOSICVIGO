@@ -39,6 +39,7 @@
   <link rel="stylesheet" href="historial-importado.css">
   <link rel="stylesheet" href="producto-profesional.css">
   <link rel="stylesheet" href="xunta-seguimiento.css">
+  <link rel="stylesheet" href="seguimiento-prioritario.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
   <script defer src="historial-nube.js"></script>
@@ -122,6 +123,14 @@
         <section class="panel" data-mobile-screen="oposiciones" id="apuntes-estudio" aria-label="Apuntes de estudio"></section>
         <section class="panel" data-mobile-screen="oposiciones" id="convocatorias">
           <div class="panel-head"><div><div class="eyebrow">EXPLORAR OPORTUNIDADES</div><h2>Convocatorias</h2></div><div class="panel-actions"><button class="button secondary" id="refresh" type="button">↻ Actualizar convocatorias</button><label class="button secondary file-button">↑ Importar JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button type="button" class="button secondary" id="export">↓ Exportar JSON</button></div></div>
+          <section class="my-followup" id="my-followup" aria-labelledby="my-followup-title">
+            <div class="my-followup-heading">
+              <div><h3 id="my-followup-title">Mis oposiciones guardadas</h3><p id="my-followup-caption">Tus procesos prioritarios, sin perder de vista los plazos.</p></div>
+              <button id="my-followup-all" type="button" class="button secondary">Ver todas mis guardadas</button>
+            </div>
+            <div id="my-followup-list" class="my-followup-list"></div>
+            <p class="my-followup-help">Las estrellas y los apuntes se guardan en este navegador. Verifica los plazos en la fuente oficial.</p>
+          </section>
           <div class="filters"><label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar puesto, organismo, ubicación…" aria-label="Buscar convocatorias"></label><label><span>Organismo</span><select id="source"><option value="">Todos</option></select></label><label><span>Situación</span><select id="status-filter"><option value="">Todas</option><option value="abierta">Inscripción abierta</option><option value="convocatoria_pendiente">Pendiente de convocatoria</option><option value="pendiente">Convocada · pendiente de plazo</option><option value="cerrada">Inscripción cerrada</option><option value="seguimiento">En seguimiento</option><option value="verificar">Por verificar</option></select></label><label><span>Discapacidad</span><select id="disability-filter"><option value="">Todas</option><option value="si">Con reserva general</option></select></label><label><span>Prioridad</span><select id="priority-filter"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></label><label class="check-wrap"><input type="checkbox" id="only-favs"><span>Solo favoritas</span></label></div>
           <div class="result-row"><span id="result-label">Cargando…</span><button class="plain" type="button" id="clear">Limpiar filtros</button></div>
           <div class="table-scroll"><table><thead><tr><th>Puesto / grupo</th><th>Organismo</th><th>Plazas</th><th>Discapacidad</th><th>Situación</th><th>Prioridad</th><th>Fin del plazo</th><th class="right">Acciones</th></tr></thead><tbody id="rows"></tbody></table></div>

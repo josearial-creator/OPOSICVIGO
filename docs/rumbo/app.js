@@ -140,6 +140,68 @@ function filtered() {
 }
 function badge(label, css) { return node('span','badge '+css,label); }
 function cell(tr, content) { const td=node('td'); if (typeof content==='string' || typeof content==='number') td.textContent=String(content); else if (content) td.append(content); tr.append(td); return td; }
+// Seguimiento personal: muestra primero el próximo plazo verificable, sin inventar avisos.
+function followupRank(r){
+  const kind=statusType(r),end=calendarDay(r.fin),remaining=end===null?null:end-todayDay();
+  if(kind==='abierta'&&remaining!==null&&remaining>=0&&remaining<=7)return 0;
+  if(kind==='abierta')return 1;
+  if(kind==='pendiente')return 2;
+  if(kind==='convocatoria_pendiente')return 3;
+  if(kind==='verificar')return 4;
+  if(kind==='seguimiento')return 5;
+  return 6;
+}
+function followupText(r){
+  const kind=statusType(r),end=calendarDay(r.fin),remaining=end===null?null:end-todayDay();
+  if(kind==='abierta'&&remaining!==null){
+    if(remaining===0)return 'El plazo indicado termina hoy. Comprueba las bases.';
+    if(remaining===1)return 'El plazo indicado termina mañana. Comprueba las bases.';
+    if(remaining>1&&remaining<=7)return 'Fin del plazo indicado en '+remaining+' días. Comprueba las bases.';
+    return 'Inscripción abierta según las fechas publicadas.';
+  }
+  if(kind==='convocatoria_pendiente')return 'Plazas ofertadas; falta la convocatoria individual.';
+  if(kind==='pendiente')return 'Convocada, pendiente de abrir el plazo.';
+  if(kind==='verificar')return 'Situación o plazo por verificar en la fuente oficial.';
+  return statusLabel[kind]||'En seguimiento';
+}
+function renderFollowup(){
+  const root=$('my-followup'),list=$('my-followup-list'),caption=$('my-followup-caption'),all=$('my-followup-all');
+  if(!root||!list||!caption||!all)return;
+  const favorites=state.records.filter(r=>state.favorites.has(recordKey(r))).sort((a,b)=>
+    followupRank(a)-followupRank(b)||String(a.puesto).localeCompare(String(b.puesto),'es'));
+  const urgent=favorites.filter(r=>followupRank(r)===0).length;
+  caption.textContent=favorites.length
+    ?favorites.length+' guardada'+(favorites.length===1?'':'s')+
+      (urgent?' · '+urgent+' con plazo indicado de 7 días o menos':' · revisa su estado y fuente oficial')
+    :'Marca ☆ en cualquier convocatoria para seguirla desde aquí.';
+  list.replaceChildren();
+  for(const r of favorites.slice(0,3)){
+    const article=node('article','my-followup-item');
+    const body=node('div','my-followup-item-body');
+    body.append(node('strong','',r.puesto));
+    body.append(node('small','',r.organismo||'Organismo por verificar'));
+    const text=node('p','',followupText(r));
+    if(followupRank(r)===0)text.classList.add('my-followup-urgent');
+    body.append(text);
+    const actions=node('div','my-followup-actions');
+    const detail=node('button','button secondary','Ver ficha');
+    detail.type='button';detail.addEventListener('click',()=>openDetail(r));actions.append(detail);
+    const official=safeUrl(r.fuente_detalle)||safeUrl(r.fuente);
+    if(official){
+      const a=node('a','my-followup-official','Fuente oficial');
+      a.href=official;a.target='_blank';a.rel='noopener noreferrer';actions.append(a);
+    }
+    article.append(body,actions);list.append(article);
+  }
+  all.hidden=!favorites.length;
+  all.textContent=favorites.length>3?'Ver las '+favorites.length+' guardadas':'Ver mis guardadas en la tabla';
+}
+function showAllFollowed(){
+  $('source').value='';$('status-filter').value='';$('disability-filter').value='';
+  $('priority-filter').value='';$('search').value='';$('only-favs').checked=true;
+  render();
+  $('result-label').scrollIntoView({block:'center',behavior:'auto'});
+}
 function render() {
   // Las actualizaciones del feed también reconstruyen las filas. Si el usuario
   // tiene enfocado un favorito, no debe perder el teclado ni saltar al inicio.
@@ -147,6 +209,7 @@ function render() {
   const focusedFavorite=oldFocus?.matches?.('button[aria-label="Alternar favorito"]')
     ?oldFocus.closest('tr[data-record-key]')?.dataset.recordKey:null;
   updateStats(); updateSourceOptions();
+  renderFollowup();
   window.dispatchEvent(new Event('rumbo:study-updated'));
   const data=filtered(); $('result-label').textContent = `${data.length} convocatoria${data.length===1?'':'s'} encontrada${data.length===1?'':'s'}`; $('rows').replaceChildren(); $('empty').classList.toggle('hidden', Boolean(data.length));
   const fragment=document.createDocumentFragment();
@@ -252,6 +315,7 @@ function setup(){
     document.getElementById('convocatorias').scrollIntoView({block:'start'});
   };
   [['xunta-all',''],['xunta-no-convocada','convocatoria_pendiente'],['xunta-no-plazo','pendiente'],['xunta-abiertas','abierta'],['xunta-guardadas','guardadas']].forEach(([id,kind])=>$(id)?.addEventListener('click',()=>xuntaView(kind)));
+  $('my-followup-all')?.addEventListener('click',showAllFollowed);
   $('refresh').addEventListener('click',loadRemote);$('import-file').addEventListener('change',event=>{importJson(event.target.files?.[0]);event.target.value='';});$('export').addEventListener('click',exportJson);
   $('clear').addEventListener('click',()=>{$('search').value='';$('source').value='';$('status-filter').value='';$('disability-filter').value='';$('priority-filter').value='';$('only-favs').checked=false;render();});
   $('dialog-close').addEventListener('click',()=>$('detail-dialog').close());$('dialog-done').addEventListener('click',()=>$('detail-dialog').close());

@@ -20,8 +20,12 @@
   let result;
   try{
    result=await fetch(API+'/notes',{method:'GET',headers:{Authorization:auth},cache:'no-store',signal:AbortSignal.timeout(15000)});
-  }catch{throw Error('No se pudo contactar con el servicio privado.');}
-  if(!result.ok)throw Error(result.status===401||result.status===403?'Contraseña incorrecta o acceso denegado.':'No se pudo comprobar la contraseña con el servidor.');
+  }catch{throw Error('No se pudo contactar con el servidor privado. Comprueba la conexión y que estés en la dirección oficial de Rumbo.');}
+  if(!result.ok){
+   if(result.status===401)throw Error('Contraseña incorrecta. No se ha abierto el acceso.');
+   if(result.status===403)throw Error('Esta dirección web no está autorizada por el servidor privado. No significa que tu contraseña sea incorrecta.');
+   throw Error('El servidor no pudo validar el acceso (HTTP '+result.status+'). No se ha abierto la sesión.');
+  }
   const data=await result.json().catch(()=>null);
   if(!data||!Array.isArray(data.notes))throw Error('El servidor no devolvió una validación reconocible.');
   if(attempt!==generation)return false;
