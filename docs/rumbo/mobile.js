@@ -136,7 +136,9 @@
   window.addEventListener('offline',showConnection);
   showConnection();
   if('serviceWorker' in navigator && window.isSecureContext) {
-    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'})
+      .then(reg=>window.RumboUpdates?.attach(reg))
+      .catch(()=>window.RumboUpdates?.unavailable()));
   }
   let installPrompt = null;
   window.addEventListener('beforeinstallprompt',event=>{
