@@ -23,7 +23,7 @@
   typeof r.key==='string'&&r.key.length>0&&r.key.length<=1400&&
   typeof r.selected==='boolean'&&Number.isSafeInteger(r.at)&&r.at>=0&&r.at<20000000000000&&
   typeof r.nonce==='string'&&r.nonce.length>0&&r.nonce.length<=80;
- const sort=a=>[...a].sort((x,y)=>x.key.localeCompare(y.key));
+ const sort=a=>[...a].sort((x,y)=>x.key<y.key?-1:x.key>y.key?1:0);
  function validEntries(entries){
   if(!Array.isArray(entries)||entries.length>MAX||!entries.every(validEntry)||
      new Set(entries.map(x=>x.key)).size!==entries.length)throw Error('Preferencias incompatibles: se conservan los favoritos locales.');
@@ -133,11 +133,9 @@
    }
    const entries=sort(merged.values());
    const selected=entries.filter(e=>e.selected).map(e=>e.key);
-   if(!same(new Set(selected),new Set(link.get()))){
-     const current=new Set(link.get()),next=new Set(selected);
-     if(current.size!==next.size||[...current].some(x=>!next.has(x))){
-       if(!link.apply(selected))throw Error('Cambios locales desde otra pestaña: no se sustituyeron.');
-     }
+   const current=new Set(link.get()),next=new Set(selected);
+   if(current.size!==next.size||[...current].some(x=>!next.has(x))){
+     if(!link.apply(selected))throw Error('Cambios locales desde otra pestaña: no se sustituyeron.');
    }
    verify(pass,gen);
    // Se guardan los metadatos locales solo después de conservar los favoritos en Rumbo.
@@ -147,7 +145,11 @@
      say('Guardando favoritos cifrados…');
      const snapshot=await encrypt(entries,pass,id);
      verify(pass,gen);
-     await call('',pass,{body:snapshot});
+     try{await call('',pass,{body:snapshot});}
+     catch(error){
+       if(!/HTTP 409/.test(error.message))throw error;
+       // Otro dispositivo pudo guardar el mismo contenido simultáneamente.
+     }
      verify(pass,gen);
      const confirmed=await call('/'+id,pass);
      await decrypt(confirmed.snapshot,pass);
