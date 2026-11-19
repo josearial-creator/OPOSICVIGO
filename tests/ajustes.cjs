@@ -48,6 +48,7 @@ const assert=require('node:assert/strict');
    assert.equal(await page.locator('#historial-rumbo .historic-import').isVisible(),true,'Importación avanzada solo se revela desde Ajustes');
    await page.locator('#rumbo-settings-open').click();
    await page.locator('[data-settings-route="copias-rumbo"]').click();
+   await page.locator('#copias-rumbo').waitFor({state:'visible'});
    assert.equal(await page.locator('#historial-rumbo .historic-import').isVisible(),false,'Importador se oculta al cambiar de sección');
    await page.locator('#rumbo-settings-open').click();
    await page.keyboard.press('Escape');
