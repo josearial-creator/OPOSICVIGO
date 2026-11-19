@@ -15,6 +15,7 @@
   <script defer src="estudio.js"></script>
   <link rel="stylesheet" href="estudio.css">
   <link rel="stylesheet" href="evolucion.css">
+  <script defer src="sesion-recordada.js"></script>
   <script defer src="sesion.js"></script>
   <script defer src="favoritos-nube.js"></script>
   <script defer src="voz-ia.js"></script>
@@ -192,6 +193,10 @@
           <button type="button" data-settings-route="rumbo-chatgpt-sync"><strong>Conectar ChatGPT</strong><span>Vinculación y recuperación cifrada</span></button>
           <button type="button" data-settings-route="copias-rumbo"><strong>Copias cifradas de Rumbo</strong><span>Crear o restaurar una copia privada</span></button>
         </div>
+        <div class="rumbo-settings-session" aria-live="polite">
+          <p id="rumbo-settings-session-state">Comprobando acceso privado…</p>
+          <button class="button secondary rumbo-settings-logout" id="rumbo-settings-logout" type="button" hidden>Cerrar sesión</button>
+        </div>
       </section>
       <details class="rumbo-settings-more">
         <summary>Otras importaciones y exportaciones</summary>
@@ -217,7 +222,7 @@
   <dialog id="rumbo-access-dialog" class="rumbo-access-dialog" aria-labelledby="rumbo-access-heading">
     <div class="rumbo-access-head"><h2 id="rumbo-access-heading">Acceso privado de Rumbo</h2><button id="rumbo-access-close" type="button" class="button secondary" aria-label="Cerrar ventana">Cerrar</button></div>
     <div id="rumbo-access-credentials">
-      <p>Introduce una sola vez tu contraseña privada para acceder a Mi espacio y Entrenamiento en esta pestaña.</p>
+      <p>Introduce tu contraseña privada. Rumbo recordará el acceso en este dispositivo para que no tengas que escribirla cada vez.</p>
       <form id="rumbo-access-form">
         <label for="rumbo-access-password">Contraseña privada de Rumbo</label>
         <input id="rumbo-access-password" type="password" autocomplete="off" required maxlength="4096">
@@ -226,9 +231,9 @@
     </div>
     <div id="rumbo-access-connected" hidden>
       <p>Acceso verificado. Puedes cambiar de apartado sin volver a escribir la contraseña.</p>
-      <button id="rumbo-access-logout" class="button secondary" type="button">Cerrar acceso en esta pestaña</button>
+      <button id="rumbo-access-logout" class="button secondary" type="button">Cerrar sesión</button>
     </div>
-    <p class="rumbo-access-note">La contraseña solo permanece en memoria. Al recargar o cerrar la pestaña tendrás que introducirla de nuevo. Las copias cifradas y la recuperación tienen sus propias frases de seguridad.</p>
+    <p class="rumbo-access-note">El acceso se guarda cifrado en este navegador y se comprueba con el servidor al volver a entrar. Se mantiene hasta que pulses «Cerrar sesión», cambie la clave o borres los datos del navegador. No lo utilices en un dispositivo compartido. Las copias de seguridad conservan su propia frase de cifrado.</p>
     <p id="rumbo-access-status" role="status" aria-live="polite"></p>
   </dialog>
   <dialog id="detail-dialog"><div class="dialog-head"><h2 id="dialog-title">Detalle</h2><button class="plain close" id="dialog-close" aria-label="Cerrar">✕</button></div><div id="dialog-content"></div><div class="dialog-footer"><a id="official-link" class="button primary" href="#" target="_blank" rel="noopener noreferrer">Ver fuente oficial ↗</a><button id="dialog-done" class="button secondary">Cerrar</button></div></dialog>
