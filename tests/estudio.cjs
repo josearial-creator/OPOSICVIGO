@@ -20,7 +20,9 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.locator('#study-list').getByRole('button',{name:'Abrir apuntes'}).click();
  assert.equal(await page.locator('#study-text').inputValue(),'Tema 1: repasar mañana <script>bad()</script>');
  assert.equal(await page.locator('#study-list script').count(),0);
- const download=page.waitForEvent('download');await page.locator('#study-export').click();assert.equal((await download).suggestedFilename(),'rumbo-apuntes-estudio.json');
+ await page.locator('#rumbo-settings-open').click();await page.locator('.rumbo-settings-more summary').click();
+ const download=page.waitForEvent('download');await page.locator('[data-settings-click="study-export"]').click();
+ await page.locator('#rumbo-settings-close').click();assert.equal((await download).suggestedFilename(),'rumbo-apuntes-estudio.json');
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.locator('.rumbo-section-nav a[aria-current="page"]').getAttribute('href'),'#apuntes-estudio');
  assert.equal(await page.evaluate(()=>location.hash),'#apuntes-estudio');

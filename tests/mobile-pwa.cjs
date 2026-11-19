@@ -28,7 +28,7 @@ await page.locator('#dialog-done').click();
 await page.locator('[data-mobile-tab="diario"]').click();await page.locator('#mi-espacio').waitFor({state:'visible'});
 assert.equal(await page.locator('#mi-evolucion').isVisible(),false,'No mostrar toda la página de diario mediante scroll');
 await page.locator('[data-mobile-tab="mas"]').click();await page.locator('#productividad').waitFor({state:'visible'});
-await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();await page.locator('#copias-rumbo').waitFor({state:'visible'});
+await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-route="copias-rumbo"]').click();await page.locator('#copias-rumbo').waitFor({state:'visible'});
 await page.locator('#backup-pass').fill('frase-muy-segura-123');
 await page.locator('#backup-repeat').fill('frase-muy-segura-123');
 const download=page.waitForEvent('download');await page.locator('#backup-export').click();
@@ -61,7 +61,7 @@ assert.equal(restored.favorites.length,1);assert.deepEqual(Object.values(restore
 const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'manifest.webmanifest');
 const resp=await page.request.get('http://127.0.0.1:8086/sw.js');assert.equal(resp.status(),200);
 const serviceWorker=await resp.text();
-assert.match(serviceWorker,/rumbo-shell-v22/,'Debe invalidar la caché de la navegación antigua');
+assert.match(serviceWorker,/rumbo-shell-v23/,'Debe invalidar la caché de la navegación antigua');
 assert.match(serviceWorker,/\.\/practicas-sencillas\.js/,'Las prácticas deben estar disponibles sin conexión');
 assert.match(serviceWorker,/\.\/entrenamiento-rutinas\.js/,'El nuevo entrenador debe estar incluido en la caché PWA');
 assert.deepEqual(errors,[]);

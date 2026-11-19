@@ -40,9 +40,11 @@
   <link rel="stylesheet" href="producto-profesional.css">
   <link rel="stylesheet" href="xunta-seguimiento.css">
   <link rel="stylesheet" href="seguimiento-prioritario.css">
+  <link rel="stylesheet" href="ajustes.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
   <script defer src="historial-nube.js"></script>
+  <script defer src="ajustes.js"></script>
 </head>
 <body>
   <a class="rumbo-skip-link" href="#contenido-principal">Saltar al contenido principal</a>
@@ -51,7 +53,7 @@
       <a class="brand" href="#inicio" aria-label="Rumbo, inicio"><span class="brand-mark">R</span><span>Rumbo<small>Tu espacio personal</small></span></a>
       <p class="side-heading">ESPACIO DE TRABAJO</p>
       <nav aria-label="Secciones">
-        <details class="ev-nav-tree" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
+        <details class="ev-nav-tree" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
         <a class="nav-link active" href="#inicio" data-nav="inicio"><span>◫</span> Vista general</a>
         <details class="ev-nav-tree study-nav" open><summary>Estudio</summary><div class="ev-nav-children"><a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span aria-hidden="true">▤</span> Convocatorias</a><a class="nav-link" href="#apuntes-estudio" data-nav="apuntes-estudio"><span aria-hidden="true">✎</span> Apuntes de estudio</a><a class="nav-link" href="#favoritos" data-nav="favoritos"><span aria-hidden="true">☆</span> Favoritos</a></div></details>
         <a class="nav-link" href="#mi-dia" data-nav="mi-dia"><span>☼</span> Mi día</a>
@@ -62,9 +64,9 @@
       <div class="sidebar-bottom"><span class="pulse"></span> Datos de fuentes oficiales<br><small>Concello de Vigo · SERGAS · ampliable</small></div>
     </aside>
     <main class="main" id="inicio">
-      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><button class="button secondary rumbo-access-open" type="button" id="rumbo-access-open" aria-haspopup="dialog" aria-controls="rumbo-access-dialog">Acceso privado</button><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
+      <header class="topbar"><div class="topbar-identity"><span class="topbar-monogram" aria-hidden="true">R</span><div class="breadcrumb"><span class="topbar-eyebrow">PANEL PERSONAL</span><strong>Tu espacio Rumbo</strong></div></div><div class="topbar-tools"><div class="top-date" id="today"></div><button class="button secondary rumbo-access-open" type="button" id="rumbo-access-open" aria-haspopup="dialog" aria-controls="rumbo-access-dialog">Acceso privado</button><button class="rumbo-settings-open" type="button" id="rumbo-settings-open" aria-haspopup="dialog" aria-controls="rumbo-settings-dialog" aria-label="Abrir ajustes de Rumbo" title="Ajustes"><svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.2 13.5 1.1.9-1.6 2.8-1.4-.4a8 8 0 0 1-1.5.9l-.3 1.5h-3.2l-.4-1.5a8 8 0 0 1-1.5-.9l-1.4.4-1.6-2.8 1.1-.9a8 8 0 0 1 0-1.8l-1.1-.9 1.6-2.8 1.4.4a8 8 0 0 1 1.5-.9l.4-1.5h3.2l.3 1.5a8 8 0 0 1 1.5.9l1.4-.4 1.6 2.8-1.1.9a8 8 0 0 1 0 1.8Z" transform="translate(-1.6 -0.7) scale(1.09)"/></svg></button><a class="button secondary ev-mobile-link" href="#mi-espacio">Mi espacio</a></div></header>
       <div class="page" id="contenido-principal" tabindex="-1">
-        <details id="diario-menu" class="ev-nav-tree ev-mobile-tree" data-mobile-screen="diario" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#rumbo-chatgpt-sync" data-nav="rumbo-chatgpt-sync" aria-label="Conexión privada con ChatGPT"><span aria-hidden="true">◇</span> Conectar ChatGPT</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
+        <details id="diario-menu" class="ev-nav-tree ev-mobile-tree" data-mobile-screen="diario" open><summary><span class="ev-tree-summary-icon" aria-hidden="true">▥</span> Diario</summary><div class="ev-nav-children"><a class="nav-link" href="#mi-espacio" data-nav="mi-espacio" aria-label="Mi espacio personal"><span aria-hidden="true">✎</span> Mi espacio</a><a class="nav-link" href="#ev-diary" data-nav="ev-diary" aria-label="Diario personal"><span aria-hidden="true">▤</span> Diario</a><a class="nav-link" href="#historial-rumbo" data-nav="historial-rumbo" aria-label="Historial recuperado"><span aria-hidden="true">▣</span> Historial recuperado</a><a class="nav-link" href="#mi-evolucion" data-nav="mi-evolucion" aria-label="Mis prácticas"><span aria-hidden="true">◎</span> Mis prácticas</a><a class="nav-link" href="#ev-training" data-nav="ev-training" aria-label="Entrenamiento"><span aria-hidden="true">◉</span> Entrenamiento</a></div></details>
         <details class="ev-nav-tree ev-mobile-tree study-nav" data-mobile-screen="oposiciones" open><summary>Estudio</summary><div class="ev-nav-children"><a class="nav-link" href="#convocatorias" data-nav="convocatorias"><span aria-hidden="true">▤</span> Convocatorias</a><a class="nav-link" href="#apuntes-estudio" data-nav="apuntes-estudio"><span aria-hidden="true">✎</span> Apuntes de estudio</a><a class="nav-link" href="#favoritos" data-nav="favoritos"><span aria-hidden="true">☆</span> Favoritos</a></div></details>
         <nav class="assistant-mobile-nav" aria-label="Asistente móvil"><a href="#mi-dia">Mi día</a><a href="#productividad">Productividad</a><a href="#proyectos">Proyectos</a><a href="#ev-diary">Diario</a></nav>
         <div class="hero-line" data-mobile-screen="hoy">
@@ -90,7 +92,7 @@
           <div class="historic-home-copy">
             <strong>Mis registros personales</strong>
             <p id="history-recovery-count">Comprobando el historial de este navegador…</p>
-            <small>El historial privado se guarda en tu dispositivo; no se descarga automáticamente al publicar la web.</small>
+            <small>Para importar o exportar usa Ajustes, arriba a la derecha. El historial privado se guarda en tu dispositivo; no se descarga automáticamente al publicar la web.</small>
           </div>
           <div class="historic-home-buttons">
             <label class="button primary historic-home-upload" for="history-home-file">Importar mi copia JSON
@@ -166,6 +168,50 @@
   <p id="rumbo-offline" class="offline-notice" role="status" hidden>Sin conexión. Puedes consultar datos locales; los cambios y consultas del servidor requieren Internet.</p>
   <button id="need-stop" class="assistant-stop-button" type="button">Necesito parar</button>
   <dialog id="assistant-stop-dialog" class="assistant-stop-dialog" aria-labelledby="stop-dialog-heading"><h2 id="stop-dialog-heading">Puedes dejarlo aquí</h2><p>No necesitas terminarlo todo ahora. Guarda dónde continuar.</p><label>¿Qué estás haciendo?<input id="stop-current" maxlength="120"></label><p class="assistant-stop-question">¿Es necesario resolverlo ahora? Puedes decidir que no.</p><label>Siguiente paso que quieres dejar guardado<textarea id="stop-next" rows="3" maxlength="250" placeholder="Ej.: Revisar el apartado 3 otro día"></textarea></label><div class="assistant-stop-actions"><button type="button" class="button primary" id="stop-park">Aparcar y cerrar</button><button type="button" class="button secondary" id="stop-done">He terminado</button><button type="button" class="button secondary" id="stop-close">Volver</button></div></dialog>
+  <dialog id="rumbo-settings-dialog" class="rumbo-settings-dialog" aria-labelledby="rumbo-settings-heading">
+    <div class="rumbo-settings-head">
+      <div><p class="rumbo-settings-eyebrow">RUMBO</p><h2 id="rumbo-settings-heading">Ajustes</h2><p>Conexiones, importaciones y copias de seguridad, fuera de tu espacio de trabajo.</p></div>
+      <button class="rumbo-settings-close" type="button" id="rumbo-settings-close" aria-label="Cerrar ajustes">✕</button>
+    </div>
+    <div class="rumbo-settings-body">
+      <section class="rumbo-settings-group" aria-labelledby="rumbo-settings-files">
+        <h3 id="rumbo-settings-files">Datos y archivos</h3>
+        <div class="rumbo-settings-grid">
+          <button type="button" data-settings-file="import-file"><strong>Importar convocatorias</strong><span>Seleccionar JSON de oposiciones</span></button>
+          <button type="button" data-settings-click="export"><strong>Exportar convocatorias</strong><span>Descargar el listado actual</span></button>
+          <button type="button" data-settings-file="history-home-file"><strong>Importar registros personales</strong><span>Recuperar tu historial JSON sin duplicados</span></button>
+          <button type="button" data-settings-click="historic-export"><strong>Exportar historial</strong><span>Descargar tus registros recuperados</span></button>
+        </div>
+        <button class="rumbo-settings-subtle" type="button" data-settings-history>Importación avanzada: varios archivos JSON</button>
+      </section>
+      <section class="rumbo-settings-group" aria-labelledby="rumbo-settings-connections">
+        <h3 id="rumbo-settings-connections">Privacidad y conexiones</h3>
+        <div class="rumbo-settings-grid">
+          <button type="button" data-settings-route="rumbo-chatgpt-sync"><strong>Conectar ChatGPT</strong><span>Vinculación y recuperación cifrada</span></button>
+          <button type="button" data-settings-route="copias-rumbo"><strong>Copias cifradas de Rumbo</strong><span>Crear o restaurar una copia privada</span></button>
+        </div>
+      </section>
+      <details class="rumbo-settings-more">
+        <summary>Otras importaciones y exportaciones</summary>
+        <div class="rumbo-settings-grid">
+          <button type="button" data-settings-file="org-import"><strong>Importar organización</strong><span>Proyectos y planificación</span></button>
+          <button type="button" data-settings-click="org-export"><strong>Exportar organización</strong><span>Tareas y proyectos en JSON</span></button>
+          <button type="button" data-settings-click="study-export"><strong>Exportar apuntes de estudio</strong><span>Descargar los apuntes guardados</span></button>
+          <button type="button" data-settings-click="esp-export"><strong>Exportar mis anotaciones</strong><span>Requiere acceso privado abierto</span></button>
+          <button type="button" data-settings-click="ev-export"><strong>Exportar Mi evolución</strong><span>Historial de ejercicios personales</span></button>
+          <button type="button" data-settings-file="ev-import"><strong>Importar Mi evolución</strong><span>Recuperar ejercicios desde JSON</span></button>
+          <button type="button" data-settings-click="assistant-export-json"><strong>Exportar productividad JSON</strong><span>Sesiones y tiempos registrados</span></button>
+          <button type="button" data-settings-click="assistant-export-csv"><strong>Exportar productividad CSV</strong><span>Sesiones para análisis</span></button>
+          <button type="button" data-settings-file="assistant-import"><strong>Importar productividad</strong><span>Recuperar sesiones JSON</span></button>
+          <button type="button" data-settings-click="er-export"><strong>Exportar entrenamiento cifrado</strong><span>Disponible después de abrir acceso privado</span></button>
+          <button type="button" data-settings-file="ps-import"><strong>Importar prácticas</strong><span>Recuperar los ejercicios anteriores</span></button>
+          <button type="button" data-settings-click="ps-export"><strong>Exportar prácticas</strong><span>Descargar los ejercicios registrados</span></button>
+        </div>
+      </details>
+      <p id="rumbo-settings-status" class="rumbo-settings-status" role="status" aria-live="polite"></p>
+      <p class="rumbo-settings-warning">Los datos de tus archivos se procesan en este dispositivo. Las copias JSON sin cifrar deben guardarse en un lugar privado. Las operaciones de recuperación mantienen sus confirmaciones de seguridad.</p>
+    </div>
+  </dialog>
   <dialog id="rumbo-access-dialog" class="rumbo-access-dialog" aria-labelledby="rumbo-access-heading">
     <div class="rumbo-access-head"><h2 id="rumbo-access-heading">Acceso privado de Rumbo</h2><button id="rumbo-access-close" type="button" class="button secondary" aria-label="Cerrar ventana">Cerrar</button></div>
     <div id="rumbo-access-credentials">

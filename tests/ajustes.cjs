@@ -1,0 +1,62 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
+ try{
+  for(const width of [390,1120]){
+   const context=await browser.newContext({viewport:{width,height:844},acceptDownloads:true,serviceWorkers:'block'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   await page.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:[{puesto:'Auxiliar administrativo C2',organismo:'Xunta de Galicia',convocatoria_id:'xunta-test',anio:2026,plazas:5,grupo:'C2',estado:'Por verificar',fuente:'https://www.xunta.gal/'}]}));
+   await page.goto('http://127.0.0.1:8086/#convocatorias');
+   await page.locator('#rows tr').first().waitFor();
+   assert.equal(await page.locator('#rumbo-settings-open').isVisible(),true);
+   assert.equal(await page.locator('#convocatorias #export').isVisible(),false,'Exportar no aparece en la pantalla diaria');
+   assert.equal(await page.locator('#convocatorias .file-button').isVisible(),false);
+   assert.equal(await page.locator('.sidebar a[href="#rumbo-chatgpt-sync"]').count(),0,'ChatGPT solo aparece en Ajustes');
+   assert.equal(await page.locator('.rumbo-section-nav a[href="#rumbo-chatgpt-sync"]').count(),0);
+   await page.locator('#rumbo-settings-open').click();
+   assert.equal(await page.locator('#rumbo-settings-dialog').isVisible(),true);
+   const download=page.waitForEvent('download');
+   await page.locator('[data-settings-click="export"]').click();
+   assert.equal((await download).suggestedFilename(),'convocatorias_rumbo.json');
+   const chooser=page.waitForEvent('filechooser');
+   await page.locator('[data-settings-file="import-file"]').click();
+   const input=await chooser;
+   await input.setFiles({name:'convocatorias-local.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([{puesto:'Local de prueba',organismo:'Concello de Vigo',grupo:'C2',plazas:1,fuente:'https://sede.vigo.org/'}]))});
+   await page.locator('#rumbo-settings-dialog').waitFor({state:'hidden'});
+   await page.locator('#status').filter({hasText:/Importación completada/i}).waitFor();
+   assert.equal(await page.locator('#rows tr').count(),2);
+   await page.locator('#rumbo-settings-open').click();
+   await page.locator('[data-settings-route="rumbo-chatgpt-sync"]').click();
+   await page.locator('#rumbo-settings-dialog').waitFor({state:'hidden'});
+   assert.equal(await page.evaluate(()=>location.hash),'#rumbo-chatgpt-sync');
+   await page.locator('#rumbo-chatgpt-sync').waitFor({state:'visible'});
+   await page.locator('#rumbo-settings-open').click();
+   await page.locator('[data-settings-route="copias-rumbo"]').click();
+   assert.equal(await page.evaluate(()=>location.hash),'#copias-rumbo');
+   await page.locator('#copias-rumbo').waitFor({state:'visible'});
+   await page.locator('#rumbo-settings-open').click();
+   const historyChooser=page.waitForEvent('filechooser');
+   await page.locator('[data-settings-file="history-home-file"]').click();
+   await (await historyChooser).setFiles({name:'registro-prueba.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({type:'rumbo-chatgpt-reflections',records:[{id:'registro-demo-ajustes',date:'2026-11-18',title:'Reflexión de prueba',summary:'Contenido ficticio'}]}))});
+   await page.locator('#historic-status').filter({hasText:/Importación completada/i}).waitFor({timeout:20000});
+   assert.equal(await page.locator('#historic-total').innerText(),'1');
+   assert.equal(await page.locator('#historial-rumbo .historic-import').isVisible(),false);
+   await page.locator('#rumbo-settings-open').click();
+   await page.locator('[data-settings-history]').click();
+   assert.equal(await page.locator('#historial-rumbo .historic-import').isVisible(),true,'Importación avanzada solo se revela desde Ajustes');
+   await page.locator('#rumbo-settings-open').click();
+   await page.locator('[data-settings-route="copias-rumbo"]').click();
+   await page.locator('#copias-rumbo').waitFor({state:'visible'});
+   assert.equal(await page.locator('#historial-rumbo .historic-import').isVisible(),false,'Importador se oculta al cambiar de sección');
+   await page.locator('#rumbo-settings-open').click();
+   await page.keyboard.press('Escape');
+   assert.equal(await page.locator('#rumbo-settings-dialog').isVisible(),false,'Escape cierra ajustes');
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Sin desbordamiento horizontal');
+   assert.deepEqual(errors,[],'No hay errores JavaScript');
+   await context.close();
+  }
+  console.log('PASS: Ajustes centralizados, importación/exportación, ChatGPT, copias, historial y móvil.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});

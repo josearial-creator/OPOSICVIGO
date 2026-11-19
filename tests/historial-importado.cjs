@@ -1,4 +1,5 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const advanced=async page=>{await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-history]').click();};
 (async()=>{
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
 try{
@@ -56,7 +57,7 @@ const imported={type:'rumbo-migracion-local-v1',version:1,reflections:[
 ],psychology:{days:[{date:'2026-11-10',situations:[{id:'s1',text:'Una situación',nerves:6}],quick:{text:'Apunte diario',stop:'Sí',help:'Ejemplo'}}]}};
 const file={name:'recuperacion.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(imported))};
 await page.locator('#historic-files').setInputFiles(file);
-await page.locator('#historic-import').click();
+await advanced(page);await page.locator('#historic-import').click();
 await page.locator('#historic-status').filter({hasText:/Importación completada: 4 nuevos registros/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 assert.match(await page.locator('#history-recovery-count').innerText(),/4 registros disponibles/);
@@ -69,7 +70,7 @@ assert.equal(await page.locator('#historial-rumbo img').count(),0);
 assert.equal(await page.locator('#historial-rumbo script').count(),0);
 await page.reload();await page.locator('[data-mobile-tab="diario"]').click();await page.locator('.rumbo-section-nav a[href="#historial-rumbo"]').click();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
-await page.locator('#historic-files').setInputFiles(file);await page.locator('#historic-import').click();
+await page.locator('#historic-files').setInputFiles(file);await advanced(page);await page.locator('#historic-import').click();
 await page.locator('#historic-status').filter({hasText:/todos los identificadores ya estaban importados/i}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'4');
 // Un mismo ID con un contenido diferente NO debe descartarse silenciosamente.
@@ -77,13 +78,14 @@ const conflict=JSON.parse(JSON.stringify(imported));
 conflict.reflections[0].summary='Texto diferente que necesita revisión manual';
 const protectedCopy=await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1'));
 await page.locator('#historic-files').setInputFiles({name:'conflicto.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(conflict))});
-await page.locator('#historic-import').click();
+await advanced(page);await page.locator('#historic-import').click();
 await page.locator('#historic-status').filter({hasText:/Conflicto: el identificador/}).waitFor();
 assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),protectedCopy);
 await page.locator('#historic-search').fill('Segundo resumen');
 assert.equal(await page.locator('.historic-record').count(),1);
 await page.locator('#historic-search').fill('');
-const download=page.waitForEvent('download');await page.locator('#historic-export').click();
+await page.locator('#rumbo-settings-open').click();
+const download=page.waitForEvent('download');await page.locator('[data-settings-click="historic-export"]').click();await page.locator('#rumbo-settings-close').click();
 assert.equal((await download).suggestedFilename(),'rumbo-historial-recuperado.json');
 // La actualización de estilos o la eliminación accidental de la clave local no borra el archivo separado.
 await page.evaluate(()=>localStorage.removeItem('rumbo-historial-importado-v1'));
@@ -91,7 +93,7 @@ await page.reload();await page.locator('[data-mobile-tab="diario"]').click();awa
 await page.locator('#historic-status').filter({hasText:/historial está archivado/}).waitFor();
 assert.equal(await page.locator('#historic-total').innerText(),'0');
 // Una copia cifrada no debe ocultar que existen cuatro registros archivados.
-await page.locator('[data-mobile-tab="mas"]').click();await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();
+await page.locator('[data-mobile-tab="mas"]').click();await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-route="copias-rumbo"]').click();
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
 await page.locator('#backup-export').click();
@@ -110,7 +112,7 @@ assert.equal(altered,true);
 assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-historial-importado-v1')),preserved);
 // Una copia cifrada antigua puede recuperar otros módulos, pero no borrar
 // un registro añadido después al historial.
-await page.locator('[data-mobile-tab="mas"]').click();await page.locator('.rumbo-section-nav a[href="#copias-rumbo"]').click();
+await page.locator('[data-mobile-tab="mas"]').click();await page.locator('#rumbo-settings-open').click();await page.locator('[data-settings-route="copias-rumbo"]').click();
 await page.locator('#backup-pass').fill('frase-segura-de-prueba');
 await page.locator('#backup-repeat').fill('frase-segura-de-prueba');
 const pendingDownload=page.waitForEvent('download');
