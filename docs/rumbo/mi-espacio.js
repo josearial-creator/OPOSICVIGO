@@ -123,16 +123,18 @@ async function enterPrivate(pass,share){
  finally{lock(false);}
 }
 async function leavePrivate(share=true){
- if(busy||!token)return;
+ if(busy)return false;
+ if(!token)return true;
  clearTimeout(timer);stopDictation();lock(true);
  try{if(dirty)await persistDraft($('esp-text').value);await saveQueue;}
- catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return;}
+ catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return false;}
  token='';if(share)window.RumboSession?.lock();
  key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
  $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
  $('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';
- mark('Sesión cerrada.');lock(false);
+ mark('Sesión cerrada.');lock(false);return true;
 }
+window.RumboPrivateSpace=Object.freeze({close:()=>leavePrivate(true)});
 $('esp-connect').addEventListener('click',()=>{
  const pass=$('esp-password').value;
  if(!pass){mark('Introduce la contraseña privada.');return;}
