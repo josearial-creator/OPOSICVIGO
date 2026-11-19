@@ -37,6 +37,7 @@ const origin='http://127.0.0.1:8086/',api='https://rumbo-entrenador.jose-arial.w
    await page.locator('#rumbo-chat-input').fill('¿Cómo registro tiempo de estudio?');
    await page.locator('#rumbo-chat-send').click();
    await page.locator('.rumbo-chat-assistant').last().getByText(/Productividad/).waitFor();
+   await page.locator('.rumbo-chat-ai summary').click();
    await page.locator('#rumbo-chat-consent').check();
    await page.locator('#rumbo-chat-input').fill('Resume mis convocatorias');
    await page.locator('#rumbo-chat-send').click();
