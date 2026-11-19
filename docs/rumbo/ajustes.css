@@ -66,3 +66,10 @@ body[data-rumbo-maintenance="history"] #historial-rumbo .historic-import{display
 }
 
 @media(max-width:430px){.topbar .ev-mobile-link{display:none!important}.rumbo-settings-open{width:44px;min-width:44px}}
+
+/* Cierre privado siempre accesible desde Ajustes y sin llamar a exportaciones. */
+.rumbo-settings-session{margin-top:13px;padding:13px 14px;border:1px solid #dbe7ea;border-radius:12px;background:#f6fafb;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rumbo-settings-session p{margin:0;flex:1;min-width:0;font-size:12px;line-height:1.5;color:#456372}
+.rumbo-settings-session .rumbo-settings-logout{min-height:44px;font-size:13px;flex:0 0 auto}
+.rumbo-settings-session [hidden]{display:none!important}
+@media(max-width:560px){.rumbo-settings-session{align-items:stretch;flex-direction:column}.rumbo-settings-session .rumbo-settings-logout{width:100%}}
