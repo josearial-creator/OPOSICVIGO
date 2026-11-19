@@ -23,6 +23,9 @@
   <button type="button" data-rumbo-question="¿Qué prioridades tengo pendientes?">Mis prioridades</button>
   <button type="button" data-rumbo-question="¿Cómo registro tiempo de estudio?">Registrar tiempo</button>
  </div>
+ <nav class="rumbo-chat-shortcuts" aria-label="Ir directamente a un apartado">
+  <a href="#mi-dia">Mi día</a><a href="#favoritos">Favoritas</a><a href="#productividad">Foco</a><a href="#mi-espacio">Notas</a>
+ </nav>
  <form id="rumbo-chat-form" class="rumbo-chat-form">
   <label for="rumbo-chat-input">Tu pregunta</label>
   <div class="rumbo-chat-composer"><textarea id="rumbo-chat-input" rows="2" maxlength="1000" placeholder="Pregunta por tus favoritas, tareas o apartados…" required></textarea><button type="submit" id="rumbo-chat-send" aria-label="Enviar pregunta">Enviar</button></div>
@@ -51,6 +54,18 @@
  }
  toggle.addEventListener('click',()=>show(panel.hidden));
  $('rumbo-chat-close').addEventListener('click',()=>show(false));
+ // Los accesos usan rutas ya existentes; el chat no toca los datos guardados.
+ host.querySelector('.rumbo-chat-shortcuts').addEventListener('click',event=>{
+   const link=event.target.closest('a[href^="#"]');
+   if(!link)return;
+   const route=link.getAttribute('href').slice(1);
+   if(window.RumboNavigation?.go){
+     event.preventDefault();
+     window.RumboNavigation.go(route);
+   }
+   show(false);
+ });
+
  panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();show(false);}});
  function snapshot(){
    const source=window.RumboChatData?.snapshot?.()||{records:[],favorites:[]};
