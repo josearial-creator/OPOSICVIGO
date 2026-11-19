@@ -190,9 +190,14 @@
       <section class="rumbo-settings-group" aria-labelledby="rumbo-settings-connections">
         <h3 id="rumbo-settings-connections">Privacidad y conexiones</h3>
         <div class="rumbo-settings-grid">
-          <button type="button" data-settings-route="rumbo-chatgpt-sync"><strong>Conectar ChatGPT</strong><span>Vinculación y recuperación cifrada</span></button>
+          <button type="button" data-settings-chatgpt aria-controls="rumbo-settings-chatgpt"><strong>Conectar ChatGPT</strong><span>Vinculación, frase de recuperación y registros cifrados</span></button>
           <button type="button" data-settings-route="copias-rumbo"><strong>Copias cifradas de Rumbo</strong><span>Crear o restaurar una copia privada</span></button>
         </div>
+        <details id="rumbo-settings-chatgpt" class="rumbo-settings-chatgpt">
+          <summary>Conexión privada con ChatGPT</summary>
+          <div id="rumbo-settings-chatgpt-host" class="rumbo-settings-chatgpt-host"></div>
+          <p class="rumbo-settings-chatgpt-help">Aquí se utiliza una frase de recuperación de la conexión cifrada, no la contraseña de tu cuenta de ChatGPT. No compartas esa frase ni la copia privada.</p>
+        </details>
         <div class="rumbo-settings-session" aria-live="polite">
           <p id="rumbo-settings-session-state">Comprobando acceso privado…</p>
           <button class="button secondary rumbo-settings-logout" id="rumbo-settings-logout" type="button" hidden>Cerrar sesión</button>
