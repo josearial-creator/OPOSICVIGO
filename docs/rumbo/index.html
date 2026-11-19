@@ -34,6 +34,7 @@
   <script defer src="organizacion.js"></script>
   <script defer src="mobile.js"></script>
   <script defer src="actualizaciones.js"></script>
+  <script defer src="chat-flotante.js"></script>
   <script defer src="bloque-presente.js"></script>
   <script defer src="anytype-link.js"></script>
   <script defer src="copias.js"></script>
@@ -45,6 +46,7 @@
   <link rel="stylesheet" href="seguimiento-prioritario.css">
   <link rel="stylesheet" href="ajustes.css">
   <link rel="stylesheet" href="actualizaciones.css">
+  <link rel="stylesheet" href="chat-flotante.css">
   <script defer src="boveda-historial.js"></script>
   <script defer src="historial-importado.js"></script>
   <script defer src="historial-nube.js"></script>
@@ -177,6 +179,7 @@
   <p id="rumbo-offline" class="offline-notice" role="status" hidden>Sin conexión. Puedes consultar datos locales; los cambios y consultas del servidor requieren Internet.</p>
   <button id="need-stop" class="assistant-stop-button" type="button">Necesito parar</button>
   <dialog id="assistant-stop-dialog" class="assistant-stop-dialog" aria-labelledby="stop-dialog-heading"><h2 id="stop-dialog-heading">Puedes dejarlo aquí</h2><p>No necesitas terminarlo todo ahora. Guarda dónde continuar.</p><label>¿Qué estás haciendo?<input id="stop-current" maxlength="120"></label><p class="assistant-stop-question">¿Es necesario resolverlo ahora? Puedes decidir que no.</p><label>Siguiente paso que quieres dejar guardado<textarea id="stop-next" rows="3" maxlength="250" placeholder="Ej.: Revisar el apartado 3 otro día"></textarea></label><div class="assistant-stop-actions"><button type="button" class="button primary" id="stop-park">Aparcar y cerrar</button><button type="button" class="button secondary" id="stop-done">He terminado</button><button type="button" class="button secondary" id="stop-close">Volver</button></div></dialog>
+  <aside id="rumbo-chat" aria-label="Asistente de preguntas sobre Rumbo"></aside>
   <dialog id="rumbo-settings-dialog" class="rumbo-settings-dialog" aria-labelledby="rumbo-settings-heading">
     <div class="rumbo-settings-head">
       <div><p class="rumbo-settings-eyebrow">RUMBO</p><h2 id="rumbo-settings-heading">Ajustes</h2><p>Conexiones, importaciones y copias de seguridad, fuera de tu espacio de trabajo.</p></div>
