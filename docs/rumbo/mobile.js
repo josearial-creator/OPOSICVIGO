@@ -48,6 +48,8 @@
     const links=document.createElement('div');
     links.className='rumbo-section-links';
     for(const [id,label] of groups[group]){
+      // Las herramientas técnicas solo se muestran al abrir Ajustes.
+      if(id==='rumbo-chatgpt-sync'||id==='copias-rumbo')continue;
       const a=document.createElement('a');
       a.href='#'+id;a.textContent=label;
       if(id===route)a.setAttribute('aria-current','page');
