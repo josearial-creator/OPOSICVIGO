@@ -73,3 +73,20 @@ body[data-rumbo-maintenance="history"] #historial-rumbo .historic-import{display
 .rumbo-settings-session .rumbo-settings-logout{min-height:44px;font-size:13px;flex:0 0 auto}
 .rumbo-settings-session [hidden]{display:none!important}
 @media(max-width:560px){.rumbo-settings-session{align-items:stretch;flex-direction:column}.rumbo-settings-session .rumbo-settings-logout{width:100%}}
+
+/* Vinculación ChatGPT dentro de Ajustes: sin página ni contraseña duplicadas. */
+.rumbo-settings-chatgpt{margin:13px 0;border:1px solid #dbe7ee;border-radius:13px;background:#f8fbfc;overflow:hidden}
+.rumbo-settings-chatgpt summary{display:list-item;min-height:44px;padding:13px 16px;cursor:pointer;font-size:13px;font-weight:700;color:#1f4455}
+.rumbo-settings-chatgpt[open] summary{border-bottom:1px solid #e1eaef;background:#f2f8fa}
+.rumbo-settings-chatgpt-host{padding:14px 16px 8px;min-width:0}
+.rumbo-settings-chatgpt-panel{max-width:100%;margin:0;padding:0;border:0;background:transparent;box-shadow:none;color:#233f50}
+.rumbo-settings-chatgpt-panel h3{font-size:15px}
+.rumbo-settings-chatgpt-panel input,.rumbo-settings-chatgpt-panel textarea{max-width:100%}
+.rumbo-settings-chatgpt-panel .button{min-height:44px;white-space:normal}
+.rumbo-settings-chatgpt-help{margin:0;padding:0 16px 15px;font-size:12px;line-height:1.55;color:#526a79}
+@media(max-width:560px){
+ .rumbo-settings-chatgpt-host{padding:12px}
+ .rumbo-settings-chatgpt-panel .rs-actions{flex-direction:column}
+ .rumbo-settings-chatgpt-panel .rs-actions .button{width:100%}
+ .rumbo-settings-chatgpt-help{padding:0 12px 14px}
+}
