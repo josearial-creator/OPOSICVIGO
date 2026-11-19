@@ -7,6 +7,7 @@
  const status=document.getElementById('rumbo-settings-status');
  const say=value=>{if(status)status.textContent=value;};
  const navigate=route=>{
+   if(route!=='historial-rumbo')delete document.body.dataset.rumboMaintenance;
    dialog.close();
    if(!window.RumboNavigation?.go(route))location.hash=route;
  };
