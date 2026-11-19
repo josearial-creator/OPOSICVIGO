@@ -36,9 +36,10 @@ const assert=require('node:assert/strict');
  await page.evaluate(()=>{window.originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='rumbo-replica-v1')throw new DOMException('Full','QuotaExceededError');return window.originalSetItem.call(this,k,v);};});
  await refresh();assert.match(await page.locator('#status').innerText(),/no se pudo guardar/);assert.equal(await page.evaluate(()=>localStorage.getItem('rumbo-replica-v1')),intact);
  await page.evaluate(()=>Storage.prototype.setItem=window.originalSetItem);
- // A stale tab cannot overwrite a note written by another tab.
+ // Los cambios de otra pestaña se cargan antes de actualizar: no se pisa su nota ni se genera un falso conflicto.
  const second=await context.newPage();await second.route('https://raw.githubusercontent.com/**',r=>r.abort());await second.goto('http://127.0.0.1:8086/#convocatorias');await second.evaluate(()=>{const d=JSON.parse(localStorage.getItem('rumbo-replica-v1'));d.notes.external='Nota de otra pestaña';localStorage.setItem('rumbo-replica-v1',JSON.stringify(d));});
- await refresh();assert.equal((await snapshot()).notes.external,'Nota de otra pestaña');assert.match(await page.locator('#status').innerText(),/no se pudo guardar/);await second.close();
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rumbo-replica-v1'))?.notes?.external==='Nota de otra pestaña');
+ await refresh();assert.equal((await snapshot()).notes.external,'Nota de otra pestaña');assert.match(await page.locator('#status').innerText(),/Fuente:/);await second.close();
  assert.deepEqual(errors,[]);
  await context.close();
  // Invalid caches are preserved, rather than silently replaced by a successful fetch.
