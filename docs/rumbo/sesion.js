@@ -19,7 +19,8 @@
  const settingsState=document.getElementById('rumbo-settings-session-state');
  function renderAccess(){
   if(!button||!dialog)return;
-  button.textContent=credential?'Acceso abierto':restoring?'Recuperando acceso…':'Acceso privado';
+  const accessLabel=document.getElementById('rumbo-access-label');
+  if(accessLabel)accessLabel.textContent=credential?'Acceso abierto':restoring?'Recuperando acceso…':'Acceso privado';
   button.setAttribute('aria-label',credential?'Acceso privado abierto. Opciones de sesión.':'Abrir acceso privado a Rumbo');
   button.setAttribute('data-connected',credential?'true':'false');
   intro.hidden=Boolean(credential);opened.hidden=!credential;
