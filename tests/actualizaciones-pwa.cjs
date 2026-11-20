@@ -50,6 +50,23 @@ const base='http://127.0.0.1:8086/#mi-dia';
    assert.deepEqual(errors,[]);
    await context.close();
   }
+  // Regresión: la interfaz debe funcionar si el navegador no implementa Service Workers.
+  {
+   const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   await page.addInitScript(()=>{
+     Object.defineProperty(navigator,'serviceWorker',{configurable:true,value:undefined});
+   });
+   await page.goto(base);
+   await page.waitForFunction(()=>typeof window.RumboUpdates?.available==='function');
+   await page.locator('#rumbo-settings-open').click();
+   await page.locator('#rumbo-update-check').click();
+   assert.match(await page.locator('#rumbo-update-status').innerText(),/No se puede comprobar automáticamente/);
+   assert.equal(await page.locator('#rumbo-update-banner').isVisible(),false);
+   assert.deepEqual(errors,[],'Sin errores de JavaScript por falta de Service Worker.');
+   await context.close();
+  }
   console.log('PASS: detección PWA, primer registro, actualización controlada, posponer y datos intactos en móvil/escritorio.');
  }finally{await browser.close();}
 })().catch(err=>{console.error(err);process.exit(1);});

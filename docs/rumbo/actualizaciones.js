@@ -2,7 +2,7 @@
  'use strict';
  // La actualización solo recarga el código público: no se borran datos,
  // cookies, IndexedDB ni Cache Storage desde este módulo.
- const sw=navigator.serviceWorker;
+ const sw='serviceWorker' in navigator?navigator.serviceWorker:null;
  const banner=document.getElementById('rumbo-update-banner');
  const status=document.getElementById('rumbo-update-status');
  const checkButton=document.getElementById('rumbo-update-check');
