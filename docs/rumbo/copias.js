@@ -4,7 +4,7 @@ const root=document.getElementById('copias-rumbo');if(!root)return;
 const KEYS=['rumbo-replica-v1','rumbo-asistente-v1','rumbo-organizacion-v1','rumbo-evolucion-v1','rumbo-historial-importado-v1','rumbo-rutinas-hoy-v1'];
 const enc=new TextEncoder(),dec=new TextDecoder();
 root.innerHTML=`<h2>Copias privadas y aplicación instalable</h2>
-<p>Guarda una copia cifrada de las convocatorias favoritas, notas, tareas, proyectos y registros de evolución de este navegador. Puedes trasladarla manualmente a otro dispositivo. No hay sincronización automática con la nube.</p>
+<p>Descarga una copia cifrada de los registros locales compatibles de este navegador (favoritos locales, tareas, proyectos y evolución). Puedes trasladarla manualmente a otro dispositivo. Esta copia no incluye necesariamente los datos guardados solo en la nube, como notas privadas o favoritos sincronizados: comprueba y exporta esos datos desde sus propias secciones.</p>
 <div class="backup-layout">
 <section><h3>Copia cifrada</h3>
 <label>Frase de cifrado (mínimo 12 caracteres)<input type="password" id="backup-pass" autocomplete="new-password"></label>
