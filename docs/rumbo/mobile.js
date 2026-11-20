@@ -150,8 +150,8 @@
     const status=document.getElementById('install-status');
     if(installPrompt){
       const event=installPrompt;installPrompt=null;
-      try{await event.prompt();const answer=await event.userChoice;status.textContent=answer.outcome==='accepted'?'Instalación aceptada.':'Puedes instalar Rumbo más adelante.';}
-      catch{status.textContent='No se pudo abrir la instalación. Utiliza el menú del navegador.';}
-    }else status.textContent='Para instalar: abre el menú del navegador y elige «Instalar aplicación» o «Añadir a pantalla de inicio», si está disponible.';
+      try{await event.prompt();const answer=await event.userChoice;if(status)status.textContent=answer.outcome==='accepted'?'Instalación aceptada.':'Puedes instalar Rumbo más adelante.';}
+      catch{if(status)status.textContent='No se pudo abrir la instalación. Utiliza el menú del navegador.';}
+    }else if(status)status.textContent='Para instalar: abre el menú del navegador y elige «Instalar aplicación» o «Añadir a pantalla de inicio», si está disponible.';
   };
 })();
