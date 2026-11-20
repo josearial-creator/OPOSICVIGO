@@ -8,7 +8,7 @@ const mark=t=>{$('esp-status').textContent=t;};
 root.innerHTML=`
 <div class="esp-header"><div><div class="eyebrow">PERSONAL Y PRIVADO</div><h2>Mi espacio</h2><p>Escribe lo que necesites, sin categorías obligatorias.</p></div></div>
 <div class="esp-login" id="esp-login-panel">
- <p class="esp-login-hint">Tus anotaciones son privadas. Inicia sesión desde el icono de persona situado arriba a la derecha.</p>
+ <p id="esp-login-hint" class="esp-login-hint">Tus anotaciones son privadas. Inicia sesión desde el icono de persona situado arriba a la derecha.</p>
  <button id="esp-open-access" class="button secondary" type="button">Iniciar sesión</button>
  <div id="esp-login-form" class="esp-login-form">
   <label for="esp-password">Contraseña privada de Rumbo</label>
@@ -119,7 +119,7 @@ async function enterPrivate(pass,share){
  token=pass;lock(true);
  try{
   await load();await unlockDraft();
-  $('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-panel').hidden=true;
+  $('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-hint').hidden=true;$('esp-open-access').hidden=true;
   $('esp-disconnect').hidden=false;$('esp-password').value='';
   if(draftWritable)mark('Acceso autorizado.');
   if(share)window.RumboSession?.unlock(pass);
@@ -135,7 +135,7 @@ async function leavePrivate(share=true){
  token='';if(share)window.RumboSession?.lock();
  key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
  $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
- $('esp-login-panel').hidden=false;$('esp-login-form').hidden=true;$('esp-disconnect').hidden=true;$('esp-text').value='';
+ $('esp-login-hint').hidden=false;$('esp-open-access').hidden=false;$('esp-login-form').hidden=true;$('esp-disconnect').hidden=true;$('esp-text').value='';
  mark('Sesión cerrada.');lock(false);return true;
 }
 window.RumboPrivateSpace=Object.freeze({close:()=>leavePrivate(true)});
