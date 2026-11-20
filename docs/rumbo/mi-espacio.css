@@ -42,3 +42,10 @@
  #mi-espacio .esp-session .button{margin-left:auto}
  #mi-espacio textarea{min-height:175px}
 }
+
+/* Acceso único desde el perfil superior; el formulario antiguo queda disponible internamente. */
+#mi-espacio #esp-login-form[hidden],#mi-espacio #esp-login-panel[hidden]{display:none!important}
+#mi-espacio .esp-login-hint{margin:0;flex:1 1 240px;color:#405c69;line-height:1.5}
+#mi-espacio #esp-login-panel{align-items:center;min-height:65px}
+.topbar .rumbo-access-open svg{flex:none}
+@media(max-width:560px){.topbar .rumbo-access-open{width:44px;min-width:44px;padding:9px;aspect-ratio:1}.topbar #rumbo-access-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}
