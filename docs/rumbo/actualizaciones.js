@@ -47,6 +47,9 @@
      if(!reg)throw Error('La aplicación todavía no se ha instalado como sitio disponible sin conexión.');
      registration=reg;
      await reg.update();
+     // Si el navegador ya descargó una versión en espera, anunciarla ahora.
+     // No confundir el primer registro con una actualización.
+     if(reg.waiting&&sw.controller&&originallyControlled)showReady();
      lastCheck=Date.now();
      if(!available&&!silent)say('Comprobación realizada. Si hay una versión nueva, aparecerá el aviso cuando esté preparada.');
    }catch{
