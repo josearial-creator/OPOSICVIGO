@@ -16,9 +16,19 @@ const feed=[{puesto:'Auxiliar de prueba',organismo:'Concello sintético',grupo:'
    await page.locator('#assistant-capture input').fill('Repasar legislación');
    await page.locator('#assistant-capture button[type=submit]').click();
    assert.equal(await action.isEnabled(),true);
+   // Guardado del siguiente paso visible, persistente y unido a la tarea activa.
+   const stepInput=page.locator('#assistant-step-input');
+   await stepInput.fill('Abrir el tema 3 y leer el primer apartado');
+   await page.locator('#assistant-step-save').click();
+   assert.equal(await page.locator('#assistant-step-status').innerText(),'Siguiente paso guardado.');
+   const firstStep=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).items[0].nextStep);
+   assert.equal(firstStep,'Abrir el tema 3 y leer el primer apartado');
+   await page.reload();
+   assert.equal(await stepInput.inputValue(),firstStep,'El paso persiste al recargar');
    await page.locator('.assistant-inbox-details summary').click();
    await page.locator('#assistant-inbox').getByRole('button',{name:'Priorizar'}).first().click();
    await action.click();await page.locator('#productividad').waitFor({state:'visible'});
+   assert.match(await page.locator('#assistant-task-hint').innerText(),/Abrir el tema 3 y leer el primer apartado/,'El paso acompaña al temporizador');
    assert.equal(await page.locator('#assistant-timer-title').inputValue(),'Repasar legislación');
    assert.equal(await page.locator('#assistant-duration').inputValue(),'10');
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer),null,'Preparar no inicia sin consentimiento');

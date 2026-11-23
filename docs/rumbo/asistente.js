@@ -37,6 +37,7 @@ home.innerHTML=[
 '<h3 id="assistant-now-heading">Tu siguiente acción</h3>',
 '<p id="assistant-now-task" class="assistant-now-task">Elige una tarea para empezar.</p>',
 '<p id="assistant-now-step" class="assistant-now-step"></p>',
+'<form id="assistant-step-form" class="assistant-step-form" aria-label="Editar siguiente paso"><label for="assistant-step-input">Escribe el siguiente paso concreto</label><div class="assistant-step-controls"><input id="assistant-step-input" name="step" maxlength="250" placeholder="Ej.: Abrir el tema 3 y leer el primer apartado" autocomplete="off"><button id="assistant-step-save" class="button secondary" type="submit">Guardar paso</button></div><p id="assistant-step-status" class="assistant-step-status" role="status" aria-live="polite"></p></form>',
 '<p id="assistant-time-available" class="assistant-time-available" hidden></p>',
 '<div class="assistant-next-actions"><button id="assistant-quick-start" type="button" class="button primary">Empezar 10 minutos</button><button id="assistant-focus-next" type="button" class="button secondary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
 '<p id="assistant-advice" class="assistant-recommendation" role="status" aria-live="polite" hidden></p>',
@@ -140,6 +141,17 @@ function renderTasks(){
   tag.textContent='Sin pendiente';
   step.textContent='Anota una tarea abajo. Aparecerá aquí para que puedas empezar.';
  }
+ const selected=running?state.items.find(item=>item.id===running.taskId&&!item.done):next;
+ const stepForm=$('assistant-step-form'),stepInput=$('assistant-step-input'),stepSave=$('assistant-step-save');
+ const selectedId=selected?.id||'';
+ if(stepForm.dataset.taskId!==selectedId){
+  stepForm.dataset.taskId=selectedId;
+  stepInput.value=selected?.nextStep||'';
+  $('assistant-step-status').textContent='';
+ }
+ stepInput.disabled=locked||!selected;
+ stepSave.disabled=locked||!selected;
+ stepForm.hidden=!selected;
  $('assistant-advice').hidden=true;
  const p=$('assistant-priorities');p.replaceChildren();
  if(ids.length===0)p.append(el('p','assistant-muted','Sin prioridades elegidas. Selecciona una desde tu bandeja.'));
@@ -164,6 +176,33 @@ function renderTasks(){
   row.append(label,buttons);inbox.append(row);
  });
 }
+$('assistant-step-form').addEventListener('submit',e=>{
+ e.preventDefault();
+ const form=e.currentTarget,input=$('assistant-step-input'),selectedId=form.dataset.taskId;
+ const item=state.items.find(x=>x.id===selectedId&&!x.done);
+ if(locked||!item){
+  $('assistant-step-status').textContent='No se puede modificar esta tarea ahora.';
+  return;
+ }
+ const nextStep=input.value.trim();
+ if(nextStep.length>250){
+  $('assistant-step-status').textContent='El siguiente paso puede tener como máximo 250 caracteres.';
+  return;
+ }
+ if(item.nextStep===nextStep){
+  $('assistant-step-status').textContent='El siguiente paso ya está guardado.';
+  return;
+ }
+ const previous=item.nextStep;
+ item.nextStep=nextStep;
+ if(!save()){
+  item.nextStep=previous;
+  $('assistant-step-status').textContent='No se guardó el cambio. Recarga la página si hubo cambios en otra pestaña.';
+  return;
+ }
+ render();
+ $('assistant-step-status').textContent=nextStep?'Siguiente paso guardado.':'Siguiente paso eliminado.';
+});
 $('assistant-capture').addEventListener('submit',e=>{e.preventDefault();const input=e.target.elements.text,text=input.value.trim();
  if(!text)return;
  state.items.push({id:uid(),text,done:false,nextStep:'',createdAt:new Date().toISOString()});
