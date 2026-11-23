@@ -492,23 +492,5 @@
     "detalle_estado": "Proceso específico de discapacidad intelectual (DOG 213, 06/11/2026); no equivale al turno de discapacidad general.",
     "prioridad": "Media",
     "discapacidad": "No"
-  },
-  {
-    "puesto": "AGENTES DE LA HACIENDA PÚBLICA · OEP 2026",
-    "grupo": "C1",
-    "organismo": "Agencia Tributaria (AEAT)",
-    "ubicacion": "Ámbito estatal · destinos por determinar",
-    "plazas": 1000,
-    "discapacidad_general": 80,
-    "discapacidad": "Sí",
-    "tipo": "Funcionario de carrera · acceso libre",
-    "estado": "Oferta de Empleo Público 2026 · pendiente de convocatoria",
-    "inscripcion": "No convocada",
-    "prioridad": "Alta",
-    "anio": 2026,
-    "id": "aeat-oep-2026-agentes-1135h",
-    "fuente": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-9946",
-    "fuente_detalle": "https://sede.agenciatributaria.gob.es/Sede/trabajar-agencia-tributaria.html",
-    "detalle_estado": "OEP 2026: 1.000 plazas de acceso libre, de ellas 80 reservadas a discapacidad general. La oferta NO equivale a convocatoria ni abre plazo de solicitudes. Vigilar BOE y sede AEAT. Proceso específico C1, código 1135H. Ámbito estatal; no se han confirmado destinos en Vigo."
   }
 ]
