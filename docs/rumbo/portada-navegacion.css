@@ -1500,3 +1500,41 @@ body.rumbo-separated[data-rumbo-route="inicio"] #mi-dia {
     left: 25px;
   }
 }
+
+
+/* Mi día: una acción principal clara y alternativas de menor peso. */
+#mi-dia #assistant-quick-start {
+  background: #095c53;
+  color: #ffffff;
+  border: 1px solid #095c53;
+  box-shadow: 0 3px 10px rgba(9, 92, 83, .12);
+}
+#mi-dia #assistant-quick-start:hover:not(:disabled) {
+  background: #06443d;
+  border-color: #06443d;
+}
+#mi-dia #assistant-quick-start:disabled {
+  opacity: .55;
+  box-shadow: none;
+}
+#mi-dia #assistant-quick-start:focus-visible {
+  outline: 3px solid #06443d;
+  outline-offset: 3px;
+}
+@media (max-width: 560px) {
+  #mi-dia .assistant-next-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+  #mi-dia #assistant-quick-start {
+    grid-column: 1 / -1;
+    min-height: 52px;
+    font-size: 15px;
+  }
+  #mi-dia .assistant-next-actions .button:not(#assistant-quick-start) {
+    min-width: 0;
+    padding: 10px 8px;
+    white-space: normal;
+  }
+}
