@@ -77,7 +77,17 @@
   let result;
   try{
    result=await fetch(API+'/notes',{method:'GET',headers:{Authorization:auth},cache:'no-store',signal:AbortSignal.timeout(15000)});
-  }catch{throw Error('No se pudo contactar con el servidor privado. Revisa la conexión.');}
+  }catch(error){
+   // Un rechazo CORS puede llegar como TypeError sin respuesta HTTP legible.
+   // No afirmamos la causa ni mostramos contraseñas, cabeceras o tokens.
+   const preview=window.self!==window.top;
+   const timeout=error?.name==='TimeoutError';
+   throw Error(timeout
+    ?'El servidor privado no respondió a tiempo. Comprueba la conexión y vuelve a probar desde el dominio habitual.'
+    :preview
+     ?'No se pudo conectar desde esta vista previa. Podría ser una restricción del dominio (CORS) o de red. Abre Rumbo desde su dirección habitual para acceder a tus datos privados.'
+     :'No se pudo contactar con el servidor privado. Comprueba la conexión y, si persiste, revisa el estado del servidor.');
+  }
   if(!result.ok){
    if(result.status===401)throw Error('Contraseña incorrecta o sesión revocada.');
    if(result.status===403)throw Error('Esta dirección web no está autorizada por el servidor privado.');
