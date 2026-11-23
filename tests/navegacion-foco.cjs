@@ -11,6 +11,18 @@ const base='http://127.0.0.1:8086';
    await page.goto(base+'/');
    await page.locator('#rows tr').first().waitFor({state:'attached'});
    assert.equal(await page.locator('.hero-line').isVisible(),true);
+   assert.equal(await page.locator('link[href="portada-navegacion.css"]').count(),1,'Diseño de Google enlazado');
+   assert.equal(await page.locator('.sidebar .rumbo-nav-svg').count()>0,true,'Iconos SVG del diseño integrados');
+   const visual=await page.evaluate(()=>({
+    accent:getComputedStyle(document.querySelector('.brand-mark')).backgroundColor,
+    primary:getComputedStyle(document.querySelector('.hero-cta-primary')).backgroundColor,
+    accessHeight:parseFloat(getComputedStyle(document.querySelector('#rumbo-access-open')).minHeight),
+    navPosition:getComputedStyle(document.querySelector('.topbar')).position
+   }));
+   assert.equal(visual.accent,'rgb(11, 110, 100)','Color de marca de Gemini');
+   assert.equal(visual.primary,'rgb(11, 110, 100)','Botón principal mantiene estilo Gemini');
+   assert.equal(visual.accessHeight>=44,true,'Acceso privado accesible al tacto');
+   assert.equal(visual.navPosition,width<560?'static':'sticky','Barra superior adaptada al dispositivo');
    for(const id of ['convocatorias','mi-espacio','productividad','mi-evolucion','proyectos'])assert.equal(await page.locator('#'+id).isVisible(),false,'La portada no apila '+id);
    assert.equal(await page.title(),'Portada · Rumbo');
    await page.locator('.rumbo-section-nav a[href="#panel-hoy"]').click();
