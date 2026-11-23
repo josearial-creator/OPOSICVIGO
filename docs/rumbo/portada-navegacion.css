@@ -1447,3 +1447,56 @@ body.rumbo-separated[data-rumbo-route="inicio"] #mi-dia {
     transition: none !important;
   }
 }
+
+/* Acceso privado: icono de usuario, estado visible y control táctil compacto.
+   La etiqueta accesible se mantiene en sesion.js sin modificar autenticación. */
+.topbar .rumbo-access-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+.topbar .rumbo-access-open::before {
+  content: "";
+  display: block;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4.5 21v-2a7.5 7.5 0 0 1 15 0v2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4.5 21v-2a7.5 7.5 0 0 1 15 0v2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.topbar .rumbo-access-open[data-connected="true"]::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 27px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  background: #16805d;
+}
+.topbar .rumbo-access-open:focus-visible {
+  outline: 3px solid #095c53;
+  outline-offset: 2px;
+}
+@media (max-width: 560px) {
+  .topbar .rumbo-access-open {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+  }
+  .topbar .rumbo-access-open::before {
+    width: 21px;
+    height: 21px;
+    flex-basis: 21px;
+  }
+  .topbar .rumbo-access-open[data-connected="true"]::after {
+    top: 7px;
+    left: 25px;
+  }
+}
