@@ -1,0 +1,188 @@
+/* Rumbo · Acabado visual premium 2026.
+   Capa reversible: no interviene en rutas, sesiones ni almacenamiento. */
+:root{
+ --rumbo-ui-radius:18px;
+ --rumbo-ui-shadow:0 2px 6px rgba(15,40,51,.035),0 14px 36px rgba(15,40,51,.052);
+ --rumbo-ui-shadow-hover:0 8px 24px rgba(15,40,51,.075),0 22px 44px rgba(15,40,51,.055);
+ --rumbo-ui-line:#dce7e7;
+}
+body{
+ background:radial-gradient(ellipse 70% 42% at 88% -12%,rgba(11,110,100,.08),transparent 78%),#f6f8fb;
+}
+.sidebar{
+ border-right:1px solid #e2ebea;
+ background:linear-gradient(180deg,#ffffff 0%,#fcfefd 90%);
+}
+.sidebar .brand{
+ margin-bottom:28px;
+}
+.sidebar .brand-mark{
+ box-shadow:0 5px 15px rgba(11,110,100,.15);
+}
+.sidebar .nav-link,
+.sidebar .ev-nav-tree>summary{
+ border-radius:12px;
+}
+.sidebar .nav-link:hover,
+.sidebar .ev-nav-tree>summary:hover{
+ background:#eff7f5;
+}
+.sidebar .nav-link.active,
+.sidebar .nav-link[aria-current="page"]{
+ box-shadow:inset 3px 0 #0b6e64;
+}
+.topbar{
+ border-bottom:1px solid rgba(216,230,228,.9);
+ box-shadow:0 1px 4px rgba(15,40,51,.025);
+}
+.page{padding-bottom:40px}
+.rumbo-section-nav{
+ border-color:var(--rumbo-ui-line);
+ border-radius:var(--rumbo-ui-radius);
+ box-shadow:var(--rumbo-ui-shadow);
+}
+.rumbo-section-links a{
+ transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.rumbo-section-links a[aria-current="page"]{
+ box-shadow:0 3px 12px rgba(9,92,83,.16);
+}
+/* Portada: jerarquía editorial y profundidad sutil, sin decoraciones que distraigan. */
+.hero-line{
+ position:relative;
+ isolation:isolate;
+ overflow:hidden;
+ padding:clamp(23px,3.1vw,40px);
+ border:1px solid #cce5dd;
+ border-radius:24px;
+ background:linear-gradient(117deg,#e8f5f1 0%,#f7fcfa 53%,#ffffff 84%,#f1f6ff 100%);
+ box-shadow:var(--rumbo-ui-shadow);
+}
+.hero-line::before{
+ content:"";
+ display:block;
+ position:absolute;
+ width:230px;
+ height:230px;
+ right:-115px;
+ top:-148px;
+ border-radius:50%;
+ background:rgba(11,110,100,.07);
+ pointer-events:none;
+ z-index:-1;
+}
+.hero-line h1{
+ font-size:clamp(29px,3.15vw,42px);
+ line-height:1.13;
+ letter-spacing:-.04em;
+}
+.hero-line .lead{max-width:58ch}
+.hero-line .hero-cta-primary{
+ box-shadow:0 5px 16px rgba(11,110,100,.16);
+}
+.hero-line .hero-cta-primary:hover,
+#mi-dia #assistant-quick-start:hover:not(:disabled){
+ box-shadow:0 8px 22px rgba(11,110,100,.20);
+}
+.quick-actions{gap:13px}
+.quick-action{
+ border-color:var(--rumbo-ui-line);
+ border-radius:17px;
+ box-shadow:var(--rumbo-ui-shadow);
+ transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease;
+}
+.quick-action:hover{
+ box-shadow:var(--rumbo-ui-shadow-hover);
+ border-color:#9fcdc3;
+}
+.quick-action:focus-visible{
+ outline:3px solid #0b6e64;
+ outline-offset:3px;
+}
+/* Una misma familia visual para los bloques principales. */
+.page>.panel,
+.page>.assistant-home,
+.page>.assistant-productivity,
+#mi-dia .assistant-now-card,
+.my-followup,
+.today-panel,
+.historic-home-access{
+ border-radius:var(--rumbo-ui-radius);
+ border-color:var(--rumbo-ui-line);
+}
+.page>.panel,
+.page>.assistant-home,
+.page>.assistant-productivity,
+.historic-home-access{
+ box-shadow:var(--rumbo-ui-shadow);
+}
+#mi-dia .assistant-now-card{
+ border-color:#bfdfd4;
+ background:linear-gradient(125deg,#e9f7f2,#ffffff 76%);
+}
+#mi-dia .assistant-now-task{
+ max-width:54ch;
+ line-height:1.32;
+ letter-spacing:-.025em;
+}
+#mi-dia .assistant-step-form{
+ border-color:#d1e5e0;
+ background:#fbfefd;
+}
+#mi-dia .assistant-step-controls input{
+ border-color:#bbd1d0;
+}
+#mi-dia .assistant-card,
+#productividad .assistant-card{
+ border-radius:15px;
+}
+#convocatorias .table-scroll{
+ border-radius:13px;
+}
+#convocatorias .filters{
+ border-radius:14px;
+}
+#convocatorias .my-followup-item{
+ border-color:#dce9e6;
+ border-radius:13px;
+}
+#convocatorias .my-followup-item:focus-within{
+ box-shadow:0 0 0 2px #b2d8d0;
+}
+#rumbo-settings-dialog,
+.rumbo-access-dialog{
+ border-radius:21px;
+}
+/* Respeto a accesibilidad, campos grandes y movimiento reducido. */
+:where(button,a,input,select,textarea):focus-visible{
+ outline:3px solid #08776b;
+ outline-offset:3px;
+}
+@media (max-width:850px){
+ .hero-line{padding:24px}
+ .quick-actions{gap:10px}
+}
+@media (max-width:560px){
+ body{background:#f7f9fb}
+ .page{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+ .hero-line{
+  padding:23px 18px;
+  border-radius:20px;
+  margin-bottom:12px;
+ }
+ .hero-line h1{font-size:clamp(27px,7.4vw,34px)}
+ .hero-line .lead{font-size:14px}
+ .quick-action{border-radius:14px}
+ .rumbo-section-nav{border-radius:15px}
+ #mi-dia .assistant-now-card{border-radius:16px}
+ .mobile-tabbar{
+  border-top:1px solid #d6e4e1;
+  box-shadow:0 -7px 22px rgba(15,40,51,.075);
+ }
+ .mobile-tabbar a[aria-current="page"] span{
+  background:#dcf3ec;
+ }
+}
+@media (prefers-reduced-motion:reduce){
+ .quick-action,.rumbo-section-links a{transition:none!important}
+}
