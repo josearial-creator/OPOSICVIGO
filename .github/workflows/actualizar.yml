@@ -34,6 +34,9 @@ jobs:
           cp importar_rumbo.json docs/importar_rumbo.json
           date -u +'%Y-%m-%dT%H:%M:%SZ' > docs/ultima_comprobacion.txt
 
+      - name: Verificar integridad del catálogo y conservación de Hacienda
+        run: python3 -m unittest discover -s tests -p 'test_actualizar_integridad_feed.py' -v
+
       - name: Guardar actualizaciones
         run: |
           git config user.name "github-actions[bot]"
