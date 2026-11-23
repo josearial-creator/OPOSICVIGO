@@ -61,7 +61,7 @@ assert.equal(restored.favorites.length,1);assert.deepEqual(Object.values(restore
 const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'manifest.webmanifest');
 const resp=await page.request.get('http://127.0.0.1:8086/sw.js');assert.equal(resp.status(),200);
 const serviceWorker=await resp.text();
-assert.match(serviceWorker,/rumbo-shell-v33/,'Debe invalidar la caché al incorporar el nuevo diseño');
+assert.match(serviceWorker,/rumbo-shell-v34/,'Debe invalidar la caché al incorporar el nuevo diseño');
 assert.match(serviceWorker,/\.\/portada-navegacion\.css/,'El rediseño debe funcionar sin conexión');
 assert.match(serviceWorker,/\.\/practicas-sencillas\.js/,'Las prácticas deben estar disponibles sin conexión');
 assert.match(serviceWorker,/\.\/actualizaciones\.js/,'El control de versiones estará disponible sin conexión');
