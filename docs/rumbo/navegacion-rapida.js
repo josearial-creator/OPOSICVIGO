@@ -71,6 +71,11 @@
   if(event.key==='ArrowUp'){event.preventDefault();select(highlight-1);}
   if(event.key==='Enter'&&matched.length){event.preventDefault();move(matched[highlight][0]);}
  });
+ dialog.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+   event.preventDefault();event.stopPropagation();dialog.close();button.focus();
+  }
+ });
  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
  document.addEventListener('keydown',event=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&!event.altKey){
