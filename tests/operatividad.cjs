@@ -84,6 +84,33 @@ const feed=[{puesto:'Auxiliar de prueba',organismo:'Concello sintético',grupo:'
    const linked=await longPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer.taskId);
    assert.equal(linked,original,'La tarea conserva su relación aunque el título visual sea abreviado');
    await isolated.close();
+   // Inicio rápido: un gesto inicia el foco de 10 minutos sin crear duplicados.
+   const fastContext=await browser.newContext({viewport:{width,height:840},serviceWorkers:'block'});
+   const fastPage=await fastContext.newPage(),fastErrors=[];
+   fastPage.on('pageerror',e=>fastErrors.push(e.message));
+   await fastPage.route('https://raw.githubusercontent.com/**',route=>route.fulfill({json:feed}));
+   await fastPage.goto(base+'#mi-dia');
+   const quick=fastPage.locator('#assistant-quick-start');
+   assert.equal(await quick.isDisabled(),true,'Sin tarea no se puede iniciar');
+   await fastPage.locator('#assistant-capture input').fill('Revisar una convocatoria');
+   await fastPage.locator('#assistant-capture button[type=submit]').click();
+   assert.equal(await quick.isEnabled(),true,'Una tarea permite inicio rápido');
+   const expectedId=await fastPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).items[0].id);
+   await quick.click();
+   await fastPage.locator('#productividad').waitFor({state:'visible'});
+   const quickTimer=await fastPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer);
+   assert.equal(quickTimer.target,600,'El bloque rápido dura 10 minutos');
+   assert.equal(quickTimer.taskId,expectedId,'El bloque mantiene la asociación a la tarea');
+   assert.equal(quickTimer.title,'Revisar una convocatoria');
+   assert.ok(quickTimer.startedAt!==null,'El temporizador se inicia realmente');
+   await fastPage.goto(base+'#mi-dia');
+   assert.equal(await quick.isDisabled(),true,'No inicia otro bloque simultáneo');
+   await fastPage.locator('#assistant-focus-next').click();
+   await fastPage.locator('#assistant-pause').click();
+   const pausedTimer=await fastPage.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).timer);
+   assert.equal(pausedTimer.startedAt,null,'Pausar no pierde el bloque');
+   assert.deepEqual(fastErrors,[]);
+   await fastContext.close();
   }
   console.log('PASS: inicio de foco, filtro de proyectos, favoritos con teclado y conflicto entre pestañas.');
  }finally{await browser.close();}
