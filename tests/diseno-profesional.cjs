@@ -11,6 +11,17 @@ const assert=require('node:assert/strict');
    await page.goto('http://127.0.0.1:8086/#mi-espacio');
    await page.locator('#mi-espacio').waitFor({state:'visible'});
    assert.equal(await page.locator('link[href="producto-profesional.css"]').count(),1,'Hoja de diseño activa');
+   assert.equal(await page.locator('link[href="acabado-premium.css"]').count(),1,'Hoja premium conectada');
+   const skin=await page.evaluate(()=>({
+     heroRadius:getComputedStyle(document.querySelector('.hero-line')).borderRadius,
+     uiShadow:getComputedStyle(document.querySelector('.rumbo-section-nav')).boxShadow,
+     accent:getComputedStyle(document.querySelector('.brand-mark')).backgroundColor,
+     focusCount:document.querySelectorAll('.rumbo-section-nav a').length
+   }));
+   assert.match(skin.uiShadow,/rgba?/,'Navegación con profundidad visual');
+   assert.equal(skin.accent,'rgb(11, 110, 100)','Mantener identidad de marca');
+   assert.ok(skin.focusCount>0,'Se preservan accesos de sección');
+
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Sin desbordamiento horizontal en '+width);
    assert.equal(await page.locator('.rumbo-section-nav a[aria-current=page]').count(),1,'Solo un apartado activo');
    assert.equal(await page.locator('.rumbo-section-links a[aria-current=page]').getAttribute('href'),'#mi-espacio');
