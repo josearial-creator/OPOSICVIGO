@@ -38,7 +38,7 @@ home.innerHTML=[
 '<p id="assistant-now-task" class="assistant-now-task">Elige una tarea para empezar.</p>',
 '<p id="assistant-now-step" class="assistant-now-step"></p>',
 '<p id="assistant-time-available" class="assistant-time-available" hidden></p>',
-'<div class="assistant-next-actions"><button id="assistant-focus-next" type="button" class="button primary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
+'<div class="assistant-next-actions"><button id="assistant-quick-start" type="button" class="button primary">Empezar 10 minutos</button><button id="assistant-focus-next" type="button" class="button secondary">Preparar un bloque</button><button id="assistant-what" type="button" class="button secondary">¿Qué hago ahora?</button></div>',
 '<p id="assistant-advice" class="assistant-recommendation" role="status" aria-live="polite" hidden></p>',
 '</section>',
 '<div class="assistant-today-grid">',
@@ -122,6 +122,9 @@ function renderTasks(){
  const running=state.timer,task=$('assistant-now-task'),step=$('assistant-now-step'),tag=$('assistant-now-state');
  focus.disabled=locked||!running&&!next;
  focus.textContent=running?'Ver mi bloque':'Preparar un bloque';
+ const quick=$('assistant-quick-start');
+ quick.disabled=locked||Boolean(running)||!next;
+ quick.textContent=running?'Bloque en curso':'Empezar 10 minutos';
  $('assistant-priority-count').textContent=ids.length+'/3';
  if(running){
   task.textContent=running.title;
@@ -184,6 +187,13 @@ $('assistant-focus-next').addEventListener('click',()=>{
   if(item.projectId&&[...project.options].some(o=>o.value===item.projectId))project.value=item.projectId;
  }
  if(!window.RumboNavigation?.go('productividad'))location.hash='#productividad';
+});
+$('assistant-quick-start').addEventListener('click',()=>{
+ // Un solo gesto explícito, reutilizando las validaciones y el vínculo con la tarea.
+ if(locked||state.timer||!activeItem())return;
+ $('assistant-focus-next').click();
+ $('assistant-duration').value='10';
+ $('assistant-start').click();
 });
 $('assistant-timer-title').addEventListener('input',()=>{
  if($('assistant-timer-title').value!==preparedTitle){
