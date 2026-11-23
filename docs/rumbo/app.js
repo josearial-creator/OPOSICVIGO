@@ -321,6 +321,16 @@ function setup(){
     document.getElementById('convocatorias').scrollIntoView({block:'start'});
   };
   [['xunta-all',''],['xunta-no-convocada','convocatoria_pendiente'],['xunta-no-plazo','pendiente'],['xunta-abiertas','abierta'],['xunta-guardadas','guardadas']].forEach(([id,kind])=>$(id)?.addEventListener('click',()=>xuntaView(kind)));
+  $('aeat-c1')?.addEventListener('click',()=>{
+    $('source').value='Agencia Tributaria (AEAT)';
+    $('status-filter').value='';
+    $('disability-filter').value='';
+    $('priority-filter').value='';
+    $('only-favs').checked=false;
+    $('search').value='Agentes de la Hacienda Pública';
+    render();
+    document.getElementById('convocatorias').scrollIntoView({block:'start'});
+  });
   $('my-followup-all')?.addEventListener('click',showAllFollowed);
   $('refresh').addEventListener('click',loadRemote);$('import-file').addEventListener('change',event=>{importJson(event.target.files?.[0]);event.target.value='';});$('export').addEventListener('click',exportJson);
   $('clear').addEventListener('click',()=>{$('search').value='';$('source').value='';$('status-filter').value='';$('disability-filter').value='';$('priority-filter').value='';$('only-favs').checked=false;render();});
