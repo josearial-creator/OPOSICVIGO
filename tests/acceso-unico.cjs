@@ -6,6 +6,8 @@ const pass='contraseña sintética única 1234567890123';
 const auth='Rumbo '+Buffer.from(pass).toString('base64');
 const forbidden='origen-de-prueba';
 const forbiddenAuth='Rumbo '+Buffer.from(forbidden).toString('base64');
+const offlinePassword='test de conexión interrumpida';
+const offlineAuth='Rumbo '+Buffer.from(offlinePassword).toString('base64');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH==='bundled'?undefined:(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  try{
@@ -20,6 +22,7 @@ const forbiddenAuth='Rumbo '+Buffer.from(forbidden).toString('base64');
     const headers={'access-control-allow-origin':baseUrl.slice(0,-1),'access-control-allow-headers':'Authorization, Content-Type','access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS'};
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
     accessCalls.push({path,auth:req.headers().authorization});
+    if(req.headers().authorization===offlineAuth)return route.abort('failed');
     if(req.headers().authorization===forbiddenAuth)return route.fulfill({status:403,headers,json:{error:'Origen no autorizado'}});
     if(req.headers().authorization!==auth)return route.fulfill({status:401,headers,json:{error:'Acceso denegado'}});
     if(path==='/notes'&&req.method()==='GET')return route.fulfill({status:200,headers,json:{notes:[]}});
@@ -29,6 +32,10 @@ const forbiddenAuth='Rumbo '+Buffer.from(forbidden).toString('base64');
    await page.goto(baseUrl+'#mi-espacio');
    assert.equal(await page.evaluate(()=>window.RumboSession.available()),false);
    await page.locator('#rumbo-access-open').click();
+   await page.locator('#rumbo-access-password').fill(offlinePassword);
+   await page.locator('#rumbo-access-submit').click();
+   await page.locator('#rumbo-access-status').getByText(/No se pudo contactar con el servidor privado/).waitFor();
+   assert.equal(await page.evaluate(()=>window.RumboSession.available()),false,'Un fallo de red nunca abre sesión');
    await page.locator('#rumbo-access-password').fill('contraseña incorrecta');
    await page.locator('#rumbo-access-submit').click();
    await page.locator('#rumbo-access-status').getByText(/incorrecta|denegado/i).waitFor();
