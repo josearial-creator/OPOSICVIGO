@@ -1538,3 +1538,58 @@ body.rumbo-separated[data-rumbo-route="inicio"] #mi-dia {
     white-space: normal;
   }
 }
+
+
+/* Siguiente paso: edición contextual, sin menús ni saltos de pantalla. */
+#mi-dia .assistant-step-form {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--rumbo-p1-border);
+  border-radius: 12px;
+  background: #ffffff;
+}
+#mi-dia .assistant-step-form[hidden] { display: none; }
+#mi-dia .assistant-step-form label {
+  display: block;
+  margin: 0 0 9px;
+  color: var(--rumbo-p1-ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+#mi-dia .assistant-step-controls {
+  display: flex;
+  gap: 9px;
+  align-items: stretch;
+}
+#mi-dia .assistant-step-controls input {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--rumbo-p1-border-strong);
+  border-radius: 10px;
+  background: white;
+  color: var(--rumbo-p1-ink);
+  font-size: 14px;
+}
+#mi-dia .assistant-step-controls input:focus-visible {
+  outline: 3px solid var(--rumbo-p1-accent);
+  outline-offset: 2px;
+}
+#mi-dia .assistant-step-controls button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  font-weight: 700;
+}
+#mi-dia .assistant-step-status {
+  min-height: 1em;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--rumbo-p1-ink-soft);
+}
+@media (max-width: 560px) {
+  #mi-dia .assistant-step-form { padding: 12px; margin-top: 14px; }
+  #mi-dia .assistant-step-controls { flex-direction: column; }
+  #mi-dia .assistant-step-controls input,
+  #mi-dia .assistant-step-controls button { width: 100%; }
+}
