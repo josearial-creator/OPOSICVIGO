@@ -1,0 +1,39 @@
+/* Navegación rápida: acceso discreto, accesible y sin almacenar consultas. */
+.rumbo-quick-nav-trigger{
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ min-height:44px;padding:8px 12px;border:1px solid #d1e3df;border-radius:11px;
+ background:#f4faf8;color:#185e55;font:inherit;font-size:13px;font-weight:750;cursor:pointer;
+}
+.rumbo-quick-nav-trigger:hover{background:#e7f4ee;border-color:#91c9bc}
+.rumbo-quick-nav-trigger svg{flex-shrink:0}
+.rumbo-quick-nav-dialog{
+ width:min(560px,calc(100vw - 24px));max-height:min(660px,calc(100dvh - 36px));
+ border:1px solid #ccdfdc;border-radius:20px;padding:0;
+ color:#173348;background:#fff;box-shadow:0 22px 70px rgba(10,29,40,.26);
+}
+.rumbo-quick-nav-dialog::backdrop{background:rgba(13,33,45,.52)}
+.rumbo-quick-nav-panel{padding:20px}
+.rumbo-quick-nav-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.rumbo-quick-nav-header h2{font-size:20px;font-weight:800;letter-spacing:-.03em;margin:0;color:#153a40}
+.rumbo-quick-nav-close{min-height:40px;padding:8px 12px;border:1px solid #dce8e6;border-radius:10px;background:#f6faf9;color:#235b59;cursor:pointer;font:inherit;font-size:13px}
+#rumbo-quick-nav-search{
+ display:block;width:100%;box-sizing:border-box;min-height:48px;padding:12px 14px;
+ border:1.5px solid #a7cbc1;border-radius:12px;font:inherit;font-size:16px;color:#162d36;background:#fff;
+}
+.rumbo-quick-nav-results{display:grid;gap:5px;max-height:min(420px,55dvh);overflow:auto;padding:10px 1px}
+.rumbo-quick-nav-result{display:flex;align-items:center;justify-content:space-between;gap:12px;
+ width:100%;min-height:45px;padding:10px 12px;border:1px solid transparent;border-radius:10px;
+ text-align:left;background:#fff;color:#163b40;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.rumbo-quick-nav-result small{font-size:12px;font-weight:500;color:#5d7481}
+.rumbo-quick-nav-result:hover,.rumbo-quick-nav-result[aria-selected="true"]{background:#ebf6f1;border-color:#b4ddcc}
+.rumbo-quick-nav-empty,.rumbo-quick-nav-hint{font-size:12px;color:#536e76;margin:6px 2px 0}
+.rumbo-quick-nav-empty[hidden]{display:none}
+.rumbo-quick-nav-hint{border-top:1px solid #e6eeee;padding-top:11px}
+.rumbo-quick-nav-trigger:focus-visible,.rumbo-quick-nav-close:focus-visible,
+.rumbo-quick-nav-result:focus-visible,#rumbo-quick-nav-search:focus-visible{outline:3px solid #08776b;outline-offset:2px}
+@media(max-width:700px){
+ .rumbo-quick-nav-trigger{width:44px;min-width:44px;padding:8px}
+ .rumbo-quick-nav-trigger span{display:none}
+ .rumbo-quick-nav-panel{padding:16px}
+ .rumbo-quick-nav-hint{display:none}
+}
