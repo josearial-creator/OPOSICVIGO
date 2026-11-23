@@ -22,6 +22,17 @@ const base='http://127.0.0.1:8086';
    assert.equal(visual.accent,'rgb(11, 110, 100)','Color de marca de Gemini');
    assert.equal(visual.primary,'rgb(11, 110, 100)','Botón principal mantiene estilo Gemini');
    assert.equal(visual.accessHeight>=44,true,'Acceso privado accesible al tacto');
+   const account=page.locator('#rumbo-access-open');
+   assert.match(await account.getAttribute('aria-label'),/Acceso privado|Abrir acceso privado|Recuperando acceso/i);
+   const accountAppearance=await account.evaluate(el=>({
+     icon:getComputedStyle(el,'::before').maskImage || getComputedStyle(el,'::before').webkitMaskImage,
+     width:el.getBoundingClientRect().width,
+     fontSize:parseFloat(getComputedStyle(el).fontSize)
+   }));
+   assert.match(accountAppearance.icon,/data:image\/svg\+xml/,'Icono de perfil presente');
+   assert.equal(accountAppearance.width>=44,true,'Botón de cuenta accesible al tacto');
+   if(width<560)assert.equal(accountAppearance.fontSize,0,'En móvil solo ocupa el espacio del icono');
+
    assert.equal(visual.navPosition,width<560?'static':'sticky','Barra superior adaptada al dispositivo');
    for(const id of ['convocatorias','mi-espacio','productividad','mi-evolucion','proyectos'])assert.equal(await page.locator('#'+id).isVisible(),false,'La portada no apila '+id);
    assert.equal(await page.title(),'Portada · Rumbo');
