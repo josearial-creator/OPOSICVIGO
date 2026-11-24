@@ -11,7 +11,7 @@ const assert=require('node:assert/strict');
   assert.equal(await page.locator('#historial-rumbo').isVisible(),false);
   assert.equal(await page.locator('#mi-evolucion').isVisible(),false);
   assert.equal(await page.locator('#mi-dia').isVisible(),false);
-  assert.equal(await page.locator('.rumbo-section-nav a').count(),5);
+  assert.equal(await page.locator('.rumbo-section-nav a').count(),6);
   assert.equal(await page.locator('.rumbo-section-nav a[aria-current="page"]').getAttribute('href'),'#mi-espacio');
   assert.equal(await page.locator('.mobile-tabbar [data-mobile-tab="diario"]').getAttribute('href'),'#mi-espacio');
   const oldData=await page.evaluate(()=>({...localStorage}));
