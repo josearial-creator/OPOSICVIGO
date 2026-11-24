@@ -96,13 +96,13 @@ function series(id,all=records.entries){
   if(e.dimension!==id||e.source!=='autovaloracion'||e.value===null)continue;
   days.set(e.date,[...(days.get(e.date)||[]),e.value]);
  }
- return [...days].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,v])=>({day,value:v.reduce((a,b)=>a+b,0)/v.length}));
+ return [...days].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,v])=>({day,value:v.slice().sort((a,b)=>a-b)[Math.floor(v.length/2)]}));
 }
 function trend(points){
  if(points.length<6)return 'Sin tendencia suficiente';
- const avg=a=>a.reduce((s,p)=>s+p.value,0)/a.length;
- const diff=avg(points.slice(-3))-avg(points.slice(-6,-3));
- return Math.abs(diff)<0.35?'Sin cambio claro':diff>0?'Sube':'Baja';
+ const median=a=>{const x=a.map(p=>p.value).sort((b,c)=>b-c);return x[1];};
+ const diff=median(points.slice(-3))-median(points.slice(-6,-3));
+ return diff===0?'Sin cambio en la mediana':diff>0?'Sube la mediana':'Baja la mediana';
 }
 function miniChart(points){
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -235,6 +235,8 @@ $('obs-report').addEventListener('click',()=>{
   ...PRIOR.map(id=>title(id)+': '+series(id,e).length+' días. '+trend(series(id,e))+'.'),
   'Cuestionarios introducidos: '+(records.questionnaires.filter(q=>q.date>=since).map(q=>q.instrument+' '+q.total+' ('+q.date+')').join('; ')||'ninguno'),
   'Hipótesis pendientes: '+(records.hypotheses.map(h=>h.text).join('; ')||'ninguna'),
+  'Ejemplos de evidencia textual (no diagnósticos):',
+  ...e.filter(x=>x.evidence).slice(-6).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+': '+x.evidence),
   'La falta de menciones no implica ausencia. Las correlaciones no demuestran causalidad.'];
  $('obs-report-text').value=lines.join('\n');$('obs-report-text').hidden=false;$('obs-report-text').focus();say('Resumen preparado. Revísalo antes de compartirlo.');
 });
