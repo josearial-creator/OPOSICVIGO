@@ -62,3 +62,31 @@
 
 /* La navegación principal en móvil es la barra fija de cuatro destinos. */
 @media(max-width:560px){.assistant-mobile-nav{display:none}}
+
+#mi-dia .weekly-agenda {
+  background: #f4faf8;
+  border: 1px solid #b9d8d0;
+  border-inline-start: 5px solid #087468;
+  margin-block-end: 1rem;
+  padding: clamp(1rem, 3vw, 1.6rem);
+}
+#weekly-agenda-heading {
+  font: italic 700 clamp(1.65rem, 4vw, 2.2rem)/1.15 Georgia, "Times New Roman", serif;
+  color: #12574f;
+  margin: 0 0 .5rem;
+}
+.weekly-agenda ul {list-style: none; margin: .75rem 0; padding: 0;}
+.weekly-agenda li {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) minmax(5rem, 7rem) minmax(0, 1fr);
+  gap: .25rem .75rem;
+  align-items: baseline;
+  padding: .7rem 0;
+  border-block-start: 1px solid #c9dfd9;
+  overflow-wrap: anywhere;
+}
+.weekly-agenda li strong {color: #075f55; font-variant-numeric: tabular-nums;}
+@media (max-width: 560px) {
+  .weekly-agenda li {grid-template-columns: minmax(0, 1fr) auto;}
+  .weekly-agenda li span {grid-column: 1 / -1;}
+}

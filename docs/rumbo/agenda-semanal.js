@@ -3,8 +3,9 @@
   const body = document.querySelector('#mi-dia .assistant-body');
   if (!body) return;
   const card = document.createElement('section');
-  card.className = 'assistant-card';
-  card.innerHTML = '<h3>Mis citas de la semana</h3><p role="status" aria-live="polite"></p><div data-agenda-list></div><details><summary>Conectar Google Calendar</summary><form><label>Dirección secreta en formato iCal<input type="password" required autocomplete="off" spellcheck="false"></label><p>En Google Calendar desde un ordenador, abre Configuración, elige tu calendario y entra en Integrar el calendario. Pega aquí su dirección secreta. Rumbo la guarda en este navegador y la usa para consultar las citas.</p><button class="button primary">Conectar</button> <button class="button secondary" type="button" data-disconnect>Desconectar</button></form></details><button type="button" class="button secondary" data-refresh>Actualizar citas</button>';
+  card.className = 'assistant-card weekly-agenda';
+  card.setAttribute('aria-labelledby', 'weekly-agenda-heading');
+  card.innerHTML = '<h3 id="weekly-agenda-heading">Agenda de la semana</h3><p role="status" aria-live="polite"></p><div data-agenda-list></div><details><summary>Conectar Google Calendar</summary><form><label>Dirección secreta en formato iCal<input type="password" required autocomplete="off" spellcheck="false"></label><p>En Google Calendar desde un ordenador, abre Configuración, elige tu calendario y entra en Integrar el calendario. Pega aquí su dirección secreta. Rumbo la guarda en este navegador y la usa para consultar las citas.</p><button class="button primary">Conectar</button> <button class="button secondary" type="button" data-disconnect>Desconectar</button></form></details><button type="button" class="button secondary" data-refresh>Actualizar citas</button>';
   body.prepend(card);
   const key = 'rumbo-agenda-google-ical-v1';
   const form = card.querySelector('form'), input = form.querySelector('input');
@@ -45,7 +46,14 @@
         const items = document.createElement('ul');
         for (const event of data.events) {
           const item = document.createElement('li');
-          item.textContent = [formatDay(event.day), event.hour || 'Todo el día', event.title].join(' · ');
+          const day = document.createElement('time');
+          day.dateTime = event.day;
+          day.textContent = formatDay(event.day);
+          const hour = document.createElement('strong');
+          hour.textContent = event.hour || 'Todo el día';
+          const subject = document.createElement('span');
+          subject.textContent = event.title;
+          item.append(day, ' ', hour, ' ', subject);
           items.append(item);
         }
         list.append(items);
