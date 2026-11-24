@@ -21,6 +21,7 @@ class FeedIntegrityTests(unittest.TestCase):
         source = read_feed(SOURCE)
         published = read_feed(PUBLISHED)
         self.assertEqual(source, published, "La web perdería novedades tras la próxima actualización diaria")
+        self.assertEqual(len([r for r in published if r.get("id") == AEAT_OEP_ID]), 1, "La AEAT debe aparecer una sola vez en la web")
 
     def test_agentes_hacienda_2026_permanece_identificado_y_sin_plazo_inventado(self):
         source = read_feed(SOURCE)
