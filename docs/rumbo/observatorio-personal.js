@@ -122,7 +122,7 @@ function render(){
   card.append(node('strong','',title(entry.dimension)+' · '+entry.date),
    node('small','',entry.source==='texto'?'Observación textual · sin puntuación':'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
    node('p','',entry.evidence||'Sin frase asociada'),node('small','',entry.context));
-  if(entry.analysis)card.append(node('small','',analysisLabel(entry.analysis)));
+  if(entry.analysis){card.append(node('small','',analysisLabel(entry.analysis)));if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión del mismo registro: '+entry.analysis.additionalEvidence.match));}
   const del=node('button','button secondary','Eliminar');del.type='button';
   del.addEventListener('click',async()=>{
    if(!confirm('¿Eliminar este registro?'))return;
@@ -205,6 +205,7 @@ $('obs-analyze').addEventListener('click',()=>{
  for(const result of found){
   const div=node('article','obs-suggestion');
   div.append(node('strong','',title(result.dimension)),node('p','',result.evidence),node('small','','Propuesta contextual · '+analysisLabel(result)+' · requiere revisión.'));
+  if(result.additionalEvidence)div.append(node('p','','Otra expresión: '+result.additionalEvidence.match));
   const button=node('button','button secondary','Guardar sin puntuación');button.type='button';
   button.addEventListener('click',async()=>{
    try{const entry={id:crypto.randomUUID(),date:day(),dimension:result.dimension,source:'texto',value:null,evidence:result.evidence,context:'Fragmento aportado voluntariamente',analysis:metadata(result,'fecha de anotación')};
@@ -283,6 +284,7 @@ $('obs-history-scan').addEventListener('click',async()=>{
    check.type='checkbox';check.dataset.historyId=entry.id;
    label.append(check,document.createTextNode(' '+title(entry.dimension)+' · '+entry.date));
    card.append(label,node('p','',entry.evidence),node('small','',entry.context+' · '+analysisLabel(entry.analysis)+' · no diagnóstico'));
+   if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión: '+entry.analysis.additionalEvidence.match));
    $('obs-history-list').append(card);
   }
   $('obs-history-save').hidden=!proposed.length;
@@ -351,7 +353,7 @@ $('obs-report').addEventListener('click',()=>{
  if($('obs-report-evidence').checked){
   lines.push('', '5. FRAGMENTOS Y CONTEXTO (revisar antes de compartir)');
   const examples=e.filter(x=>x.evidence||x.context).sort((a,b)=>b.date.localeCompare(a.date));
-  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis):'')):['Sin fragmentos asociados.']));
+  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis)+(x.analysis.additionalEvidence?' | Otra expresión: '+x.analysis.additionalEvidence.match:''):'')):['Sin fragmentos asociados.']));
   if(examples.length>20)lines.push('Se muestran los 20 registros más recientes de '+examples.length+'.');
  }
  if($('obs-report-hypotheses').checked){
