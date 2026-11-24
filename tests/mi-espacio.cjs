@@ -89,6 +89,16 @@ const assert=require('node:assert/strict');
  await page.locator('#obs-password').fill('clave-observatorio-de-prueba-12345');
  await page.locator('#obs-open').click();
  await page.locator('#obs-private').waitFor({state:'visible',timeout:15000});
+ // Revisión conjunta: una nota del diario y una reflexión histórica ficticia.
+ await page.evaluate(()=>localStorage.setItem('rumbo-historial-importado-v1',JSON.stringify({version:1,entries:[
+  {id:'reflection:joint-fixture',kind:'reflection',date:'2026-01-20',title:'Prueba conjunta',payload:{date:'2026-01-20',sourceReference:'joint-fixture',reported:'Me siento derrotado.'}}
+ ]})));
+ await page.locator('#obs-all-scan').click();
+ await page.waitForFunction(()=>document.getElementById('obs-history-status').textContent.includes('2 propuestas nuevas'));
+ assert.equal(await page.locator('#obs-history-list article').count(),2,'Revisión conjunta de ambas fuentes');
+ assert.match(await page.locator('#obs-history-status').innerText(),/diario privado: 1 notas cargadas/);
+ assert.match(await page.locator('#obs-history-status').innerText(),/historial importado: 1 registros/);
+ assert.match(await page.locator('#obs-count').innerText(),/^0 indicadores/,'Revisión conjunta no guarda');
  await page.locator('#obs-diary-scan').click();
  await page.locator('#obs-history-list article').first().waitFor({state:'visible'});
  assert.equal(await page.locator('#obs-history-list article').count(),1);
