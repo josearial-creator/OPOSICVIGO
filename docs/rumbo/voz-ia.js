@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-let token='',consent=false,voiceConsent=false,lastReply='',busy=false,recognizer=null,unsubscribeSession=null;
+let token='',consent=false,voiceConsent=false,geminiVoiceConsent=false,lastReply='',busy=false,recognizer=null,unsubscribeSession=null;
 let endpoint='https://rumbo-entrenador.jose-arial.workers.dev';try{endpoint=localStorage.getItem('rumbo-ai-endpoint')||endpoint;}catch{}
 const el=(tag,text)=>{const x=document.createElement(tag);if(text)x.textContent=text;return x;};
 const button=(text,fn)=>{const b=el('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
@@ -19,8 +19,10 @@ window.RumboAI={mount(box,d,skills,prompt){
  });
  const checkLabel=el('label'),check=el('input');check.type='checkbox';check.checked=consent;checkLabel.append(check,document.createTextNode(' Consiento enviar mi respuesta y hasta seis mensajes de esta sesión a Gemini. En la modalidad gratuita, Google puede usar el contenido para mejorar sus servicios. No enviar información sensible o identificativa.'));
  const voiceLabel=el('label'),voiceCheck=el('input');voiceCheck.type='checkbox';voiceCheck.checked=voiceConsent;voiceLabel.append(voiceCheck,document.createTextNode(' Acepto que el reconocimiento de voz de mi navegador puede enviar audio a su proveedor. La transcripción será editable y no se enviará a Gemini hasta pulsar Evaluar.'));
+ const remoteLabel=el('label'),remoteCheck=el('input');remoteCheck.type='checkbox';remoteCheck.checked=geminiVoiceConsent;
+ remoteLabel.append(remoteCheck,document.createTextNode(' Consiento enviar una grabación breve a Gemini para transcribirla. Google puede tratar el audio conforme a las condiciones de su modalidad gratuita. No incluyas datos sensibles ni identificativos. El audio no se guarda en Rumbo.'));
  const status=el('p','IA no verificada. La conexión solo se comprueba al solicitar una evaluación.');status.setAttribute('role','status');
- panel.append(urlLabel,accessLabel,useSession,checkLabel,voiceLabel,button('Guardar conexión para esta sesión',()=>{try{const parsed=new URL(url.value);if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.search||parsed.hash||parsed.pathname!=='/')throw Error();endpoint=parsed.origin;token=access.value;consent=check.checked;voiceConsent=voiceCheck.checked;try{localStorage.setItem('rumbo-ai-endpoint',endpoint);}catch{}status.textContent='Configuración guardada. No se ha comprobado el servicio. La contraseña permanece solo en memoria.';}catch{status.textContent='Introduce únicamente el origen HTTPS del Worker, sin rutas ni parámetros.';}}),button('Desconectar',()=>{token='';consent=false;voiceConsent=false;access.value='';check.checked=false;voiceCheck.checked=false;window.speechSynthesis?.cancel();if(recognizer)recognizer.abort();status.textContent='Desconectado. No se ha borrado ningún historial.';}),status);
+ panel.append(urlLabel,accessLabel,useSession,checkLabel,voiceLabel,remoteLabel,button('Guardar conexión para esta sesión',()=>{try{const parsed=new URL(url.value);if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.search||parsed.hash||parsed.pathname!=='/')throw Error();endpoint=parsed.origin;token=access.value;consent=check.checked;voiceConsent=voiceCheck.checked;geminiVoiceConsent=remoteCheck.checked;try{localStorage.setItem('rumbo-ai-endpoint',endpoint);}catch{}status.textContent='Configuración guardada. No se ha comprobado el servicio. La contraseña permanece solo en memoria.';}catch{status.textContent='Introduce únicamente el origen HTTPS del Worker, sin rutas ni parámetros.';}}),button('Desconectar',()=>{token='';consent=false;voiceConsent=false;geminiVoiceConsent=false;remoteCheck.checked=false;access.value='';check.checked=false;voiceCheck.checked=false;window.speechSynthesis?.cancel();if(recognizer)recognizer.abort();status.textContent='Desconectado. No se ha borrado ningún historial.';}),status);
  unsubscribeSession=window.RumboSession?.subscribe(available=>{
    useSession.disabled=!available;
    if(available){access.value=window.RumboSession?.use()||'';status.textContent='Acceso privado disponible. Revisa y guarda el consentimiento antes de utilizar IA.';}
@@ -32,7 +34,58 @@ window.RumboAI={mount(box,d,skills,prompt){
  const form=box.querySelector('#ev-exercise'),text=form?.elements.response;
  if(text){
  const controls=el('div');controls.className='ev-toolbar';const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- controls.append(button('Dictar respuesta',()=>{if(!voiceConsent){status.textContent='Revisa y guarda primero el consentimiento de voz.';panel.open=true;return;}if(!Recognition){status.textContent='Este navegador no ofrece transcripción. Escribe tu respuesta.';panel.open=true;return;}if(recognizer){recognizer.stop();return;}const r=new Recognition();recognizer=r;r.lang='es-ES';r.continuous=false;r.interimResults=false;status.textContent='Micrófono activo: pulsa Detener dictado cuando termines.';panel.open=true;r.onresult=e=>{const transcript=Array.from(e.results).filter(x=>x.isFinal).map(x=>x[0].transcript).join(' ');text.value=(text.value+' '+transcript).trim().slice(0,12000);text.dispatchEvent(new Event('input',{bubbles:true}));status.textContent='Transcripción lista. Revísala antes de continuar.';};r.onerror=()=>{status.textContent='No se pudo transcribir o se denegó el micrófono. Puedes escribir.';};r.onend=()=>{recognizer=null;};try{r.start();}catch{recognizer=null;status.textContent='No se pudo iniciar el micrófono.';}}),button('Detener dictado',()=>recognizer?.stop()));text.after(controls);
+ controls.append(button('Dictar respuesta',()=>{if(!voiceConsent){status.textContent='Revisa y guarda primero el consentimiento de voz.';panel.open=true;return;}if(!Recognition){status.textContent='Este navegador no ofrece transcripción. Escribe tu respuesta.';panel.open=true;return;}if(recognizer){recognizer.stop();return;}const r=new Recognition();recognizer=r;r.lang='es-ES';r.continuous=false;r.interimResults=false;status.textContent='Micrófono activo: pulsa Detener dictado cuando termines.';panel.open=true;r.onresult=e=>{const transcript=Array.from(e.results).filter(x=>x.isFinal).map(x=>x[0].transcript).join(' ');text.value=(text.value+' '+transcript).trim().slice(0,12000);text.dispatchEvent(new Event('input',{bubbles:true}));status.textContent='Transcripción lista. Revísala antes de continuar.';};r.onerror=()=>{status.textContent='No se pudo transcribir o se denegó el micrófono. Puedes escribir.';};r.onend=()=>{recognizer=null;};try{r.start();}catch{recognizer=null;status.textContent='No se pudo iniciar el micrófono.';}}),button('Detener dictado',()=>recognizer?.stop()));// Dictado alternativo mediante Gemini: audio enviado solo tras consentimiento explícito.
+ let geminiRecorder=null,geminiStream=null,geminiChunks=[],geminiStart=0,geminiTimeout=null;
+ const geminiStop=button('Detener grabación Gemini',()=>geminiRecorder?.state==='recording'&&geminiRecorder.stop());
+ geminiStop.disabled=true;
+ const geminiRecord=button('Grabar para transcribir con Gemini',async()=>{
+  if(geminiRecorder?.state==='recording'){geminiRecorder.stop();return;}
+  const secret=window.RumboSession?.use()||token;
+  if(!secret||!geminiVoiceConsent){panel.open=true;status.textContent='Inicia sesión y guarda el consentimiento específico para enviar audio a Gemini.';return;}
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){status.textContent='Tu navegador no permite grabación para Gemini. Utiliza Dictar respuesta.';return;}
+  try{
+   geminiStream=await navigator.mediaDevices.getUserMedia({audio:true});
+   const candidates=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'];
+   const format=candidates.find(x=>MediaRecorder.isTypeSupported(x));
+   if(!format)throw Error('Formato de audio no disponible');
+   geminiRecorder=new MediaRecorder(geminiStream,{mimeType:format,audioBitsPerSecond:32000});
+   geminiChunks=[];geminiStart=Date.now();
+   geminiRecorder.ondataavailable=e=>{if(e.data?.size)geminiChunks.push(e.data);};
+   geminiRecorder.onstop=async()=>{
+    clearTimeout(geminiTimeout);geminiTimeout=null;
+    geminiStream?.getTracks().forEach(t=>t.stop());geminiStream=null;
+    geminiRecord.disabled=false;geminiStop.disabled=true;
+    const blob=new Blob(geminiChunks,{type:geminiRecorder.mimeType});geminiChunks=[];
+    if(blob.size>350000||Date.now()-geminiStart>18000){status.textContent='Grabación demasiado larga. Graba menos de 15 segundos.';return;}
+    if(blob.size<100){status.textContent='No se detectó audio suficiente.';return;}
+    status.textContent='Transcribiendo con Gemini…';
+    try{
+     const bytes=new Uint8Array(await blob.arrayBuffer());
+     let binary='';for(let i=0;i<bytes.length;i+=4096)binary+=String.fromCharCode(...bytes.subarray(i,i+4096));
+     const response=await fetch(endpoint+'/transcribe',{method:'POST',headers:{
+      'Content-Type':'application/json',Authorization:'Rumbo '+btoa(String.fromCharCode(...new TextEncoder().encode(secret)))
+     },signal:AbortSignal.timeout(30000),
+      body:JSON.stringify({mimeType:blob.type.split(';')[0],audioBase64:btoa(binary)})});
+     const payload=await response.json();
+     if(!response.ok)throw Error(payload.error||'Servicio no disponible');
+     if(typeof payload.text!=='string'||!payload.text.trim())throw Error('Transcripción vacía');
+     text.value=(text.value+' '+payload.text).trim().slice(0,12000);
+     text.dispatchEvent(new Event('input',{bubbles:true}));
+     status.textContent='Transcripción recibida. Revisa el texto antes de utilizarlo.';
+    }catch(e){status.textContent='No se ha podido transcribir: '+e.message+'. Puedes utilizar el dictado del navegador.';}
+   };
+   geminiRecorder.start();geminiRecord.disabled=true;geminiStop.disabled=false;
+   geminiTimeout=setTimeout(()=>{if(geminiRecorder?.state==='recording')geminiRecorder.stop();},15000);
+   status.textContent='Grabando: máximo 15 segundos. Pulsa Detener para transcribir.';
+   panel.open=true;
+  }catch{
+   geminiStream?.getTracks().forEach(t=>t.stop());geminiStream=null;
+   geminiRecord.disabled=false;geminiStop.disabled=true;
+   status.textContent='No se pudo iniciar la grabación. Revisa permisos del micrófono.';
+  }
+ });
+ controls.append(geminiRecord,geminiStop);
+ text.after(controls);
  }
  if(d.step==='review'){
  const evaluate=button('Evaluar esta respuesta con Gemini',async()=>{if(busy)return;if(!endpoint||!token||!consent){panel.open=true;status.textContent='Configura la conexión y el consentimiento antes de enviar.';return;}if(d.response.length>4000){status.textContent='Gemini admite hasta 4000 caracteres. Continúa con revisión manual.';panel.open=true;return;}busy=true;evaluate.disabled=true;panel.open=true;status.textContent='Consultando Gemini…';try{

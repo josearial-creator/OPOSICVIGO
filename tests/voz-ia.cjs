@@ -12,7 +12,8 @@ fail=true;await page.getByRole('button',{name:'Evaluar esta respuesta con Gemini
 await page.getByRole('button',{name:'Guardar evaluación manual'}).click();assert.match(await page.locator('#ev-coach').innerText(),/Gemini propone/);await page.locator('#ev-next').click();assert.match(await page.locator('#ev-coach').innerText(),/¿Cómo responderías ante una interrupción/);
 await page.getByRole('button',{name:'Registrar e ir a la respuesta'}).click();await page.getByRole('button',{name:'Dictar respuesta'}).click();assert.match(await page.locator('#ev-coach').innerText(),/consentimiento de voz/);
 assert.equal(await page.evaluate(()=>window.__dictations),0);
-const voicePanel=page.locator('#ev-coach details').first();await voicePanel.locator('input[type=checkbox]').last().check();await page.getByRole('button',{name:'Guardar conexión para esta sesión'}).click();const sentBefore=sent;
+const voicePanel=page.locator('#ev-coach details').first();await voicePanel.locator('input[type=checkbox]').nth(1).check();await page.getByRole('button',{name:'Guardar conexión para esta sesión'}).click();const sentBefore=sent;
+await page.getByRole('button',{name:'Grabar para transcribir con Gemini'}).click();assert.match(await voicePanel.innerText(),/consentimiento específico/);
 await page.getByRole('button',{name:'Dictar respuesta'}).click();await page.waitForFunction(()=>document.querySelector('#ev-exercise [name=response]').value.includes('Hagamos una pausa'));
 assert.equal(await page.evaluate(()=>window.__dictations),1);assert.equal(sent,sentBefore);const d=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-evolucion-v1')));assert.match(d.draft.form.response,/Hagamos una pausa/);
 await page.getByRole('button',{name:'Escuchar situación / siguiente reto'}).click();assert.match((await page.evaluate(()=>window.__spoken)).at(-1),/interrupción/);
