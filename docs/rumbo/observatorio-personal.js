@@ -12,28 +12,7 @@ const DIM=[
 ['familia','Impacto familiar','Funcional'],['autocuidado','Autocuidado','Funcional']
 ];
 const PRIOR=['animo','ansiedad','urgencia','atencion','autoeficacia','disfrute'];
-const RULES=[
-['animo',/\b(?:estoy triste|me siento bien|estoy desanimad[oa]|me siento vací[oa])\b/iu],
-['ansiedad',/\b(?:tengo ansiedad|estoy ansios[oa]|tengo miedo|estoy nervios[oa])\b/iu],
-['frustracion',/\b(?:estoy frustrad[oa]|me enfada|siento rabia)\b/iu],
-['disfrute',/\b(?:disfruto|no disfruto|no me apetece nada)\b/iu],
-['ilusion',/\b(?:estoy ilusionad[oa]|tengo ilusión|no tengo ilusión)\b/iu],
-['indefension',/\b(?:me siento derrotad[oa]|me siento indefens[oa]|no puedo cambiar nada)\b/iu],
-['urgencia',/\b(?:necesito resolverlo ya|urgencia por terminar|necesito hacerlo inmediatamente)\b/iu],
-['rumiacion',/\b(?:le doy vueltas|no puedo dejar de pensar|pensamientos repetitivos)\b/iu],
-['incertidumbre',/\b(?:no tolero la incertidumbre|necesito tener certeza|no soporto no saber)\b/iu],
-['atencion',/\b(?:no consigo concentrarme|me he concentrado|pierdo la atención)\b/iu],
-['flexibilidad',/\b(?:cambié de estrategia|no consigo cambiar de estrategia)\b/iu],
-['inhibicion',/\b(?:actué sin pensar|conseguí detenerme|me contuve antes de responder)\b/iu],
-['evitacion',/\b(?:estoy evitando|no me atrevo a|he evitado)\b/iu],
-['presencia',/\b(?:estuve presente|no consigo estar presente)\b/iu],
-['autoestima',/\b(?:no valgo|me siento inútil|me siento valios[oa])\b/iu],
-['autoeficacia',/\b(?:soy capaz de|no soy capaz de|confío en mi capacidad)\b/iu],
-['control',/\b(?:siento que controlo|he perdido el control|puedo decidir)\b/iu],
-['trabajo',/\b(?:el trabajo me afecta|problemas laborales)\b/iu],
-['familia',/\b(?:he disfrutado con mis hijos|no dedico tiempo a mi familia)\b/iu],
-['autocuidado',/\b(?:he dormido bien|duermo mal|he salido a correr)\b/iu]
-];
+const engine=window.RumboPsychEngine;
 const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
 const day=()=>new Date().toLocaleDateString('sv-SE');
@@ -48,7 +27,7 @@ function valid(d){
  return d&&d.version===1&&Array.isArray(d.entries)&&d.entries.length<=2000&&d.entries.every(e=>
   typeof e.id==='string'&&dateOK(e.date)&&DIM.some(x=>x[0]===e.dimension)&&
   ['texto','autovaloracion'].includes(e.source)&&(e.value===null||(Number.isInteger(e.value)&&e.value>=0&&e.value<=4))&&
-  typeof e.evidence==='string'&&e.evidence.length<=300&&typeof e.context==='string'&&e.context.length<=160)&&
+  typeof e.evidence==='string'&&e.evidence.length<=300&&typeof e.context==='string'&&e.context.length<=160&&validAnalysis(e.analysis))&&
   Array.isArray(d.questionnaires)&&d.questionnaires.length<=300&&d.questionnaires.every(q=>
   dateOK(q.date)&&['PHQ-9','GAD-7','WHO-5','OCI-R','WSAS'].includes(q.instrument)&&Number.isInteger(q.total)&&q.total>=0&&q.total<=150)&&
   (d.historySeen===undefined||(Array.isArray(d.historySeen)&&d.historySeen.length<=100000&&d.historySeen.every(x=>typeof x==='string'&&/^history-[a-f0-9]{64}-[a-z]+$/.test(x))))&&
@@ -69,7 +48,7 @@ async function save(next){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();historyCandidates=[];$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyCandidates=[];$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 async function unlock(){
  const pass=$('obs-password').value;
@@ -87,13 +66,10 @@ async function unlock(){
   $('obs-password').value='';render();say('Bóveda abierta. Los datos están cifrados en este dispositivo.');
  }catch{toggle(true);say('No se pudo abrir la bóveda. Comprueba la contraseña. No se han borrado datos.');}
 }
-function classify(text){
- return RULES.flatMap(([dimension,re])=>{
-  const match=re.exec(text);if(!match)return[];
-  const start=Math.max(0,match.index-45),end=Math.min(text.length,match.index+match[0].length+45);
-  return [{dimension,evidence:text.slice(start,end).trim().slice(0,300)}];
- });
-}
+function classify(text){return engine?.uniqueByDimension(text)||[];}
+function metadata(hit,dateBasis){return {method:hit.method,direction:hit.direction,kind:hit.kind,temporal:hit.temporal,dateBasis,index:hit.index,end:hit.end,match:hit.match,additionalEvidence:hit.additionalEvidence||null};}
+function analysisLabel(a){return a?a.kind+' · '+a.direction+' · '+a.temporal+' · '+a.method:'Sin análisis contextual (registro anterior)';}
+function validAnalysis(a){return a===undefined||(a&&a.method==='reglas-contextuales-1.0'&&['malestar','dificultad','recurso','ausencia referida','mixto'].includes(a.direction)&&['emoción','pensamiento','conducta','funcionamiento'].includes(a.kind)&&['pasado referido','hoy referido','no especificado'].includes(a.temporal)&&['registro original','fecha de registro','fecha de anotación'].includes(a.dateBasis)&&Number.isInteger(a.index)&&a.index>=0&&Number.isInteger(a.end)&&a.end>a.index&&a.end<=12000&&typeof a.match==='string'&&a.match.length===a.end-a.index&&(a.additionalEvidence===null||(a.additionalEvidence&&Number.isInteger(a.additionalEvidence.index)&&a.additionalEvidence.index>=0&&Number.isInteger(a.additionalEvidence.end)&&a.additionalEvidence.end>a.additionalEvidence.index&&a.additionalEvidence.end<=12000&&typeof a.additionalEvidence.match==='string'&&a.additionalEvidence.match.length===a.additionalEvidence.end-a.additionalEvidence.index)));}
 function series(id,all=records.entries){
  const days=new Map();
  for(const e of all){
@@ -128,6 +104,16 @@ function render(){
   card.append(node('strong','',title(id)),node('span','obs-trend',trend(points)),miniChart(points),node('small','',points.length+' días con autovaloración'));
   cards.append(card);
  }
+ const patternBox=$('obs-patterns');patternBox.replaceChildren();
+ const patterns=engine?.patterns(records.entries)||[];
+ if(!patterns.length)patternBox.append(node('p','obs-empty','Aún no hay tres días con co-menciones de los pares explorados. No se concluye ausencia de relación.'));
+ for(const p of patterns){
+  const card=node('article','obs-entry');
+  card.append(node('strong','',p.question),node('p','','Co-menciones: '+p.both+' días; solo '+title(p.a)+': '+p.onlyA+'; solo '+title(p.b)+': '+p.onlyB+'; '+p.days+' días con observaciones contextuales elegibles.'),
+   node('small','','Ejemplos de fechas: '+p.examples.join(', ')+'. Son fechas de registros, no necesariamente de los acontecimientos.'),
+   node('p','','Alternativas: circunstancias compartidas, cambios en hábitos de registro o en el contexto. No hay evidencia causal. Pregunta para consulta: ¿qué ocurrió antes y después?'));
+  patternBox.append(card);
+ }
  const list=$('obs-entries');list.replaceChildren();
  const recent=[...records.entries].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
  if(!recent.length)list.append(node('p','obs-empty','Sin registros todavía. Puedes empezar con una frase o una autovaloración.'));
@@ -136,6 +122,7 @@ function render(){
   card.append(node('strong','',title(entry.dimension)+' · '+entry.date),
    node('small','',entry.source==='texto'?'Observación textual · sin puntuación':'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
    node('p','',entry.evidence||'Sin frase asociada'),node('small','',entry.context));
+  if(entry.analysis)card.append(node('small','',analysisLabel(entry.analysis)));
   const del=node('button','button secondary','Eliminar');del.type='button';
   del.addEventListener('click',async()=>{
    if(!confirm('¿Eliminar este registro?'))return;
@@ -166,13 +153,14 @@ root.innerHTML=[
 '<label>Intensidad declarada<select name="value"><option value="">Sin dato</option><option value="0">0 · Ausencia indicada</option><option value="1">1 · Leve</option><option value="2">2 · Moderada</option><option value="3">3 · Alta</option><option value="4">4 · Muy alta</option></select></label>',
 '<label>Mis palabras (opcional)<textarea name="evidence" maxlength="300" rows="2" placeholder="Hoy me he sentido…"></textarea></label>',
 '<label>Contexto (opcional)<input name="context" maxlength="160" placeholder="Trabajo, estudio, ejercicio…"></label><button type="submit" class="button primary">Guardar autovaloración</button></form></section>',
-'<section class="obs-block"><h3>Clasificar una reflexión</h3><p>El texto se analiza en este navegador mediante coincidencias literales, sin enviar nada a servicios externos. Se guarda solo si eliges hacerlo. Cada observación conserva una frase, pero no recibe una puntuación inventada.</p>',
+'<section class="obs-block"><h3>Clasificar una reflexión</h3><p>El motor local aplica reglas contextuales, distingue dificultades, recursos y negaciones explícitas, y evita algunos casos ambiguos. No es IA generativa ni una evaluación clínica validada. No se envía texto a servicios externos. Se guarda solo si eliges hacerlo. Cada observación conserva una frase, pero no recibe una puntuación inventada.</p>',
 '<label for="obs-text">Fragmento de conversación o diario</label><textarea id="obs-text" maxlength="6000" rows="5" placeholder="Pega el fragmento que quieras clasificar, sin datos de terceros."></textarea>',
 '<div class="obs-inline"><button class="button primary" id="obs-analyze" type="button">Identificar indicadores</button><button class="button secondary" id="obs-clear" type="button">Limpiar</button></div><div id="obs-suggestions" class="obs-suggestions"></div></section>',
-'<section class="obs-block"><h3>Analizar mi historial recuperado</h3><p>Lee solo las reflexiones y situaciones ya importadas en este navegador. Las coincidencias se buscan en tus palabras, no en los resúmenes de IA. Revisa las propuestas antes de guardar. No se modifica el historial original ni se envía texto a otro servicio.</p>',
+'<section class="obs-block"><h3>Analizar mi historial recuperado</h3><p>Lee solo las reflexiones y situaciones ya importadas en este navegador. Las reglas contextuales se aplican a las palabras atribuidas a ti, no a los resúmenes de IA. Revisa las propuestas antes de guardar. No se modifica el historial original ni se envía texto a otro servicio.</p>',
 '<div class="obs-form"><label>Desde (opcional)<input type="date" id="obs-history-from"></label><label>Hasta (opcional)<input type="date" id="obs-history-to"></label></div>',
 '<div class="obs-inline"><button type="button" id="obs-history-scan" class="button primary">Revisar historial</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados sin puntuación</button></div>',
 '<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
+'<section class="obs-block"><h3>Patrones para investigar</h3><p>Co-menciones en días de registro; no son correlaciones ni prevalencia de síntomas. Una mención aislada no demuestra nada.</p><div id="obs-patterns" class="obs-entry-list"></div></section>',
 '<section class="obs-block"><h3>Historial de evidencias</h3><div id="obs-entries" class="obs-entry-list"></div></section>',
 '<section class="obs-block"><h3>Resultados de cuestionarios</h3><p>Registro manual de instrumentos realizados fuera de Rumbo. Los resultados no se interpretan clínicamente. WHO-5: escala original 0–25.</p>',
 '<form class="obs-form" id="obs-q-form"><label>Instrumento<select name="instrument"><option>PHQ-9</option><option>GAD-7</option><option>WHO-5</option><option>OCI-R</option><option>WSAS</option></select></label>',
@@ -211,14 +199,15 @@ $('obs-self-form').addEventListener('submit',async e=>{
 $('obs-analyze').addEventListener('click',()=>{
  const text=$('obs-text').value.trim(),box=$('obs-suggestions');box.replaceChildren();
  if(!text){say('Pega primero un fragmento.');return;}
+ if(!engine){say('El motor no está disponible. Recarga la aplicación.');return;}
  const found=classify(text);
  if(!found.length){box.append(node('p','obs-empty','No hay coincidencias explícitas. No se asigna ninguna puntuación.'));return;}
  for(const result of found){
   const div=node('article','obs-suggestion');
-  div.append(node('strong','',title(result.dimension)),node('p','',result.evidence),node('small','','Posible indicador · coincidencia literal; requiere revisión.'));
+  div.append(node('strong','',title(result.dimension)),node('p','',result.evidence),node('small','','Propuesta contextual · '+analysisLabel(result)+' · requiere revisión.'));
   const button=node('button','button secondary','Guardar sin puntuación');button.type='button';
   button.addEventListener('click',async()=>{
-   try{const entry={id:crypto.randomUUID(),date:day(),dimension:result.dimension,source:'texto',value:null,evidence:result.evidence,context:'Fragmento aportado voluntariamente'};
+   try{const entry={id:crypto.randomUUID(),date:day(),dimension:result.dimension,source:'texto',value:null,evidence:result.evidence,context:'Fragmento aportado voluntariamente',analysis:metadata(result,'fecha de anotación')};
     await save({...records,entries:[...records.entries,entry]});button.disabled=true;say('Observación guardada sin puntuación.');
    }catch{say('No se pudo guardar.');}
   });div.append(button);box.append(div);
@@ -266,6 +255,7 @@ $('obs-history-scan').addEventListener('click',async()=>{
   const store=JSON.parse(raw);
   if(!window.RumboHistoryVault?.validStore(store))throw Error('El historial tiene un formato incompatible; no se ha modificado.');
   const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
+  if(!engine)throw Error('El motor no está disponible. Recarga la aplicación.');
   const proposed=[],limit=200;let missing=0,matched=0;
   for(const item of [...store.entries].sort((a,b)=>b.date.localeCompare(a.date))){
    const p=item.payload;
@@ -283,7 +273,7 @@ $('obs-history-scan').addEventListener('click',async()=>{
     if(seen.has(id))continue;
     seen.add(id);matched++;
     if(proposed.length>=limit)continue;
-    proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso'});
+    proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,original?'registro original':'fecha de registro')});
    }
   }
   if(locked||key!==active||from!==$('obs-history-from').value||to!==$('obs-history-to').value)return;
@@ -292,7 +282,7 @@ $('obs-history-scan').addEventListener('click',async()=>{
    const card=node('article','obs-suggestion'),label=node('label',''),check=node('input','');
    check.type='checkbox';check.dataset.historyId=entry.id;
    label.append(check,document.createTextNode(' '+title(entry.dimension)+' · '+entry.date));
-   card.append(label,node('p','',entry.evidence),node('small','',entry.context+' · coincidencia literal; no diagnóstico'));
+   card.append(label,node('p','',entry.evidence),node('small','',entry.context+' · '+analysisLabel(entry.analysis)+' · no diagnóstico'));
    $('obs-history-list').append(card);
   }
   $('obs-history-save').hidden=!proposed.length;
@@ -347,19 +337,21 @@ $('obs-report').addEventListener('click',()=>{
   lines.push(label+': '+p.length+' días · primera '+p[0].value+'/4 ('+p[0].day+') · última '+p[p.length-1].value+'/4 ('+p[p.length-1].day+') · '+trend(p)+'.');
  }
  if(!self.some(x=>x.value!==null))lines.push('Sin autovaloraciones numéricas en este periodo.');
- lines.push('', '3. TEMAS MENCIONADOS (coincidencias textuales revisables; no frecuencia de síntomas)');
+ lines.push('', '3. TEMAS MENCIONADOS (observaciones textuales revisables; no frecuencia de síntomas)');
  for(const [id,label] of DIM){
   const matches=observed.filter(x=>x.dimension===id);
   if(matches.length)lines.push(label+': '+matches.length+' registros en '+new Set(matches.map(x=>x.date)).size+' días.');
  }
  if(!observed.length)lines.push('Sin observaciones textuales guardadas.');
+ const patterns=engine?.patterns(e)||[];
+ if(patterns.length){lines.push('', 'PATRONES EXPLORATORIOS (co-menciones por fecha de registro; no causalidad)');for(const p of patterns)lines.push(p.question+' '+p.both+' días con ambas menciones; '+p.onlyA+' solo la primera; '+p.onlyB+' solo la segunda. Explorar circunstancias compartidas y hábitos de registro.');}
  lines.push('', '4. CUESTIONARIOS (puntuación manual, sin interpretación)');
  const q=records.questionnaires.filter(inPeriod).sort((a,b)=>a.date.localeCompare(b.date));
  lines.push(...(q.length?q.map(x=>x.date+' · '+x.instrument+': '+x.total):['Sin resultados registrados.']));
  if($('obs-report-evidence').checked){
   lines.push('', '5. FRAGMENTOS Y CONTEXTO (revisar antes de compartir)');
   const examples=e.filter(x=>x.evidence||x.context).sort((a,b)=>b.date.localeCompare(a.date));
-  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')):['Sin fragmentos asociados.']));
+  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis):'')):['Sin fragmentos asociados.']));
   if(examples.length>20)lines.push('Se muestran los 20 registros más recientes de '+examples.length+'.');
  }
  if($('obs-report-hypotheses').checked){
