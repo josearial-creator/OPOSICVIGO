@@ -1,0 +1,157 @@
+/* Mi espacio · cuaderno privado, motivador y sin métricas de presión.
+   Solo diseño visual; conserva sincronización, cifrado y datos existentes. */
+#mi-espacio{background:transparent}
+#mi-espacio .esp-header{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ padding:clamp(20px,4vw,34px);
+ margin:0 0 20px;
+ border-radius:22px;
+ border:1px solid #cce4db;
+ background:linear-gradient(114deg,#e5f3eb 0%,#f4fbf7 55%,#fffaf1 100%);
+ box-shadow:0 7px 24px rgba(19,68,56,.045);
+}
+#mi-espacio .esp-header .eyebrow{
+ color:#176d59;font-size:11px;font-weight:800;letter-spacing:.11em;
+}
+#mi-espacio .esp-header h2{
+ margin:8px 0 8px;font-size:clamp(26px,3.4vw,36px);line-height:1.16;
+ letter-spacing:-.045em;color:#13382f;
+}
+#mi-espacio .esp-header p{
+ margin:0;max-width:55ch;color:#48685c;font-size:15px;line-height:1.6;
+}
+#mi-espacio .esp-header-art{
+ flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+ width:116px;height:116px;border-radius:24px;background:rgba(255,255,255,.55);
+}
+#mi-espacio .esp-writing-card{
+ padding:clamp(18px,3vw,30px);background:#fff;
+ border:1px solid #dbe7df;border-radius:21px;
+ box-shadow:0 7px 27px rgba(27,58,44,.055);
+}
+#mi-espacio .esp-writing-top{
+ display:flex;align-items:center;gap:11px;
+ color:#527569;font-size:13px;font-weight:600;
+}
+#mi-espacio .esp-writing-icon{
+ width:36px;height:36px;display:grid;place-items:center;
+ border-radius:12px;background:#e2f4e9;color:#126951;
+ font-size:24px;font-weight:700;
+}
+#mi-espacio .esp-writing-date{text-transform:capitalize}
+#mi-espacio #esp-writing-heading{
+ margin:16px 0 6px;font-size:clamp(22px,2.5vw,27px);
+ letter-spacing:-.03em;color:#183e35;
+}
+#mi-espacio .esp-writing-lead{
+ margin:0 0 15px;font-size:14px;color:#567167;line-height:1.55;
+}
+#mi-espacio .esp-prompt-list{
+ display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;
+}
+#mi-espacio .esp-prompt{
+ min-height:40px;padding:8px 13px;border-radius:999px;
+ border:1px solid #d2e4da;background:#f6faf7;color:#28634d;
+ font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+ transition:background-color .15s,border-color .15s;
+}
+#mi-espacio .esp-prompt:hover,
+#mi-espacio .esp-prompt[aria-pressed="true"]{
+ border-color:#78bea0;background:#e5f5eb;color:#17583c;
+}
+#mi-espacio .esp-editor-label{
+ display:block;margin:0 0 8px;color:#305746;font-size:13px;font-weight:750;
+}
+#mi-espacio #esp-text{
+ display:block;margin:0;width:100%;min-height:195px;
+ background:linear-gradient(#fff,#fff) padding-box,
+  linear-gradient(125deg,#a9d4bd,#d5ded0) border-box;
+ border:1.5px solid transparent;border-radius:14px;
+ padding:17px 18px;color:#203d31;font-size:16px;
+ line-height:1.75;resize:vertical;box-shadow:inset 0 1px 3px rgba(30,60,40,.02);
+}
+#mi-espacio #esp-text::placeholder{color:#788e82}
+#mi-espacio #esp-text:focus{
+ border:1.5px solid #0b6e64;outline:3px solid #c8e8d8;outline-offset:2px;
+}
+#mi-espacio .esp-editor-meta{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:8px;margin:10px 1px 16px;font-size:12px;color:#718879;
+}
+#mi-espacio #esp-save{
+ background:#0b6e64;color:#fff;border-color:#0b6e64;
+ border-radius:11px;box-shadow:0 5px 13px rgba(11,110,100,.13);font-weight:750;
+}
+#mi-espacio #esp-save:hover:not(:disabled){
+ background:#09594f;border-color:#09594f;
+}
+#mi-espacio .esp-writing-card>.esp-actions{margin:0 0 10px}
+#mi-espacio #esp-draft-status{
+ margin:9px 0 0;padding-left:2px;font-size:12px;color:#58766b;
+}
+#mi-espacio .esp-list-heading{
+ margin-top:30px;padding-top:22px;border-top:1px solid #e4eae4;
+}
+#mi-espacio .esp-list-heading h3{
+ color:#1c4639;letter-spacing:-.02em;font-size:19px;
+}
+#mi-espacio #esp-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:13px;margin-top:14px;
+}
+#mi-espacio .esp-note{
+ min-width:0;margin:0;padding:19px;
+ border:1px solid #e0e9df;border-radius:16px;background:#fffefa;
+ box-shadow:0 4px 16px rgba(35,61,40,.045);
+}
+#mi-espacio .esp-note:nth-child(3n+2){background:#f5faf7}
+#mi-espacio .esp-note time{color:#627a6a;font-size:12px}
+#mi-espacio .esp-note p{
+ margin:11px 0 16px;color:#274a3a;line-height:1.65;
+ overflow-wrap:anywhere;white-space:pre-wrap;
+}
+#mi-espacio .esp-note .esp-actions{margin:0;gap:7px}
+#mi-espacio .esp-note .button{
+ min-height:40px;padding:8px 11px;font-size:12px;
+}
+#mi-espacio .esp-empty-state{
+ grid-column:1/-1;display:flex;align-items:center;flex-direction:column;
+ text-align:center;padding:36px 18px;
+ border:1px dashed #a8cdb6;background:#f8fcf8;border-radius:17px;
+}
+#mi-espacio .esp-empty-icon{
+ display:grid;place-items:center;width:49px;height:49px;
+ border-radius:16px;background:#e0f2e7;color:#277454;
+ font-size:26px;margin-bottom:12px;
+}
+#mi-espacio .esp-empty-state strong{font-size:18px;color:#234f3c}
+#mi-espacio .esp-empty-state p{
+ max-width:44ch;font-size:14px;line-height:1.55;color:#587266;
+}
+#mi-espacio .esp-empty-state .button{
+ background:white;border-color:#b6d5c2;color:#215a42;
+}
+#mi-espacio .esp-prompt:focus-visible,
+#mi-espacio .esp-empty-state .button:focus-visible{
+ outline:3px solid #0b6e64;outline-offset:3px;
+}
+@media(max-width:700px){
+ #mi-espacio .esp-header{padding:21px 17px;border-radius:17px}
+ #mi-espacio .esp-header-art{width:70px;height:70px;border-radius:16px}
+ #mi-espacio .esp-header-art svg{width:67px;height:67px}
+ #mi-espacio .esp-header h2{font-size:27px}
+ #mi-espacio .esp-header p{font-size:13px}
+ #mi-espacio .esp-writing-card{padding:17px 14px;border-radius:17px}
+ #mi-espacio #esp-text{min-height:180px;padding:14px;font-size:16px}
+ #mi-espacio #esp-list{grid-template-columns:1fr;gap:11px}
+ #mi-espacio .esp-note{padding:16px}
+ #mi-espacio .esp-prompt-list{gap:7px}
+ #mi-espacio .esp-prompt{min-height:42px;padding:8px 11px}
+}
+@media(max-width:380px){
+ #mi-espacio .esp-header-art{display:none}
+ #mi-espacio .esp-editor-meta{flex-direction:column;align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+ #mi-espacio .esp-prompt{transition:none}
+}
