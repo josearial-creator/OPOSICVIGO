@@ -35,10 +35,29 @@ const assert=require('node:assert/strict');
    assert.ok(entries.some(x=>x.includes('sin puntuación')));
    stored=await page.evaluate(()=>localStorage.getItem('rumbo-observatorio-encrypted-v1'));
    assert.ok(!stored.includes('derrotado'));
-   await page.getByRole('button',{name:'Preparar resumen de 30 días'}).click();
+   await page.getByRole('button',{name:'Preparar informe',exact:true}).click();
    assert.equal(await page.locator('#obs-report-text').isVisible(),true);
    assert.match(await page.locator('#obs-report-text').inputValue(),/Autovaloraciones: 1/);
+   assert.ok(!(await page.locator('#obs-report-text').inputValue()).includes('Tengo ansiedad'),'Fragmentos excluidos por defecto');
+   const reportTo=await page.locator('#obs-report-to').inputValue();
+   await page.locator('#obs-report-to').fill('2000-01-01');
+   await page.getByRole('button',{name:'Preparar informe',exact:true}).click();
+   assert.equal(await page.locator('#obs-report-text').isVisible(),false,'Periodo invertido no genera informe');
+   await page.locator('#obs-report-to').fill(reportTo);
+   await page.locator('#obs-report-evidence').check();
+   await page.getByRole('button',{name:'Preparar informe',exact:true}).click();
+   assert.match(await page.locator('#obs-report-text').inputValue(),/Tengo ansiedad/);
+   await page.locator('#obs-report-text').fill('Informe revisado de prueba');
+   page.once('dialog',dialog=>dialog.accept());
+   const downloaded=page.waitForEvent('download');
+   await page.locator('#obs-report-download').click();
+   const download=await downloaded;
+   assert.match(download.suggestedFilename(),/^rumbo-informe-consulta-.*\.txt$/);
+   const fs=require('node:fs/promises');
+   assert.equal(await fs.readFile(await download.path(),'utf8'),'Informe revisado de prueba');
    await page.locator('#obs-lock').click();
+   assert.equal(await page.locator('#obs-report-text').inputValue(),'','Cerrar borra el texto en memoria');
+   assert.equal(await page.locator('#obs-report-download').isVisible(),false);
    assert.equal(await page.locator('#obs-private').isVisible(),false);
    await page.reload();
    await page.locator('#observatorio-personal').waitFor({state:'visible'});
@@ -49,6 +68,29 @@ const assert=require('node:assert/strict');
    assert.ok(sent.every(x=>!x.includes('observatorio')),'Observatorio no envía contenidos a ningún endpoint');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Diseño móvil sin overflow');
    assert.deepEqual(errors,[],'Sin excepciones JS');
+   // Fixture sintética, nunca datos reales.
+   await page.evaluate(()=>localStorage.setItem('rumbo-historial-importado-v1',JSON.stringify({version:1,entries:[
+    {id:'reflection:fixture-1',kind:'reflection',date:'2026-01-15',title:'Prueba',payload:{date:'2026-01-15',sourceReference:'fixture-origin-1',reported:'Tengo miedo durante una tarea.',summary:'Me siento derrotado.'}},
+    {id:'reflection:fixture-2',kind:'reflection',date:'2026-01-15',title:'Duplicado de prueba',payload:{date:'2026-01-15',sourceReference:'fixture-origin-1',reported:'Tengo miedo durante una tarea.'}},
+    {id:'reflection:fixture-3',kind:'reflection',date:'2026-01-15',title:'Sin palabras originales',payload:{date:'2026-01-15',summary:'Tengo ansiedad.'}}
+   ]})));
+   await page.locator('#obs-history-scan').click();
+   await page.locator('#obs-history-list article').first().waitFor({state:'visible'});
+   assert.equal(await page.locator('#obs-history-list article').count(),1,'Ignora resumen IA y duplicados');
+   assert.match(await page.locator('#obs-history-list').innerText(),/Ansiedad · 2026-01-15/);
+   assert.equal(await page.locator('#obs-history-list input:checked').count(),0);
+   assert.match(await page.locator('#obs-count').innerText(),/2 indicadores/,'Revisar no guarda');
+   await page.locator('#obs-history-list input').check();
+   await page.locator('#obs-history-save').click();
+   await page.waitForFunction(()=>document.getElementById('obs-count').textContent.startsWith('3 indicadores'));
+   assert.match(await page.locator('#obs-entries').innerText(),/Historial recuperado/);
+   const historical=page.locator('#obs-entries article').filter({hasText:'2026-01-15'});
+   page.once('dialog',d=>d.accept());
+   await historical.getByRole('button',{name:'Eliminar'}).click();
+   await page.waitForFunction(()=>document.getElementById('obs-count').textContent.startsWith('2 indicadores'));
+   await page.locator('#obs-history-scan').click();
+   await page.waitForFunction(()=>document.getElementById('obs-history-status').textContent.includes('0 propuestas nuevas'));
+   assert.equal(await page.locator('#obs-history-list article').count(),0,'No reimporta observaciones eliminadas');
    await context.close();
   }
   console.log('PASS Observatorio: bóveda cifrada, fuentes separadas, texto opt-in, informe, persistencia y móvil.');

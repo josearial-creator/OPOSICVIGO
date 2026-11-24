@@ -137,7 +137,7 @@ function render(){
   for(const [name,fn] of [
    ['Abrir',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;updateWordCount();$('esp-text').focus();mark('Anotación abierta. Puedes modificarla y guardar.');}],
    ['Editar',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;updateWordCount();$('esp-text').focus();}],
-   ['Borrar',async()=>{if(!confirm('¿Borrar definitivamente esta anotación?'))return;try{await api('/'+n.id,'DELETE');notes=notes.filter(x=>x.id!==n.id);if(editing===n.id)editing=null;render();mark('Anotación borrada.');}catch(e){mark('No se pudo borrar: '+e.message);}}]
+   ['Borrar',async()=>{if(!confirm('¿Borrar definitivamente esta anotación?'))return;try{await api('/'+n.id,'DELETE');notes=notes.filter(x=>x.id!==n.id);if(editing===n.id)editing=null;render();window.dispatchEvent(new Event('rumbo:diario-cambiado'));mark('Anotación borrada.');}catch(e){mark('No se pudo borrar: '+e.message);}}]
   ]){const btn=document.createElement('button');btn.type='button';btn.className='button secondary';btn.textContent=name;btn.addEventListener('click',fn);actions.append(btn);}
   card.append(actions);list.append(card);
  }
@@ -152,6 +152,7 @@ async function enterPrivate(pass,share){
   $('esp-disconnect').hidden=false;$('esp-password').value='';
   if(draftWritable)mark('Acceso autorizado.');
   if(share)window.RumboSession?.unlock(pass);
+  window.dispatchEvent(new Event('rumbo:diario-disponible'));
  }catch(e){token='';mark('No se pudo acceder: '+e.message);}
  finally{lock(false);}
 }
@@ -165,9 +166,17 @@ async function leavePrivate(share=true){
  key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
  $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
  $('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';
- mark('Sesión cerrada.');lock(false);return true;
+ mark('Sesión cerrada.');lock(false);window.dispatchEvent(new Event('rumbo:diario-cerrado'));return true;
 }
-window.RumboPrivateSpace=Object.freeze({close:()=>leavePrivate(true)});
+// Puente de solo lectura en memoria. No incluye contraseña, borrador ni metadatos de sesión.
+window.RumboPrivateSpace=Object.freeze({
+ close:()=>leavePrivate(true),
+ readForObservatory:()=>{
+  if(!token||$('esp-private').hidden)return null;
+  return notes.filter(n=>n&&typeof n.id==='string'&&typeof n.text==='string'&&typeof n.createdAt==='string')
+   .map(n=>({id:n.id,text:n.text.slice(0,10000),createdAt:n.createdAt,updatedAt:n.updatedAt}));
+ }
+});
 $('esp-connect').addEventListener('click',()=>{
  const pass=$('esp-password').value;
  if(!pass){mark('Introduce la contraseña privada.');return;}
@@ -200,6 +209,7 @@ $('esp-save').addEventListener('click',async()=>{
   if(index>=0)notes[index]=data.note;else notes.unshift(data.note);
   notes.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));render();
   mark('Anotación guardada');$('esp-new').hidden=false;$('esp-mood').hidden=false;
+  window.dispatchEvent(new Event('rumbo:diario-guardado'));
   await persistDraft('');
   $('esp-draft-status').textContent='Guardada en el servidor privado.';
  }catch(e){mark('No se ha confirmado el guardado: '+e.message+' Conserva el texto y vuelve a intentarlo.');}
@@ -222,7 +232,7 @@ $('esp-export').addEventListener('click',()=>{
 });
 $('esp-delete-all').addEventListener('click',async()=>{
  if(!confirm('¿Eliminar DEFINITIVAMENTE todas tus anotaciones del servidor? Esta operación no se puede deshacer.'))return;
- try{await api('','DELETE');notes=[];editing=null;$('esp-text').value='';$('esp-mood').hidden=true;$('esp-new').hidden=true;await persistDraft('');render();mark('Anotaciones y borrador eliminados.');}
+ try{await api('','DELETE');notes=[];editing=null;$('esp-text').value='';$('esp-mood').hidden=true;$('esp-new').hidden=true;await persistDraft('');render();window.dispatchEvent(new Event('rumbo:diario-cambiado'));mark('Anotaciones y borrador eliminados.');}
  catch(e){mark('No se pudieron eliminar todas: '+e.message);}
 });
 const Recognizer=window.SpeechRecognition||window.webkitSpeechRecognition;
