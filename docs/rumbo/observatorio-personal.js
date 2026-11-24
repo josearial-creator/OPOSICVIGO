@@ -32,7 +32,7 @@ function valid(d){
   dateOK(q.date)&&['PHQ-9','GAD-7','WHO-5','OCI-R','WSAS'].includes(q.instrument)&&Number.isInteger(q.total)&&q.total>=0&&q.total<=150)&&
   (d.historySeen===undefined||(Array.isArray(d.historySeen)&&d.historySeen.length<=100000&&d.historySeen.every(x=>typeof x==='string'&&/^history-[a-f0-9]{64}-[a-z]+$/.test(x))))&&
   Array.isArray(d.hypotheses)&&d.hypotheses.length<=100&&d.hypotheses.every(h=>
-  typeof h.text==='string'&&h.text.length<=300&&typeof h.plan==='string'&&h.plan.length<=500);
+  typeof h.text==='string'&&h.text.length<=300&&typeof h.plan==='string'&&h.plan.length<=500&&(h.outcomes===undefined||(Array.isArray(h.outcomes)&&h.outcomes.length<=30&&h.outcomes.every(o=>o&&dateOK(o.date)&&['util','sin cambio','peor','incierto'].includes(o.rating)&&typeof o.note==='string'&&o.note.length<=500))));
 }
 function to64(bytes){let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);}
 function from64(s){return Uint8Array.from(atob(s),x=>x.charCodeAt(0));}
@@ -48,7 +48,7 @@ async function save(next){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();historyCandidates=[];$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyCandidates=[];$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 async function unlock(){
  const pass=$('obs-password').value;
@@ -95,6 +95,15 @@ function miniChart(points){
  poly.setAttribute('points',last.map((p,i)=>(12+(last.length===1?0:i*286/(last.length-1)))+','+(98-p.value*22)).join(' '));svg.append(poly);
  return svg;
 }
+const ACTIONS={
+ 'urgencia:atencion':{idea:'Reducir demandas simultáneas: preparar una sola acción concreta, con material listo y sin notificaciones.',measure:'Observar en una actividad habitual si resulta más fácil empezar y continuar; anotar también obstáculos externos.',topic:'Consultar apoyos psicológicos estructurados para dificultades ejecutivas, si procede.',url:'https://www.nice.org.uk/guidance/ng87/chapter/recommendations'},
+ 'urgencia:inhibicion':{idea:'Preparar una transición de bajo esfuerzo: dejar anotado el siguiente paso antes de pasar a otra actividad habitual.',measure:'Valorar si facilita el cambio sin aumentar la tensión ni las comprobaciones. No usar como ritual.',topic:'Explorar con el profesional la función de la urgencia; valorar EPR si existe TOC y está indicada. No iniciar exposición por cuenta propia.',url:'https://www.nice.org.uk/guidance/cg31/chapter/Recommendations'},
+ 'autoeficacia:animo':{idea:'Elegir una actividad cotidiana pequeña y significativa cuyo resultado sea observable, sin exigir que mejore el ánimo.',measure:'Anotar qué se pudo hacer y si la experiencia fue útil, neutra o costosa; observar también circunstancias externas.',topic:'Valorar activación conductual o TCC con el profesional si existe indicación.',url:'https://www.nice.org.uk/guidance/ng222/chapter/recommendations'},
+ 'autocuidado:disfrute':{idea:'Proteger tiempo para una actividad cotidiana agradable y viable, sin forzarse a disfrutar ni superar marcas.',measure:'Observar si aporta disfrute o recuperación y qué factores pueden influir; adaptar a la salud y energía.',topic:'Valorar activación conductual y equilibrio entre actividades con el profesional.',url:'https://www.nice.org.uk/guidance/ng222/chapter/recommendations'},
+ 'incertidumbre:rumiacion':{idea:'Preparar para consulta un ejemplo breve del contexto y de la respuesta habitual, sin revisar repetidamente el registro.',measure:'Acordar con el profesional qué respuesta alternativa evaluar; suspender si el registro fomenta comprobaciones.',topic:'Valorar con el profesional si la EPR es pertinente; no iniciar ejercicios de exposición sin acordarlos.',url:'https://www.nice.org.uk/guidance/cg31/chapter/Recommendations'}
+};
+function actionFor(p){return ACTIONS[p.a+':'+p.b]||ACTIONS[p.b+':'+p.a];}
+
 function render(){
  if(locked)return;
  $('obs-count').textContent=records.entries.length+' indicadores · '+records.questionnaires.length+' cuestionarios · '+records.hypotheses.length+' hipótesis';
@@ -112,6 +121,14 @@ function render(){
   card.append(node('strong','',p.question),node('p','','Co-menciones: '+p.both+' días; solo '+title(p.a)+': '+p.onlyA+'; solo '+title(p.b)+': '+p.onlyB+'; '+p.days+' días con observaciones contextuales elegibles.'),
    node('small','','Ejemplos de fechas: '+p.examples.join(', ')+'. Son fechas de registros, no necesariamente de los acontecimientos.'),
    node('p','','Alternativas: circunstancias compartidas, cambios en hábitos de registro o en el contexto. No hay evidencia causal. Pregunta para consulta: ¿qué ocurrió antes y después?'));
+  const idea=actionFor(p);
+  if(idea){
+   card.append(node('strong','','Posible actuación para explorar (no tratamiento personalizado)'),node('p','',idea.idea),node('p','','Qué observar: '+idea.measure),node('p','',idea.topic));
+   const link=node('a','','Guía clínica de referencia (NICE)');link.href=idea.url;link.target='_blank';link.rel='noopener noreferrer';card.append(link);
+   const add=node('button','button secondary','Preparar hipótesis y actuación');add.type='button';
+   add.addEventListener('click',()=>{if(locked)return;const f=$('obs-h-form').elements;if((f.text.value||f.plan.value)&&!confirm('¿Sustituir el borrador de hipótesis?'))return;f.text.value=p.question;f.plan.value=('Actuación: '+idea.idea+' Qué observar: '+idea.measure+' Revisar con el profesional si corresponde; detener si aumenta malestar.').slice(0,500);f.text.focus();});
+   card.append(add);
+  }
   patternBox.append(card);
  }
  const list=$('obs-entries');list.replaceChildren();
@@ -135,7 +152,19 @@ function render(){
   q.append(node('p','obs-entry',item.instrument+' · '+item.date+' · '+item.total+' (introducido manualmente, no interpretado)'));
  }
  const h=$('obs-hypotheses');h.replaceChildren();
- for(const item of records.hypotheses){const box=node('article','obs-entry');box.append(node('strong','',item.text),node('p','',item.plan));h.append(box);}
+ for(const item of records.hypotheses){
+  const box=node('article','obs-entry');box.append(node('strong','',item.text),node('p','',item.plan));
+  for(const o of item.outcomes||[]){box.append(node('small','',o.date+' · '+o.rating+' (resultado percibido; no causalidad)'),node('p','',o.note));}
+  const form=node('form','obs-form'),label=node('label','','Resultado observado (opcional)'),select=node('select','');
+  for(const [v,t] of [['','Seleccionar'],['util','Me resultó útil'],['sin cambio','No noté cambio'],['peor','Me produjo malestar o empeoré'],['incierto','No puedo determinarlo']]){const opt=node('option','',t);opt.value=v;select.append(opt);}
+  select.required=true;label.append(select);const noteLabel=node('label','','Qué pasó y qué más pudo influir'),note=node('textarea','');note.maxLength=500;note.rows=2;noteLabel.append(note);
+  const submit=node('button','button secondary','Guardar resultado');submit.type='submit';form.append(label,noteLabel,submit);
+  form.addEventListener('submit',async e=>{e.preventDefault();if(locked||!select.value)return;const rating=select.value;if(!['util','sin cambio','peor','incierto'].includes(rating))return;
+   const current=records.hypotheses.find(x=>x.id===item.id);if(!current)return;if((current.outcomes||[]).length>=30){say('Límite de 30 resultados para esta hipótesis.');return;}
+   const next={...current,outcomes:[...(current.outcomes||[]),{date:day(),rating,note:note.value.trim().slice(0,500)}]};
+   try{await save({...records,hypotheses:records.hypotheses.map(x=>x.id===item.id?next:x)});say(rating==='peor'?'Resultado guardado. No insistas en la actuación; revísala con tu profesional.':'Resultado guardado. No demuestra por sí solo que la actuación causó el cambio.');}catch{say('No se pudo guardar el resultado.');}
+  });box.append(form);h.append(box);
+ }
 }
 root.innerHTML=[
 '<section class="obs-head"><div class="eyebrow">MI EVOLUCIÓN · INVESTIGACIÓN PERSONAL</div><h2>Observatorio emocional</h2>',
@@ -165,7 +194,7 @@ root.innerHTML=[
 '<section class="obs-block"><h3>Resultados de cuestionarios</h3><p>Registro manual de instrumentos realizados fuera de Rumbo. Los resultados no se interpretan clínicamente. WHO-5: escala original 0–25.</p>',
 '<form class="obs-form" id="obs-q-form"><label>Instrumento<select name="instrument"><option>PHQ-9</option><option>GAD-7</option><option>WHO-5</option><option>OCI-R</option><option>WSAS</option></select></label>',
 '<label>Fecha<input name="day" type="date" required></label><label>Puntuación total<input type="number" name="total" min="0" max="150" step="1" required></label><button type="submit" class="button secondary">Registrar puntuación</button></form><div id="obs-questionnaires"></div></section>',
-'<section class="obs-block"><h3>Hipótesis y experimentos</h3><p>Contrasta relaciones considerando explicaciones alternativas. Una correlación no demuestra causalidad.</p>',
+'<section class="obs-block"><h3>Hipótesis y experimentos</h3><p>Contrasta relaciones considerando explicaciones alternativas. Una correlación no demuestra causalidad. Registra solo resultados que te resulten útiles; no es obligatorio hacerlo a diario. Si una actuación aumenta el malestar o la necesidad de comprobar, déjala y coméntala en consulta.</p>',
 '<form class="obs-form" id="obs-h-form"><label>Hipótesis<input name="text" maxlength="300" required placeholder="El ejercicio se relaciona con un mejor estado de ánimo"></label>',
 '<label>Cómo probarla<textarea name="plan" rows="3" maxlength="500" required placeholder="Registrar antes/después, contrastar con días sin ejercicio y controlar sueño."></textarea></label><button type="submit" class="button secondary">Guardar hipótesis</button></form><div id="obs-hypotheses"></div></section>',
 '<section class="obs-block"><h3>Informe para la consulta</h3><p>Selecciona el periodo desde tu última consulta. Revisa y edita el informe antes de compartirlo. No se envía automáticamente ni sustituye una valoración clínica.</p>',
@@ -358,7 +387,7 @@ $('obs-report').addEventListener('click',()=>{
  }
  if($('obs-report-hypotheses').checked){
   lines.push('', 'HIPÓTESIS Y EXPERIMENTOS (sin fecha; no necesariamente del periodo)');
-  lines.push(...(records.hypotheses.length?records.hypotheses.map(h=>h.text+' | Plan: '+h.plan):['Sin hipótesis guardadas.']));
+  lines.push(...(records.hypotheses.length?records.hypotheses.map(h=>h.text+' | Plan: '+h.plan+((h.outcomes||[]).length?' | Resultados del periodo (percibidos): '+h.outcomes.filter(o=>o.date>=from&&o.date<=to).map(o=>o.date+' '+o.rating+(o.note?' — '+o.note:'')).join('; '):'')):['Sin hipótesis guardadas.']));
  }
  lines.push('', 'NOTAS PARA LA CONSULTA (completar voluntariamente)','Acontecimientos relevantes: ','Repercusión en la vida diaria: ','Cambios de tratamiento percibidos: ','Estrategias y resultados observados: ','Preguntas para el profesional: ','','Los patrones no demuestran causalidad. Revisar junto al profesional.');
  $('obs-report-text').value=lines.join('\n');$('obs-report-text').hidden=false;$('obs-report-download').hidden=false;$('obs-report-text').focus();say('Informe preparado. Puedes editarlo y retirar información antes de exportar.');
