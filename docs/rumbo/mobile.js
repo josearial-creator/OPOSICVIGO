@@ -18,7 +18,7 @@
     hoy: [['inicio','Portada'],['mi-dia','Mi día'],['panel-hoy','Mi radar']],
     oposiciones: [['convocatorias','Convocatorias'],['favoritos','Favoritas'],['apuntes-estudio','Apuntes']],
     diario: [['mi-espacio','Mi espacio'],['ev-diary','Diario'],['historial-rumbo','Historial'],
-      ['mi-evolucion','Mis prácticas'],['ev-training','Entrenamiento']],
+      ['mi-evolucion','Mis prácticas'],['observatorio-personal','Observatorio emocional'],['ev-training','Entrenamiento']],
     mas: [['productividad','Productividad'],['proyectos','Proyectos'],
       ['metricas-personales','Métricas'],['copias-rumbo','Copias']]
   };

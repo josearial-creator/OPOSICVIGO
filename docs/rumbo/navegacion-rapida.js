@@ -7,7 +7,7 @@
   ['panel-hoy','Mi radar','Organización'],['convocatorias','Convocatorias','Oposiciones'],
   ['favoritos','Favoritas','Oposiciones'],['apuntes-estudio','Apuntes de estudio','Oposiciones'],
   ['mi-espacio','Mi espacio','Diario'],['ev-diary','Diario','Diario'],
-  ['historial-rumbo','Historial recuperado','Diario'],['mi-evolucion','Mis prácticas','Diario'],
+  ['historial-rumbo','Historial recuperado','Diario'],['mi-evolucion','Mis prácticas','Diario'],['observatorio-personal','Observatorio emocional','Diario'],
   ['ev-training','Entrenamiento','Diario'],['productividad','Productividad','Herramientas'],
   ['proyectos','Proyectos','Herramientas'],['metricas-personales','Métricas','Herramientas']
  ];
