@@ -85,13 +85,13 @@ function uniqueByDimension(input){
   if(!old){grouped.set(hit.dimension,hit);continue;}
   if(old.direction!==hit.direction&&old.direction!=='mixto'){
    // Mantener ambas expresiones; nunca elegir arbitrariamente una.
-   grouped.set(hit.dimension,{...old,direction:'mixto',evidence:(old.evidence+' | '+hit.evidence).slice(0,300),additionalEvidence:{index:hit.index,end:hit.end,match:hit.match}});
+   grouped.set(hit.dimension,{...old,direction:'mixto',additionalEvidence:{index:hit.index,end:hit.end,match:hit.match}});
   }
  }
  return [...grouped.values()];
 }
 // Explorar co-menciones por día: no inferir correlación ni ausencia de síntomas.
-const PAIRS=[['urgencia','atencion','¿Coinciden las menciones de urgencia con dificultades de atención?'],['urgencia','inhibicion','¿Qué sucede con la capacidad de parar cuando aparece la urgencia?'],['autoeficacia','animo','¿Cómo se relacionan las menciones de capacidad y estado de ánimo?'],['autocuidado','disfrute','¿Coinciden los registros de autocuidado y disfrute?'],['incertidumbre','rumiacion','¿Coinciden las menciones de incertidumbre y pensamiento repetitivo?']];
+const PAIRS=[['urgencia','atencion','¿Coinciden las menciones de urgencia y atención?'],['urgencia','inhibicion','¿Qué sucede con la capacidad de parar cuando aparece la urgencia?'],['autoeficacia','animo','¿Cómo se relacionan las menciones de capacidad y estado de ánimo?'],['autocuidado','disfrute','¿Coinciden los registros de autocuidado y disfrute?'],['incertidumbre','rumiacion','¿Coinciden las menciones de incertidumbre y pensamiento repetitivo?']];
 function patterns(entries){
  const days=new Map();
  for(const e of entries){
