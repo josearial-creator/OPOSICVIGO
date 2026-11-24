@@ -43,9 +43,9 @@ home.innerHTML=[
 '<p id="assistant-advice" class="assistant-recommendation" role="status" aria-live="polite" hidden></p>',
 '</section>',
 '<div class="assistant-today-grid">',
-'<section class="assistant-card assistant-capture-card" aria-labelledby="assistant-capture-heading"><h3 id="assistant-capture-heading">Anotar y seguir</h3>',
-'<form id="assistant-capture" class="assistant-inline"><label>Anota algo sin interrumpir tu día<input name="text" maxlength="1000" required placeholder="Ej.: Llamar, repasar, preguntar…"></label><button class="button primary" type="submit">Guardar</button></form>',
-'<p class="assistant-muted">Queda en tu bandeja para otro momento.</p>',
+'<section class="assistant-card assistant-capture-card" aria-labelledby="assistant-capture-heading"><h3 id="assistant-capture-heading">Nueva tarea</h3>',
+'<form id="assistant-capture" class="assistant-inline"><label>¿Qué tienes que hacer?<input name="text" maxlength="1000" required placeholder="Ej.: Repasar el tema 3"></label><button class="button primary" type="submit">Crear tarea</button></form>',
+'<p class="assistant-muted">Las tareas que crees aquí aparecerán en la bandeja de entrada.</p>',
 '<p class="assistant-status" id="assistant-message" role="status" aria-live="polite"></p></section>',
 '<section class="assistant-card assistant-options-card" aria-labelledby="assistant-options-heading"><h3 id="assistant-options-heading">Organizar cuando quieras</h3>',
 '<details id="assistant-priority-details" class="assistant-disclosure"><summary>Mis prioridades <span id="assistant-priority-count"></span></summary><div id="assistant-priorities"></div></details>',
@@ -206,7 +206,7 @@ $('assistant-step-form').addEventListener('submit',e=>{
 $('assistant-capture').addEventListener('submit',e=>{e.preventDefault();const input=e.target.elements.text,text=input.value.trim();
  if(!text)return;
  state.items.push({id:uid(),text,done:false,nextStep:'',createdAt:new Date().toISOString()});
- if(save()){input.value='';render();note('Guardado en tu bandeja. Puedes organizarlo cuando quieras.');}
+ if(save()){input.value='';render();note('Tarea creada en tu bandeja de entrada.');}
 });
 $('assistant-energy').addEventListener('change',e=>{state.energy=e.target.value;commitRender();});
 ['assistant-event-at','assistant-event-title'].forEach(id=>$(id).addEventListener('change',()=>{
