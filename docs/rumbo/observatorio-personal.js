@@ -65,7 +65,7 @@ async function save(next){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();}
+ if(value){key=null;salt=null;records=empty();for(const id of ['obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;}}
 }
 async function unlock(){
  const pass=$('obs-password').value;
