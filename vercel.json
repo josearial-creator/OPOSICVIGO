@@ -21,6 +21,12 @@
   ],
   "rewrites": [
     {
+      "source": "/agenda-semanal",
+      "destination": {
+        "service": "rumbo-ia"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
         "service": "app"
