@@ -5,7 +5,10 @@ import firebase_admin
 from firebase_admin import auth
 from flask import Flask, request, jsonify
 
+from agenda_semanal import register_calendar
+
 app = Flask(__name__)
+register_calendar(app)
 firebase_admin.initialize_app()
 MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 API_KEY = os.getenv("GEMINI_API_KEY")
