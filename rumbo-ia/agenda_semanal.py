@@ -19,8 +19,10 @@ def calendar_week():
     if not isinstance(url, str) or len(url) > 2048 or not FEED.fullmatch(url):
         return jsonify(error="Introduce la dirección secreta iCal de Google Calendar."), 400
     today = datetime.now(MADRID).date()
-    monday = today - timedelta(days=today.weekday())
-    start = datetime.combine(monday, time.min, MADRID)
+    # On Saturday, preview the week that begins tomorrow.
+    tomorrow = today + timedelta(days=1)
+    sunday = tomorrow - timedelta(days=(tomorrow.weekday() + 1) % 7)
+    start = datetime.combine(sunday, time.min, MADRID)
     end = start + timedelta(days=7)
     try:
         with requests.get(url, timeout=(4, 12), stream=True, allow_redirects=False) as upstream:
@@ -39,18 +41,18 @@ def calendar_week():
             when = event.decoded("DTSTART")
             all_day = not isinstance(when, datetime)
             if all_day:
-                day = max(when, monday)
+                day = max(when, sunday)
                 hour = ""
             else:
                 if when.tzinfo is None:
                     when = when.replace(tzinfo=MADRID)
                 when = when.astimezone(MADRID)
-                day = max(when.date(), monday)
-                hour = when.strftime("%H:%M") if when.date() >= monday else "En curso"
+                day = max(when.date(), sunday)
+                hour = when.strftime("%H:%M") if when.date() >= sunday else "En curso"
             if day < end.date():
                 rows.append(dict(day=day.isoformat(), hour=hour, title=str(event.get("SUMMARY") or "Ocupado")))
         rows.sort(key=lambda row: (row["day"], row["hour"], row["title"]))
-        return jsonify(start=monday.isoformat(), events=rows)
+        return jsonify(start=sunday.isoformat(), last=(end.date() - timedelta(days=1)).isoformat(), events=rows)
     except Exception:
         return jsonify(error="No se pudo leer tu calendario. Comprueba la conexión y la dirección iCal."), 502
 

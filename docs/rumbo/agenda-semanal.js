@@ -18,7 +18,7 @@
     details.open = !url;
     refresh.hidden = disconnect.hidden = !url;
     card.querySelector('summary').textContent = url ? 'Configurar calendario' : 'Conectar Google Calendar';
-    if (!url) status.textContent = 'Conecta tu calendario para ver aquí tus citas de lunes a domingo.';
+    if (!url) status.textContent = 'Conecta tu calendario para ver aquí tus citas de domingo a sábado.';
   }
   async function read(candidate = url, connect = false) {
     if (!candidate) return;
@@ -38,19 +38,17 @@
         form.reset();
         controls();
       }
-      status.textContent = data.events.length ? 'Semana del ' + dateLabel.format(new Date(data.start + 'T12:00:00Z')) : 'Esta semana no tienes citas en este calendario.';
-      let previousDay = '', items;
-      for (const event of data.events) {
-        if (event.day !== previousDay) {
-          const heading = document.createElement('h4');
-          heading.textContent = dateLabel.format(new Date(event.day + 'T12:00:00Z'));
-          items = document.createElement('ul');
-          list.append(heading, items);
-          previousDay = event.day;
+      const formatDay = day => dateLabel.format(new Date(day + 'T12:00:00Z'));
+      status.textContent = 'Del ' + formatDay(data.start) + ' al ' + formatDay(data.last) +
+        (data.events.length ? '' : ' · Sin citas.');
+      if (data.events.length) {
+        const items = document.createElement('ul');
+        for (const event of data.events) {
+          const item = document.createElement('li');
+          item.textContent = [formatDay(event.day), event.hour || 'Todo el día', event.title].join(' · ');
+          items.append(item);
         }
-        const item = document.createElement('li');
-        item.textContent = (event.hour || 'Todo el día') + ' · ' + event.title;
-        items.append(item);
+        list.append(items);
       }
     } catch (error) {
       if (id === generation) status.textContent = error instanceof SyntaxError ? 'El servicio de agenda no está disponible en esta versión.' : (error.message || 'No se pudo cargar la agenda.');
