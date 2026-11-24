@@ -17,7 +17,7 @@ const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
 const day=()=>new Date().toLocaleDateString('sv-SE');
 const en=new TextEncoder(),de=new TextDecoder();
-let historyCandidates=[],historyBusy=false;
+let historyCandidates=[],historyBusy=false,historyMode='imported',historyGeneration=0;
 let key=null,salt=null,locked=true,records={version:1,entries:[],questionnaires:[],hypotheses:[]};
 const title=id=>DIM.find(x=>x[0]===id)?.[1]||id;
 const say=text=>{$('obs-status').textContent=text;};
@@ -48,7 +48,7 @@ async function save(next){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();historyCandidates=[];$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 async function unlock(){
  const pass=$('obs-password').value;
@@ -187,7 +187,9 @@ root.innerHTML=[
 '<div class="obs-inline"><button class="button primary" id="obs-analyze" type="button">Identificar indicadores</button><button class="button secondary" id="obs-clear" type="button">Limpiar</button></div><div id="obs-suggestions" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Analizar mi historial recuperado</h3><p>Lee solo las reflexiones y situaciones ya importadas en este navegador. Las reglas contextuales se aplican a las palabras atribuidas a ti, no a los resúmenes de IA. Revisa las propuestas antes de guardar. No se modifica el historial original ni se envía texto a otro servicio.</p>',
 '<div class="obs-form"><label>Desde (opcional)<input type="date" id="obs-history-from"></label><label>Hasta (opcional)<input type="date" id="obs-history-to"></label></div>',
-'<div class="obs-inline"><button type="button" id="obs-history-scan" class="button primary">Revisar historial</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados sin puntuación</button></div>',
+'<div class="obs-inline"><button type="button" id="obs-history-scan" class="button primary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados sin puntuación</button></div>',
+'<p>Para revisar el diario privado, abre Mi espacio e inicia sesión primero. Las notas pueden contener citas o resúmenes: se clasifican como texto del diario, no como palabras verificadas tuyas. El análisis no cambia ni elimina las notas.</p>',
+'<label><input type="checkbox" id="obs-diary-auto"> Preparar propuestas al guardar notas (solo mientras ambas sesiones estén abiertas; no guarda observaciones sin revisión)</label>',
 '<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Patrones para investigar</h3><p>Co-menciones en días de registro; no son correlaciones ni prevalencia de síntomas. Una mención aislada no demuestra nada.</p><div id="obs-patterns" class="obs-entry-list"></div></section>',
 '<section class="obs-block"><h3>Historial de evidencias</h3><div id="obs-entries" class="obs-entry-list"></div></section>',
@@ -259,7 +261,7 @@ $('obs-h-form').addEventListener('submit',async e=>{
 
 const historyStatus=t=>{$('obs-history-status').textContent=t;};
 function resetHistory(){
- historyCandidates=[];$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;
+ historyGeneration++;historyCandidates=[];$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;
 }
 for(const id of ['obs-history-from','obs-history-to'])$(id).addEventListener('change',()=>{resetHistory();historyStatus('Vuelve a revisar el periodo.');});
 const strictDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&dateOK(s)&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
@@ -274,20 +276,29 @@ async function historyId(source,dimension){
  const digest=await crypto.subtle.digest('SHA-256',en.encode(source));
  return 'history-'+Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('')+'-'+dimension;
 }
-$('obs-history-scan').addEventListener('click',async()=>{
+async function scanHistory(mode='imported'){
  if(locked||historyBusy)return;
- resetHistory();historyBusy=true;$('obs-history-scan').disabled=true;
- const active=key,from=$('obs-history-from').value,to=$('obs-history-to').value;
+ resetHistory();historyMode=mode;historyBusy=true;$('obs-history-scan').disabled=true;$('obs-diary-scan').disabled=true;
+ const active=key,generation=historyGeneration,from=$('obs-history-from').value,to=$('obs-history-to').value;
  try{
   if((from&&!strictDay(from))||(to&&!strictDay(to))||(from&&to&&from>to))throw Error('Selecciona fechas válidas.');
-  const raw=localStorage.getItem('rumbo-historial-importado-v1');
-  if(!raw){historyStatus('No hay historial recuperado en este navegador. Importa o recupera primero tu historial en Rumbo.');return;}
-  const store=JSON.parse(raw);
-  if(!window.RumboHistoryVault?.validStore(store))throw Error('El historial tiene un formato incompatible; no se ha modificado.');
+  let items;
+  if(mode==='diary'){
+   const notes=window.RumboPrivateSpace?.readForObservatory();
+   if(!notes){historyStatus('Abre Mi espacio e inicia sesión para revisar el diario privado.');return;}
+   items=notes.slice(0,1000).filter(n=>n&&typeof n.id==='string'&&typeof n.text==='string')
+    .map(n=>({id:'diary:'+n.id,date:n.createdAt,kind:'diary',payload:{text:n.text,edited:n.updatedAt!==n.createdAt}}));
+  }else{
+   const raw=localStorage.getItem('rumbo-historial-importado-v1');
+   if(!raw){historyStatus('No hay historial recuperado en este navegador. Importa o recupera primero tu historial en Rumbo.');return;}
+   const store=JSON.parse(raw);
+   if(!window.RumboHistoryVault?.validStore(store))throw Error('El historial tiene un formato incompatible; no se ha modificado.');
+   items=store.entries;
+  }
   const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
   if(!engine)throw Error('El motor no está disponible. Recarga la aplicación.');
   const proposed=[],limit=200;let missing=0,matched=0;
-  for(const item of [...store.entries].sort((a,b)=>b.date.localeCompare(a.date))){
+  for(const item of [...items].sort((a,b)=>b.date.localeCompare(a.date))){
    const p=item.payload;
    // No usar el resumen de IA como si fueran palabras del usuario.
    const text=item.kind==='reflection'?p.reported:p.text;
@@ -303,10 +314,11 @@ $('obs-history-scan').addEventListener('click',async()=>{
     if(seen.has(id))continue;
     seen.add(id);matched++;
     if(proposed.length>=limit)continue;
-    proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,original?'registro original':'fecha de registro')});
+    proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:item.kind==='diary'?'Diario privado · fecha de creación; autoría y fecha del suceso sin verificar':original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,item.kind==='diary'?'fecha de anotación':original?'registro original':'fecha de registro')});
    }
   }
-  if(locked||key!==active||from!==$('obs-history-from').value||to!==$('obs-history-to').value)return;
+  if(locked||key!==active||generation!==historyGeneration||from!==$('obs-history-from').value||to!==$('obs-history-to').value)return;
+  if(mode==='diary'&&!window.RumboPrivateSpace?.readForObservatory())return;
   historyCandidates=proposed;
   for(const entry of proposed){
    const card=node('article','obs-suggestion'),label=node('label',''),check=node('input','');
@@ -318,11 +330,24 @@ $('obs-history-scan').addEventListener('click',async()=>{
   }
   $('obs-history-save').hidden=!proposed.length;
   historyStatus(matched+' propuestas nuevas; '+proposed.length+' visibles. '+missing+' registros sin texto atribuible o fecha válida (no clasificados). '+(matched>limit?'Acota las fechas para revisar las restantes. ':'')+'Selecciona solo las que consideres pertinentes.');
- }catch(e){if(!locked&&key===active)historyStatus(e.message||'No se pudo revisar el historial.');}
- finally{historyBusy=false;$('obs-history-scan').disabled=false;}
+ }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
+ finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;}
+}
+$('obs-history-scan').addEventListener('click',()=>void scanHistory('imported'));
+$('obs-diary-scan').addEventListener('click',()=>void scanHistory('diary'));
+function invalidateDiary(){if(historyMode==='diary'){resetHistory();if(!locked)historyStatus('El diario cambió. Vuelve a revisarlo; las observaciones ya guardadas se conservan.');}}
+window.addEventListener('rumbo:diario-cerrado',()=>{invalidateDiary();$('obs-diary-auto').checked=false;});
+window.addEventListener('rumbo:diario-cambiado',invalidateDiary);
+window.addEventListener('rumbo:diario-guardado',()=>{
+ if(locked)return;
+ invalidateDiary();
+ if(!$('obs-diary-auto').checked)return;
+ if(historyBusy||historyCandidates.length){historyStatus('Hay una revisión pendiente. Puedes revisar el diario después.');return;}
+ void scanHistory('diary');
 });
 $('obs-history-save').addEventListener('click',async()=>{
  if(locked||historyBusy)return;
+ if(historyMode==='diary'&&!window.RumboPrivateSpace?.readForObservatory()){invalidateDiary();return;}
  const chosen=new Set(Array.from($('obs-history-list').querySelectorAll('input:checked'),x=>x.dataset.historyId));
  const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
  const selected=historyCandidates.filter(e=>chosen.has(e.id)&&!seen.has(e.id));
