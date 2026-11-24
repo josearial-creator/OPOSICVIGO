@@ -5,8 +5,12 @@ const endpointDefault='https://rumbo-entrenador.jose-arial.workers.dev';
 const $=id=>document.getElementById(id), enc=new TextEncoder(),dec=new TextDecoder();
 let token='',key=null,notes=[],editing=null,recognition=null,dirty=false,createId=null;
 const mark=t=>{$('esp-status').textContent=t;};
+function updateWordCount(){
+ const words=$('esp-text').value.trim().split(/\s+/u).filter(Boolean).length;
+ $('esp-word-count').textContent=words+' '+(words===1?'palabra':'palabras');
+}
 root.innerHTML=`
-<div class="esp-header"><div><div class="eyebrow">PERSONAL Y PRIVADO</div><h2>Mi espacio</h2><p>Escribe lo que necesites, sin categorías obligatorias.</p></div></div>
+<div class="esp-header"><div class="esp-header-copy"><div class="eyebrow">TU CUADERNO PRIVADO</div><h2>Un lugar para tus ideas.</h2><p>No hace falta escribir mucho ni hacerlo perfecto. Una frase también cuenta.</p></div><div class="esp-header-art" aria-hidden="true"><svg viewBox="0 0 112 112" width="112" height="112" fill="none"><rect x="21" y="12" width="70" height="87" rx="11" fill="#F9FFFC" stroke="#AED8CB" stroke-width="2"/><path d="M39 32h35M39 45h29M39 58h35M39 71h19" stroke="#B6CFC8" stroke-width="3" stroke-linecap="round"/><path d="M83 51l17-17 8 8-17 17-13 5 5-13Z" fill="#0B6E64" stroke="#FBFFFD" stroke-width="2"/><path d="M83 51l8 8" stroke="#D7F4EA" stroke-width="2"/></svg></div></div>
 <div class="esp-login">
  <div id="esp-login-form" class="esp-login-form">
   <label for="esp-password">Contraseña privada de Rumbo</label>
@@ -26,14 +30,26 @@ root.innerHTML=`
  </div>
 </div>
 <div id="esp-private" hidden>
- <label for="esp-text">¿Qué tienes en mente?</label>
- <textarea id="esp-text" rows="5" maxlength="10000" aria-describedby="esp-draft-status" placeholder="Empieza a escribir aquí…"></textarea>
+ <section class="esp-writing-card" aria-labelledby="esp-writing-heading">
+  <div class="esp-writing-top"><span class="esp-writing-icon" aria-hidden="true">✎</span><span id="esp-date-label" class="esp-writing-date"></span></div>
+  <h3 id="esp-writing-heading">¿Qué tienes en mente?</h3>
+  <p class="esp-writing-lead">Una idea, algo que recordar o simplemente lo que te apetezca contar.</p>
+  <div class="esp-prompt-list" role="group" aria-label="Ideas para empezar a escribir">
+   <button type="button" class="esp-prompt" data-esp-prompt="Hoy quiero recordar…">Algo que recordar</button>
+   <button type="button" class="esp-prompt" data-esp-prompt="Se me ha ocurrido una idea…">Una idea</button>
+   <button type="button" class="esp-prompt" data-esp-prompt="Hoy me ha pasado…">Mi día</button>
+   <button type="button" class="esp-prompt" data-esp-prompt="Algo que tengo pendiente…">Un pendiente</button>
+  </div>
+  <label for="esp-text" class="esp-editor-label">Tu anotación</label>
+  <textarea id="esp-text" rows="5" maxlength="10000" aria-describedby="esp-draft-status esp-word-count" placeholder="Escribe como te salga. Aquí no hay respuestas correctas."></textarea>
+  <div class="esp-editor-meta"><span>Solo para ti · sin categorías obligatorias</span><span id="esp-word-count" aria-live="off">0 palabras</span></div>
  <div class="esp-actions">
   <button id="esp-save" class="button primary" type="button">Guardar</button>
   <button id="esp-new" class="button secondary" type="button" hidden>Nueva anotación</button>
   <button id="esp-mic" class="button secondary" type="button">Dictar</button>
  </div>
  <p class="assistant-muted" id="esp-draft-status">El borrador se conserva cifrado en este navegador.</p>
+ </section>
  <div id="esp-mood" hidden><span>Si quieres, ¿cómo te encuentras?</span><div class="esp-actions"><button type="button" data-mood="bien" class="button secondary">Bien</button><button type="button" data-mood="regular" class="button secondary">Regular</button><button type="button" data-mood="mal" class="button secondary">Mal</button><button type="button" data-mood="" class="button secondary">Omitir</button></div></div>
  <div class="esp-list-heading"><h3>Anotaciones recientes</h3><span id="esp-count" aria-live="polite">0 anotaciones</span></div>
  <div id="esp-list"></div>
@@ -79,31 +95,48 @@ async function unlockDraft() {
    dirty=!!$('esp-text').value;}
    catch {draftWritable=false;mark('El borrador anterior no se pudo recuperar. No se sobrescribirá.');return;}
  }
- draftWritable=true;$('esp-draft-status').textContent='El borrador se conserva cifrado automáticamente.';
+ draftWritable=true;updateWordCount();$('esp-draft-status').textContent='El borrador se conserva cifrado automáticamente.';
 }
 let timer;
 let busy=false;
 function lock(value){busy=value;root.querySelectorAll('button,input,textarea').forEach(el=>{el.disabled=value||(el.id==='esp-mic'&&!Recognizer);});}
 function stopDictation(){if(recognition){recognition.abort();recognition=null;}$('esp-mic').textContent='Dictar';}
 $('esp-text').addEventListener('input',()=>{
+ updateWordCount();
  dirty=true;$('esp-new').hidden=true;$('esp-mood').hidden=true;
  clearTimeout(timer);timer=setTimeout(()=>persistDraft($('esp-text').value).then(()=>$('esp-draft-status').textContent='Borrador conservado.').catch(()=>$('esp-draft-status').textContent='No se pudo conservar el borrador; copia el texto antes de salir.'),250);
 });
+$('esp-date-label').textContent=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+root.querySelectorAll('.esp-prompt').forEach(button=>button.addEventListener('click',()=>{
+ const editor=$('esp-text');if(editor.disabled)return;
+ // Solo orientar la escritura: no cambiar ni guardar notas ni sustituir borradores.
+ editor.placeholder=button.dataset.espPrompt;
+ editor.focus();
+ root.querySelectorAll('.esp-prompt').forEach(x=>x.setAttribute('aria-pressed',String(x===button)));
+}));
 async function load(){const data=await api();notes=data.notes;render();}
 function render(){
  const amount=notes.length, summary=amount+' '+(amount===1?'anotación':'anotaciones');
  $('esp-count').textContent=summary;
  $('esp-session-count').textContent=summary+' disponibles en el servidor';
  const list=$('esp-list');list.replaceChildren();
- if(!notes.length){const p=document.createElement('p');p.textContent='Aún no hay anotaciones.';list.append(p);return;}
+ if(!notes.length){
+  const welcome=document.createElement('div');welcome.className='esp-empty-state';
+  const symbol=document.createElement('span');symbol.className='esp-empty-icon';symbol.setAttribute('aria-hidden','true');symbol.textContent='✦';
+  const h=document.createElement('strong');h.textContent='Tu cuaderno empieza aquí';
+  const p=document.createElement('p');p.textContent='Cuando guardes tu primera nota, aparecerá en este espacio. Puedes comenzar con una sola frase.';
+  const start=document.createElement('button');start.type='button';start.className='button secondary';start.textContent='Escribir mi primera nota';
+  start.addEventListener('click',()=>{$('esp-text').focus();$('esp-text').scrollIntoView({block:'center',behavior:'smooth'});});
+  welcome.append(symbol,h,p,start);list.append(welcome);return;
+ }
  for(const n of notes){
   const card=document.createElement('article');card.className='esp-note';
   const date=document.createElement('time');date.textContent=new Date(n.createdAt).toLocaleString('es-ES');card.append(date);
   const excerpt=document.createElement('p');excerpt.textContent=n.text.length>220?n.text.slice(0,220)+'…':n.text;card.append(excerpt);
   const actions=document.createElement('div');actions.className='esp-actions';
   for(const [name,fn] of [
-   ['Abrir',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();mark('Anotación abierta. Puedes modificarla y guardar.');}],
-   ['Editar',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;$('esp-text').focus();}],
+   ['Abrir',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;updateWordCount();$('esp-text').focus();mark('Anotación abierta. Puedes modificarla y guardar.');}],
+   ['Editar',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);editing=n.id;createId=null;$('esp-text').value=n.text;dirty=false;$('esp-new').hidden=false;updateWordCount();$('esp-text').focus();}],
    ['Borrar',async()=>{if(!confirm('¿Borrar definitivamente esta anotación?'))return;try{await api('/'+n.id,'DELETE');notes=notes.filter(x=>x.id!==n.id);if(editing===n.id)editing=null;render();mark('Anotación borrada.');}catch(e){mark('No se pudo borrar: '+e.message);}}]
   ]){const btn=document.createElement('button');btn.type='button';btn.className='button secondary';btn.textContent=name;btn.addEventListener('click',fn);actions.append(btn);}
   card.append(actions);list.append(card);
@@ -172,7 +205,7 @@ $('esp-save').addEventListener('click',async()=>{
  }catch(e){mark('No se ha confirmado el guardado: '+e.message+' Conserva el texto y vuelve a intentarlo.');}
  finally{lock(false);}
 });
-$('esp-new').addEventListener('click',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);dirty=false;editing=null;createId=null;$('esp-text').value='';$('esp-new').hidden=true;$('esp-mood').hidden=true;persistDraft('').catch(()=>{});$('esp-text').focus();mark('Nueva anotación.');});
+$('esp-new').addEventListener('click',()=>{if(busy||(dirty&&!confirm('¿Descartar los cambios sin guardar?')))return;clearTimeout(timer);dirty=false;editing=null;createId=null;$('esp-text').value='';updateWordCount();$('esp-new').hidden=true;$('esp-mood').hidden=true;persistDraft('').catch(()=>{});$('esp-text').focus();mark('Nueva anotación.');});
 $('esp-mood').addEventListener('click',async e=>{
  const mood=e.target.dataset?.mood;if(mood===undefined)return;
  if(!editing){$('esp-mood').hidden=true;return;}
