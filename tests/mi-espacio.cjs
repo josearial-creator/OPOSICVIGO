@@ -42,6 +42,7 @@ const assert=require('node:assert/strict');
  assert.match(await page.locator('#esp-session-count').innerText(),/0 anotaciones/);
  assert.equal(await page.locator('#esp-text').inputValue(),legacyText);
  assert.equal(await page.locator('link[href="cuaderno-inspirador.css"]').count(),1,'Cuaderno visual conectado');
+ assert.equal(await page.locator('.esp-writing-card').isVisible(),true,'Editor acogedor y visible tras acceder');
  assert.equal(await page.locator('.esp-prompt').count(),4,'Ideas para empezar visibles');
  assert.equal(await page.locator('.esp-empty-state').isVisible(),true,'Bienvenida sin notas');
  await page.getByRole('button',{name:'Una idea',exact:true}).click();
