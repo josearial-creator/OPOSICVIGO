@@ -89,6 +89,7 @@ const assert=require('node:assert/strict');
  await page.locator('#obs-password').fill('clave-observatorio-de-prueba-12345');
  await page.locator('#obs-open').click();
  await page.locator('#obs-private').waitFor({state:'visible',timeout:15000});
+ await page.locator('[data-obs-tab="registros"]').click();
  // Revisión conjunta: una nota del diario y una reflexión histórica ficticia.
  await page.evaluate(()=>localStorage.setItem('rumbo-historial-importado-v1',JSON.stringify({version:1,entries:[
   {id:'reflection:joint-fixture',kind:'reflection',date:'2026-01-20',title:'Prueba conjunta',payload:{date:'2026-01-20',sourceReference:'joint-fixture',reported:'Me siento derrotado.'}}

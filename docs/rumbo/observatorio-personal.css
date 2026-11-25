@@ -39,3 +39,15 @@
 #obs-report-text{display:block;width:100%;margin-top:12px}
 @media(max-width:850px){.obs-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.obs-metrics,.obs-entry-list,.obs-form{grid-template-columns:1fr}.obs-inline>*{flex:1}.obs-toolbar{justify-content:flex-start}}
+
+/* Observatorio 2.0: navegación compacta, gráficas y revisión de evidencias. */
+.obs-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.obs-tabs button,#obs-period button{min-height:44px;padding:9px 14px;border:1px solid #bbd7cc;border-radius:10px;background:#fff;color:#235449;font:inherit;font-weight:650;cursor:pointer}
+.obs-tabs button[aria-pressed=true],#obs-period button[aria-pressed=true]{background:#0b6e64;color:white;border-color:#0b6e64}
+#obs-large-chart svg{display:block;width:100%;height:auto;max-height:400px}
+.obs-legend{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.obs-legend span{padding-left:8px;font-size:13px}
+.obs-chart-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;overflow-wrap:anywhere}
+.obs-chart-table th,.obs-chart-table td{padding:8px 4px;border-bottom:1px solid #d7e5df;text-align:left}
+.obs-review summary,#obs-chart-detail summary{cursor:pointer;font-weight:650;color:#235449;padding:10px 0}
+@media(max-width:560px){.obs-tabs button{flex:1 1 30%;padding:8px}.obs-chart-table{font-size:10px}.obs-chart-table td,.obs-chart-table th{padding:5px 2px}}

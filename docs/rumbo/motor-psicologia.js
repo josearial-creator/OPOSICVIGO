@@ -3,9 +3,35 @@
  const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RumboPsychEngine=api;
 })(typeof globalThis==='object'?globalThis:this,function(){
 'use strict';
-const VERSION='reglas-contextuales-1.0';
+const VERSION='reglas-contextuales-2.0';
 /* Etiquetas de lo referido, no valencia clínica ni puntuación. */
 const RULES=[
+ ['atencion','dificultad','conducta',/\b(?:no puedo concentrarme|me cuesta mantener la concentraci[oó]n|no consigo mantener el foco|me cuesta seguir rutinas largas|pierdo el foco|me he dispersado)\b/iu],
+ ['atencion','recurso','conducta',/\b(?:he mantenido el foco|he podido concentrarme|he estudiado sin distraerme)\b/iu],
+ ['animo','malestar','emoción',/\b(?:me siento deca[ií]d[oa]|no tengo ganas de nada|me siento ap[aá]tic[oa]|estoy de baj[oó]n|me siento sin esperanza)\b/iu],
+ ['animo','recurso','emoción',/\b(?:me siento m[aá]s animad[oa]|estoy content[oa]|me siento feliz)\b/iu],
+ ['ansiedad','malestar','emoción',/\b(?:me siento nervios[oa]|siento ansiedad|estoy muy nervios[oa]|me preocupa constantemente|me siento inquiet[oa]|me siento en tensi[oó]n)\b/iu],
+ ['ansiedad','recurso','emoción',/\b(?:me siento tranquil[oa]|estoy tranquil[oa]|me he calmado)\b/iu],
+ ['urgencia','dificultad','pensamiento',/\b(?:siento urgencia|tengo prisa por terminar|tengo necesidad de terminar|tengo urgencia)\b/iu],
+ ['urgencia','recurso','pensamiento',/\b(?:he tolerado dejarlo pendiente|puedo dejarlo sin terminar|he podido esperar)\b/iu],
+ ['autoeficacia','dificultad','pensamiento',/\b(?:no conf[ií]o en m[ií]|me siento incapaz|no me veo capaz|no me siento competente|siento que no puedo hacerlo)\b/iu],
+ ['autoeficacia','recurso','pensamiento',/\b(?:me siento competente|sensaci[oó]n de competencia|he confiado en m[ií]|he podido hacerlo|me veo capaz)\b/iu],
+ ['disfrute','recurso','emoción',/\b(?:me lo he pasado bien|me ha gustado hacerlo|lo he disfrutado|me siento a gusto)\b/iu],
+ ['disfrute','dificultad','emoción',/\b(?:no consigo disfrutar|he perdido el inter[eé]s|nada me apetece)\b/iu],
+ ['inhibicion','recurso','conducta',/\b(?:he conseguido parar|he podido parar|me he detenido|he frenado el impulso)\b/iu],
+ ['inhibicion','dificultad','conducta',/\b(?:no consigo parar|no he podido parar|no s[eé] parar|me cuesta parar)\b/iu],
+ ['flexibilidad','recurso','conducta',/\b(?:he retomado mi tarea|he vuelto a estudiar|he cambiado de actividad|he continuado estudiando)\b/iu],
+ ['flexibilidad','dificultad','conducta',/\b(?:me cuesta cambiar de actividad|no he podido cambiar de tarea|me cuesta seguir el plan)\b/iu],
+ ['aprobacion','dificultad','pensamiento',/\b(?:necesito (?:la )?aprobaci[oó]n|necesito (?:la )?validaci[oó]n|no me siento querid[oa]|no me siento respetad[oa]|no me siento tenid[oa] en cuenta)\b/iu],
+ ['aprobacion','recurso','pensamiento',/\b(?:no necesito la aprobaci[oó]n|me siento respetad[oa]|me siento querid[oa]|me siento tenid[oa] en cuenta)\b/iu],
+ ['hiperfoco','dificultad','conducta',/\b(?:no he logrado detener el hiperfoco|me he quedado en hiperfoco|no consigo salir del hiperfoco|me he quedado absort[oa]|me cuesta salir del hiperfoco)\b/iu],
+ ['hiperfoco','recurso','conducta',/\b(?:he salido del hiperfoco|he logrado detener el hiperfoco)\b/iu],
+ ['autocritica','dificultad','pensamiento',/\b(?:me critico constantemente|me culpo|soy un fracaso|me siento defectuos[oa]|me reprocho)\b/iu],
+ ['autocritica','recurso','pensamiento',/\b(?:he sido m[aá]s comprensiv[oa] conmigo|me he tratado con respeto)\b/iu],
+ ['incertidumbre','recurso','pensamiento',/\b(?:he tolerado la incertidumbre|he dejado una duda sin resolver|puedo aceptar no saber)\b/iu],
+ ['frustracion','recurso','emoción',/\b(?:he tolerado la frustraci[oó]n|he aceptado el error|he soportado la frustraci[oó]n)\b/iu],
+ ['evitacion','dificultad','conducta',/\b(?:he pospuesto el estudio|he evitado estudiar|he dejado la tarea prioritaria|he pospuesto la tarea)\b/iu],
+
  ['animo','malestar','emoción',/\b(?:estoy triste|me siento (?:triste|vac[ií][oa]|desanimad[oa]|hundid[oa])|estoy desanimad[oa]|no tengo [aá]nimo)\b/iu],
  ['animo','recurso','emoción',/\b(?:me siento bien|estoy de buen humor|me siento animad[oa])\b/iu],
  ['ansiedad','malestar','emoción',/\b(?:tengo ansiedad|estoy ansios[oa]|tengo miedo|estoy nervios[oa]|me siento agobiad[oa])\b/iu],
@@ -78,6 +104,23 @@ function analyze(input){
  }
  return {observations,abstained};
 }
+// Solo vincular cifras a una dimensión nombrada expresamente.
+function explicitScores(input){
+ if(typeof input!=='string')return [];
+ const aliases={animo:'(?:estado de [aá]nimo|[aá]nimo)',ansiedad:'ansiedad',urgencia:'urgencia(?: por terminar)?',atencion:'(?:atenci[oó]n|concentraci[oó]n)',autoeficacia:'(?:autoeficacia|sensaci[oó]n de competencia)',disfrute:'disfrute',frustracion:'frustraci[oó]n',rumiacion:'rumiaci[oó]n',inhibicion:'(?:control inhibitorio|capacidad de parar)',incertidumbre:'(?:tolerancia a la incertidumbre|incertidumbre)'};
+ const out=[];
+ for(const [dimension,alias] of Object.entries(aliases)){
+  const re=new RegExp('\\b'+alias+'\\s*(?::|=|de|fue|es)?\\s*(\\d{1,2})(?:[.,](\\d))?\\s*(?:/|sobre|de)\\s*(10|4)\\b','giu');
+  for(const h of input.slice(0,12000).matchAll(re)){
+   const prefix=input.slice(0,h.index),start=Math.max(prefix.lastIndexOf('.'),prefix.lastIndexOf('\n'),prefix.lastIndexOf(';'))+1;
+   const context=input.slice(start,h.index+h[0].length+1);
+   if(/[?¿"'«»“”]/u.test(context)||/\b(?:ayer|mañana|si|quiz[aá]s?|dice|dijo|antes|no)\b/iu.test(context))continue;
+   const value=Number(h[1]+(h[2]?'.'+h[2]:'')),max=Number(h[3]);
+   if(value>=0&&value<=max)out.push({dimension,value,max,match:h[0],index:h.index,end:h.index+h[0].length});
+  }
+ }
+ return out;
+}
 function uniqueByDimension(input){
  const grouped=new Map();
  for(const hit of analyze(input).observations){
@@ -87,6 +130,13 @@ function uniqueByDimension(input){
    // Mantener ambas expresiones; nunca elegir arbitrariamente una.
    grouped.set(hit.dimension,{...old,direction:'mixto',additionalEvidence:{index:hit.index,end:hit.end,match:hit.match}});
   }
+ }
+ for(const score of explicitScores(input)){
+  const old=grouped.get(score.dimension);
+  if(old?.scoreConflict)continue;
+  if(old?.reportedScore&&(old.reportedScore.value!==score.value||old.reportedScore.max!==score.max)){old.reportedScore=null;old.scoreConflict=true;continue;}
+  if(old){old.reportedScore=score;continue;}
+  grouped.set(score.dimension,{dimension:score.dimension,direction:'valor declarado',kind:'pensamiento',index:score.index,end:score.end,match:score.match,evidence:score.match,temporal:'no especificado',method:VERSION,reportedScore:score});
  }
  return [...grouped.values()];
 }
@@ -109,5 +159,5 @@ function patterns(entries){
   return {a,b,question,both,onlyA,onlyB,days:days.size,examples:examples.sort().slice(-6)};
  }).filter(x=>x.both>=3);
 }
-return Object.freeze({VERSION,analyze,uniqueByDimension,patterns});
+return Object.freeze({VERSION,analyze,uniqueByDimension,explicitScores,patterns});
 });

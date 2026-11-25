@@ -171,10 +171,16 @@ async function leavePrivate(share=true){
 // Puente de solo lectura en memoria. No incluye contraseña, borrador ni metadatos de sesión.
 window.RumboPrivateSpace=Object.freeze({
  close:()=>leavePrivate(true),
+ refreshForObservatory:async()=>{
+  if(!token&&!busy&&window.RumboSession?.available())await enterPrivate(window.RumboSession.use(),false);
+  if(!token||$('esp-private').hidden)return null;
+  if(!busy){const active=token;lock(true);try{const data=await api();if(token===active&&Array.isArray(data.notes)){notes=data.notes;render();}}finally{lock(false);}}
+  return window.RumboPrivateSpace.readForObservatory();
+ },
  readForObservatory:()=>{
   if(!token||$('esp-private').hidden)return null;
   return notes.filter(n=>n&&typeof n.id==='string'&&typeof n.text==='string'&&typeof n.createdAt==='string')
-   .map(n=>({id:n.id,text:n.text.slice(0,10000),createdAt:n.createdAt,updatedAt:n.updatedAt}));
+   .map(n=>({id:n.id,text:n.text.slice(0,10000),createdAt:n.createdAt,updatedAt:n.updatedAt,...(typeof n.reported==='string'?{reported:n.reported.slice(0,12000)}:{}),...(typeof n.sourceReference==='string'?{sourceReference:n.sourceReference}:{}),...(typeof n.originalDate==='string'?{originalDate:n.originalDate}:typeof n.date==='string'?{originalDate:n.date}:{})}));
  }
 });
 $('esp-connect').addEventListener('click',()=>{
