@@ -39,7 +39,7 @@ const assert=require('node:assert/strict');
    await page.getByRole('button',{name:'Preparar informe',exact:true}).click();
    assert.equal(await page.locator('#obs-report-text').isVisible(),true);
    assert.match(await page.locator('#obs-report-text').inputValue(),/Autovaloraciones: 1/);
-   assert.match(await page.locator('#obs-report-text').inputValue(),/SÍNTESIS NARRATIVA[\s\S]*2 indicadores en 1 días distintos/);
+   assert.match(await page.locator('#obs-report-text').inputValue(),/SÍNTESIS NARRATIVA[\s\S]*2 indicadores en 1 día distinto/);
    assert.match(await page.locator('#obs-report-text').inputValue(),/autovaloraciones declaradas/);
    assert.match(await page.locator('#obs-report-status').innerText(),/Informe preparado/);
    assert.ok(!(await page.locator('#obs-report-text').inputValue()).includes('Tengo ansiedad'),'Fragmentos excluidos por defecto');
