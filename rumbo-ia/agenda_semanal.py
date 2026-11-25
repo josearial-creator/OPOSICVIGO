@@ -11,6 +11,8 @@ from icalendar import Calendar
 MADRID = ZoneInfo("Europe/Madrid")
 FEED = re.compile(r"https://calendar\.google\.com/calendar/ical/[A-Za-z0-9_%+.@-]+/private-[A-Za-z0-9_-]+/basic\.ics")
 LIMIT = 8_000_000
+CONFIG_API = "https://rumbo-entrenador.jose-arial.workers.dev/calendar-config"
+DEFAULT_ORIGIN = "https://oposicvigo-653f.vercel.app"
 
 
 def agenda_window(now):
@@ -24,9 +26,35 @@ def agenda_window(now):
 
 def calendar_week():
     body = request.get_json(silent=True)
-    url = body.get("url") if isinstance(body, dict) else None
-    if not isinstance(url, str) or len(url) > 2048 or not FEED.fullmatch(url):
-        return jsonify(error="Introduce la dirección secreta iCal de Google Calendar."), 400
+    legacy = body.get("url") if isinstance(body, dict) else None
+    authorization = request.headers.get("Authorization", "")
+    if not authorization.startswith("Rumbo ") or len(authorization) > 2048:
+        return jsonify(error="Abre el acceso privado de Rumbo."), 401
+    headers = {"Authorization": authorization,
+               "Origin": request.headers.get("Origin") or DEFAULT_ORIGIN}
+    try:
+        config = requests.get(CONFIG_API, headers=headers, timeout=(4, 10), allow_redirects=False)
+        if config.status_code in (401, 403):
+            return jsonify(error="Acceso privado no autorizado."), config.status_code
+        if config.status_code != 200:
+            return jsonify(error="Conexión privada del calendario pendiente de activación."), 503
+        info = config.json()
+        if not info.get("configured"):
+            if not isinstance(legacy, str) or len(legacy) > 2048 or not FEED.fullmatch(legacy):
+                return jsonify(error="Calendario pendiente de configuración privada."), 409
+            migrated = requests.post(CONFIG_API, headers=headers, json={"url": legacy},
+                                     timeout=(4, 10), allow_redirects=False)
+            if migrated.status_code not in (200, 201):
+                return jsonify(error="No se pudo migrar la conexión anterior."), 503
+            config = requests.get(CONFIG_API, headers=headers, timeout=(4, 10), allow_redirects=False)
+            if config.status_code != 200:
+                return jsonify(error="Conexión pendiente de confirmación."), 503
+            info = config.json()
+        url = info.get("url")
+        if not isinstance(url, str) or len(url) > 2048 or not FEED.fullmatch(url):
+            return jsonify(error="Configuración privada no disponible."), 503
+    except Exception:
+        return jsonify(error="No se pudo consultar la conexión privada del calendario."), 503
     start, end = agenda_window(datetime.now(MADRID))
     first = start.date()
     try:
@@ -59,7 +87,7 @@ def calendar_week():
         rows.sort(key=lambda row: (row["day"], row["hour"], row["title"]))
         return jsonify(start=first.isoformat(), last=(end.date() - timedelta(days=1)).isoformat(), events=rows)
     except Exception:
-        return jsonify(error="No se pudo leer tu calendario. Comprueba la conexión y la dirección iCal."), 502
+        return jsonify(error="No se pudo leer tu calendario. Comprueba la conexión en el Panel de control."), 502
 
 
 def register_calendar(app):

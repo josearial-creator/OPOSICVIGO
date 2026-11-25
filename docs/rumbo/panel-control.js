@@ -7,12 +7,12 @@ root.innerHTML='<div class="panel-head"><div><div class="eyebrow">RUMBO · ADMIN
 '<div class="control-grid" id="control-sources"></div>'+
 '<article class="control-card"><h3>Configuración del análisis emocional</h3><label><input id="control-auto" type="checkbox"> Incorporar automáticamente las anotaciones disponibles al Observatorio</label><p>Las clasificaciones son provisionales, no diagnósticos. No se altera el diario original. Puedes corregirlas después o desactivar la incorporación aquí.</p><label><input id="control-obs-cloud" type="checkbox"> Sincronizar resultados cifrados del Observatorio entre dispositivos</label><p>Requiere acceso privado y bóveda abierta. Introduce una sola vez en cada dispositivo la misma frase privada de sincronización (mínimo 16 caracteres, distinta del token de acceso). No se envía al servidor. Conserva la frase; no se puede recuperar desde la nube.</p><form id="control-cloud-form" hidden><label>Frase privada de sincronización<input id="control-cloud-pass" type="password" autocomplete="off" minlength="16" required></label><button type="submit" class="button primary">Activar conexión cifrada</button></form><p id="control-cloud-message" role="status"></p></article>'+
 '<details class="control-card" id="control-chat-details"><summary>Configurar vínculo anterior de ChatGPT</summary><div id="control-chat-host"></div><p>Usa la frase de recuperación de la conexión cifrada, no la contraseña de ChatGPT. Las reflexiones enviadas al diario privado también se recuperan con Acceso privado.</p></details>'+
-'<article class="control-card" id="control-calendar"><h3>Conectar Google Calendar</h3><p>La dirección secreta iCal se guarda en este navegador; no se muestra en el panel.</p><div id="control-agenda-host"></div></article>'+
+'<article class="control-card" id="control-calendar"><h3>Google Calendar integrado</h3><p>La conexión se conserva en el servidor privado. Si este navegador ya tenía un calendario configurado, se migra automáticamente al abrir el acceso privado. No tienes que introducir la dirección en Rumbo.</p><div id="control-agenda-host"></div></article>'+
 '<article class="control-card"><h3>Copias y conexiones adicionales</h3><p>Garmin, sueño y la sincronización general de tareas, proyectos y productividad requieren conectores específicos. No se simula una conexión inexistente.</p><button type="button" class="button secondary" id="control-backups">Copias cifradas</button> <button type="button" class="button secondary" id="control-settings">Otros ajustes</button></article></section>';
 const $=id=>document.getElementById(id);
 const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
 const chat=$('rumbo-chatgpt-sync');if(chat){$('control-chat-host').append(chat);const old=$('rumbo-settings-chatgpt');if(old)old.hidden=true;}
-const agenda=window.RumboAgenda?.controls();if(agenda)$('control-agenda-host').append(agenda);const agendaRefresh=window.RumboAgenda?.refreshControl?.();if(agendaRefresh)$('control-agenda-host').append(agendaRefresh);
+const agendaRefresh=window.RumboAgenda?.refreshControl?.();if(agendaRefresh)$('control-agenda-host').append(agendaRefresh);
 const auto=$('control-auto'),cloud=$('control-obs-cloud');auto.checked=Boolean(window.RumboObservatory?.automatic());cloud.checked=Boolean(window.RumboObservatory?.cloudEnabled?.());cloud.disabled=!window.RumboObservatory?.setCloud;
 auto.addEventListener('change',()=>{window.RumboObservatory?.setAutomatic(auto.checked);render();});
 const cloudForm=$('control-cloud-form'),cloudPass=$('control-cloud-pass'),cloudMessage=$('control-cloud-message');
@@ -30,7 +30,7 @@ const sources=[
  {name:'Historial recuperado',desc:'Copia cifrada entre dispositivos',status:()=>window.RumboHistoryCloud?.status(),action:'Gestionar acceso',click:()=>$('rumbo-access-open')?.click()},
  {name:'Observatorio emocional',desc:'Clasificación y actualización de gráficas',status:()=>window.RumboObservatory?.status(),action:'Abrir bóveda',click:()=>window.RumboNavigation?.go('observatorio-personal')},
  {name:'Resultados del Observatorio',desc:'Copia cifrada entre dispositivos',status:()=>window.RumboObservatory?.cloudStatus?.(),action:'Configurar',click:()=>cloud.focus()},
- {name:'Google Calendar',desc:'Agenda de los próximos siete días',status:()=>window.RumboAgenda?.status(),action:'Configurar',click:()=>{$('control-calendar').scrollIntoView({block:'nearest'});if(agenda)agenda.open=true;}},
+ {name:'Google Calendar',desc:'Agenda de los próximos siete días',status:()=>window.RumboAgenda?.status(),action:'Comprobar',click:()=>{$('control-calendar').scrollIntoView({block:'nearest'});if(!window.RumboSession?.available())$('rumbo-access-open')?.click();else void window.RumboAgenda?.sync?.();}},
  {name:'Favoritos de oposiciones',desc:'Estrellas compartidas entre dispositivos',status:()=>window.RumboFavoritesCloud?.status(),action:'Gestionar acceso',click:()=>$('rumbo-access-open')?.click()}
 ];
 const list=$('control-sources'),cards=sources.map(x=>{const card=make('article','control-card'),title=make('h3','',x.name),desc=make('p','',x.desc),tag=make('strong','control-tag'),last=make('small',''),button=make('button','button secondary',x.action);button.type='button';button.onclick=x.click;card.append(title,desc,tag,last,button);list.append(card);return {x,tag,last};});
@@ -39,7 +39,7 @@ function render(){
  auto.checked=Boolean(window.RumboObservatory?.automatic());
  $('control-retry').disabled=state.running;
  $('control-overview').textContent=!navigator.onLine?'Sin conexión. Se reintentará al recuperar Internet.':state.running?'Comprobando fuentes…':'Comprobaciones automáticas activas · '+format(state.last);
- for(const {x,tag,last} of cards){const s=x.status?.();let text=!s?'No disponible':!s.connected?'Sin conexión configurada':s.pending?'Actualizando…':s.error?'Revisar conexión':s.automatic===false?'Automatización desactivada':s.lastSuccess?'Actualizado':'Conectado, por verificar';
+ for(const {x,tag,last} of cards){const s=x.status?.();let text=!s?'No disponible':s.pending?'Actualizando…':s.error?'Revisar conexión':!s.connected?'Conexión pendiente':s.automatic===false?'Automatización desactivada':s.lastSuccess?'Actualizado':'Conectado, por verificar';
  if(x.name==='Acceso privado'&&s?.connected)text='Sesión abierta';tag.textContent=text;tag.dataset.state=s?.error?'error':s?.connected&&s.lastSuccess?'ok':'neutral';last.textContent=s?.lastSuccess?'Última confirmación: '+format(s.lastSuccess):'';
  }
 }
