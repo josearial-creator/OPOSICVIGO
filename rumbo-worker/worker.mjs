@@ -1,3 +1,4 @@
+import {syncCalendar} from './calendar-sync.mjs';
 import {notesApi} from './notes-api.mjs';
 import {trainingApi} from './training-api.mjs';
 import {historyApi} from './history-api.mjs';
@@ -14,6 +15,9 @@ export default {async fetch(request,env){
  const allowed=origins.includes(origin)?origin:null;
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers});
+ if(new URL(request.url).pathname==='/calendar/sync' && !origin){
+   return syncCalendar(request,env,reply,equalSecret);
+ }
  if(!allowed||origin!==allowed)return reply(403,{error:'Origen no autorizado'});
  headers['Access-Control-Allow-Origin']=allowed;
  if(request.method==='OPTIONS'){headers['Access-Control-Allow-Headers']='Authorization, Content-Type';headers['Access-Control-Allow-Methods']='GET, POST, PUT, DELETE, OPTIONS';headers['Access-Control-Max-Age']='600';return new Response(null,{status:204,headers});}
