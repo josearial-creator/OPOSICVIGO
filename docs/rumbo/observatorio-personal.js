@@ -170,7 +170,7 @@ async function save(next,stillValid=()=>true,remote=false){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;persistedRaw=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-restore-form'))$('obs-restore-form').reset();for(const id of ['obs-large-chart','obs-chart-detail','obs-weekly','obs-cross'])$(id)?.replaceChildren();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;persistedRaw=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-restore-form'))$('obs-restore-form').reset();for(const id of ['obs-large-chart','obs-chart-detail','obs-weekly','obs-cross'])$(id)?.replaceChildren();if($('obs-report-status'))$('obs-report-status').textContent='';if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
 const DEVICE_MARK='rumbo-observatorio-device-v1';
@@ -511,11 +511,11 @@ root.innerHTML=[
 '<section class="obs-block"><h3>Hipótesis y experimentos</h3><p>Contrasta relaciones considerando explicaciones alternativas. Una correlación no demuestra causalidad. Registra solo resultados que te resulten útiles; no es obligatorio hacerlo a diario. Si una actuación aumenta el malestar o la necesidad de comprobar, déjala y coméntala en consulta.</p>',
 '<form class="obs-form" id="obs-h-form"><label>Hipótesis<input name="text" maxlength="300" required placeholder="El ejercicio se relaciona con un mejor estado de ánimo"></label>',
 '<label>Cómo probarla<textarea name="plan" rows="3" maxlength="500" required placeholder="Registrar antes/después, contrastar con días sin ejercicio y controlar sueño."></textarea></label><button type="submit" class="button secondary">Guardar hipótesis</button></form><div id="obs-hypotheses"></div></section>',
-'<section class="obs-block"><h3>Informe para la consulta</h3><p>Selecciona el periodo desde tu última consulta. Revisa y edita el informe antes de compartirlo. No se envía automáticamente ni sustituye una valoración clínica.</p>',
+'<section class="obs-block" data-obs-section="informes"><h3>Informe para la consulta</h3><p>Genera un informe redactado a partir de los registros guardados. No necesita conexión con OpenAI. Revisa el resultado antes de compartirlo.</p><div class="obs-inline" aria-label="Periodo del informe"><button type="button" class="button secondary" data-report-period="7">Última semana</button><button type="button" class="button secondary" data-report-period="30">Último mes</button><button type="button" class="button secondary" data-report-period="365">Último año</button><button type="button" class="button secondary" data-report-period="all">Todo el historial</button></div>',
 '<div class="obs-form"><label>Desde<input id="obs-report-from" type="date"></label><label>Hasta<input id="obs-report-to" type="date"></label>',
 '<label><input type="checkbox" id="obs-report-evidence"> Incluir frases originales y contexto (opcional)</label><label><input type="checkbox" id="obs-report-hypotheses"> Incluir hipótesis y planes sin fecha (opcional)</label></div>',
-'<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Preparar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
-'<textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>',
+'<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Generar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
+'<p id="obs-report-status" role="status" aria-live="polite"></p><textarea id="obs-report-text" rows="22" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>',
 '<p id="obs-status" role="status" aria-live="polite"></p>'
 ].join('');
 $('obs-open').addEventListener('click',()=>void unlock());
@@ -531,7 +531,7 @@ for(const id of ['obs-self-form','obs-q-form'])$(id).elements.day.value=day();
 let entryLimit=40;
 for(const id of ['obs-chart-dim','obs-chart-source'])$(id).addEventListener('change',renderResearch);
 $('obs-period').addEventListener('click',e=>{const b=e.target.closest('[data-range]');if(!b)return;chartRange=Number(b.dataset.range);for(const x of $('obs-period').querySelectorAll('button'))x.setAttribute('aria-pressed',String(x===b));renderResearch();});
-const groups=['resumen','registros','registros','registros','descubrimientos','registros','informes','descubrimientos','informes'];let index=0;for(const block of root.querySelectorAll('#obs-private > .obs-block'))if(!block.dataset.obsSection)block.dataset.obsSection=groups[index++]||'registros';
+const groups=['resumen','registros','registros','registros','descubrimientos','registros','informes','descubrimientos'];let index=0;for(const block of root.querySelectorAll('#obs-private > .obs-block'))if(!block.dataset.obsSection)block.dataset.obsSection=groups[index++]||'registros';
 function selectObsTab(name){for(const b of root.querySelectorAll('[data-obs-tab]'))b.setAttribute('aria-pressed',String(b.dataset.obsTab===name));for(const b of root.querySelectorAll('[data-obs-section]'))b.hidden=b.dataset.obsSection!==name;}
 root.querySelector('.obs-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-obs-tab]');if(b)selectObsTab(b.dataset.obsTab);});selectObsTab('resumen');
 const selector=$('obs-self-form').elements.dimension;
@@ -743,59 +743,94 @@ $('obs-history-save').addEventListener('click',async()=>{
  finally{historyBusy=false;$('obs-history-save').disabled=false;}
 });
 
-const reportStart=new Date();reportStart.setDate(reportStart.getDate()-29);
-$('obs-report-from').value=reportStart.toLocaleDateString('sv-SE');
-$('obs-report-to').value=day();
-function clearReport(){
- $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;
-}
-for(const id of ['obs-report-from','obs-report-to','obs-report-evidence','obs-report-hypotheses'])$(id).addEventListener('change',clearReport);
-$('obs-report').addEventListener('click',()=>{
- if(locked)return;
- clearReport();
- const from=$('obs-report-from').value,to=$('obs-report-to').value;
- if(!dateOK(from)||!dateOK(to)||from>to||to>day()){say('Selecciona un periodo válido, sin fechas futuras.');return;}
- const inPeriod=x=>x.date>=from&&x.date<=to;
- const e=records.entries.filter(inPeriod);
- const self=e.filter(x=>x.source==='autovaloracion'),observed=e.filter(x=>x.source==='texto');
- const distinct=new Set(e.map(x=>x.date)).size;
- const lines=['RUMBO · INFORME DESCRIPTIVO PARA CONSULTA','Periodo: '+from+' a '+to+' (inclusive)',
- 'Elaborado a partir de registros personales; no constituye diagnóstico ni seguimiento sanitario permanente.',
- '', '1. COBERTURA DE LOS DATOS',
- 'Días con algún registro: '+distinct,'Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
- 'Observaciones textuales (sin intensidad declarada): '+observed.length,
- 'Los días sin registro no equivalen a ausencia de síntomas.',
- '', '2. EVOLUCIÓN DECLARADA (escala ordinal 0–4, intensidad; no siempre una subida es mejoría)'];
- for(const [id,label] of DIM){
-  const p=series(id,e);if(!p.length)continue;
-  lines.push(label+': '+p.length+' días · primera '+p[0].value+'/4 ('+p[0].day+') · última '+p[p.length-1].value+'/4 ('+p[p.length-1].day+') · '+trend(p)+'.');
+
+function reportBounds(period,now=day(),data=records){
+ const end=new Date(now+'T12:00:00Z'),start=new Date(end);
+ if(period==='all'){
+  const dates=[...data.entries,...data.questionnaires].map(x=>x.date).filter(x=>strictDay(x)&&x<=now).sort();
+  return {from:dates[0]||now,to:now};
  }
- if(!self.some(x=>x.value!==null))lines.push('Sin autovaloraciones numéricas en este periodo.');
- lines.push('', '3. TEMAS MENCIONADOS (observaciones textuales revisables; no frecuencia de síntomas)');
+ if(period==='365'){start.setUTCFullYear(start.getUTCFullYear()-1);start.setUTCDate(start.getUTCDate()+1);}
+ else start.setUTCDate(start.getUTCDate()-(period==='7'?6:29));
+ return {from:start.toISOString().slice(0,10),to:now};
+}
+function buildReport(data,from,to,options={}){
+ const within=x=>x.date>=from&&x.date<=to;
+ const e=data.entries.filter(within),self=e.filter(x=>x.source==='autovaloracion'),observed=e.filter(x=>x.source==='texto'&&x.correction?.direction!=='sin dato');
+ const excluded=e.length-self.length-observed.length,days=new Set(e.map(x=>x.date)).size;
+ const q=data.questionnaires.filter(within).sort((a,b)=>a.date.localeCompare(b.date));
+ const span=Math.round((Date.parse(to+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000)+1;
+ const lines=['RUMBO · INFORME DESCRIPTIVO PARA CONSULTA','Periodo: '+from+' a '+to+' (inclusive)','Informe generado localmente a partir de registros personales. No constituye diagnóstico.','',
+ '1. RESUMEN DEL PERIODO'];
+ if(!e.length&&!q.length)lines.push('No hay registros guardados dentro de este periodo. No es posible describir cambios emocionales. Amplía las fechas o comprueba la importación del historial. No se interpreta la falta de datos como ausencia de dificultades.');
+ else lines.push('Durante el periodo seleccionado se dispone de '+e.length+' observaciones correspondientes a '+days+' de '+span+' días, además de '+q.length+' resultados de cuestionarios. '+(observed.length?'Se han identificado '+observed.length+' observaciones textuales revisables. ':'')+(self.length?'También constan '+self.length+' autovaloraciones, de las cuales '+self.filter(x=>x.value!==null).length+' contienen puntuación. ':'')+'La cobertura depende de cuándo y qué se registró; no permite estimar la prevalencia de síntomas.');
+ if(excluded)lines.push(excluded+' observaciones marcadas como no pertinentes se excluyen de la descripción textual.');
+ const dimensions=[];
  for(const [id,label] of DIM){
   const matches=observed.filter(x=>effectiveDim(x)===id);
-  if(matches.length)lines.push(label+': '+matches.length+' registros en '+new Set(matches.map(x=>x.date)).size+' días.');
+  if(!matches.length)continue;
+  const directions={difficulty:0,resource:0,mixed:0,other:0};
+  for(const x of matches){const d=x.correction?.direction||x.analysis?.learnedDirection||x.analysis?.direction;
+   if(d==='dificultad'||d==='malestar')directions.difficulty++;
+   else if(d==='recurso'||d==='ausencia referida')directions.resource++;
+   else if(d==='mixto')directions.mixed++;
+   else directions.other++;
+  }
+  dimensions.push({id,label,matches,days:new Set(matches.map(x=>x.date)).size,directions});
  }
- if(!observed.length)lines.push('Sin observaciones textuales guardadas.');
- lines.push('', 'ÍNDICE TEXTUAL EXPLORATORIO (1 dificultad y 3 recurso para dimensiones positivas; inverso para ansiedad y urgencia; 2 mixto; no es intensidad ni escala clínica)');
- for(const id of PRIOR){const p=textualSeries(id,e);if(p.length)lines.push(title(id)+': '+p.length+' días · último índice '+p[p.length-1].value+'/3 ('+p[p.length-1].day+') · '+trend(p));}
- const patterns=engine?.patterns(e.filter(x=>!x.correction&&!x.analysis?.learnedDirection))||[];
- if(patterns.length){lines.push('', 'PATRONES EXPLORATORIOS (co-menciones por fecha de registro; no causalidad)');for(const p of patterns)lines.push(p.question+' '+p.both+' días con ambas menciones; '+p.onlyA+' solo la primera; '+p.onlyB+' solo la segunda. Explorar circunstancias compartidas y hábitos de registro.');}
- lines.push('', '4. CUESTIONARIOS (puntuación manual, sin interpretación)');
- const q=records.questionnaires.filter(inPeriod).sort((a,b)=>a.date.localeCompare(b.date));
- lines.push(...(q.length?q.map(x=>x.date+' · '+x.instrument+': '+x.total):['Sin resultados registrados.']));
- if($('obs-report-evidence').checked){
-  lines.push('', '5. FRAGMENTOS Y CONTEXTO (revisar antes de compartir)');
-  const examples=e.filter(x=>x.evidence||x.context).sort((a,b)=>b.date.localeCompare(a.date));
-  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(effectiveDim(x))+' · '+(x.source==='texto'?textualLabel(x):'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis)+(x.analysis.additionalEvidence?' | Otra expresión: '+x.analysis.additionalEvidence.match:''):'')):['Sin fragmentos asociados.']));
-  if(examples.length>20)lines.push('Se muestran los 20 registros más recientes de '+examples.length+'.');
+ dimensions.sort((a,b)=>b.days-a.days||b.matches.length-a.matches.length||a.label.localeCompare(b.label,'es'));
+ lines.push('','2. TEMAS Y RECURSOS DESCRITOS');
+ if(!dimensions.length)lines.push('No constan observaciones textuales clasificadas en este periodo.');
+ for(const d of dimensions){
+  const parts=[];if(d.directions.difficulty)parts.push(d.directions.difficulty+' con dificultad o malestar');
+  if(d.directions.resource)parts.push(d.directions.resource+' con recursos o ausencia expresada');
+  if(d.directions.mixed)parts.push(d.directions.mixed+' mixtas');if(d.directions.other)parts.push(d.directions.other+' sin orientación establecida');
+  lines.push(d.label+': aparece en '+d.days+' día(s), con '+d.matches.length+' observaciones ('+parts.join('; ')+').');
  }
- if($('obs-report-hypotheses').checked){
-  lines.push('', 'HIPÓTESIS Y EXPERIMENTOS (sin fecha; no necesariamente del periodo)');
-  lines.push(...(records.hypotheses.length?records.hypotheses.map(h=>h.text+' | Plan: '+h.plan+((h.outcomes||[]).length?' | Resultados del periodo (percibidos): '+h.outcomes.filter(o=>o.date>=from&&o.date<=to).map(o=>o.date+' '+o.rating+(o.note?' — '+o.note:'')).join('; '):'')):['Sin hipótesis guardadas.']));
+ lines.push('','3. EVOLUCIÓN DE LOS INDICADORES');
+ let count=0;
+ for(const [id,label] of DIM){
+  const p=series(id,e),t=textualSeries(id,e),reported=observed.filter(x=>effectiveDim(x)===id&&x.dimension===id&&x.analysis?.reportedScore&&x.analysis.temporal!=='pasado referido').sort((a,b)=>a.date.localeCompare(b.date));
+  if(!p.length&&!t.length&&!reported.length)continue;count++;
+  const sections=[];
+  if(p.length)sections.push('Autovaloración (0–4): '+p.length+' día(s), '+p[0].value+'/4 el '+p[0].day+' y '+p.at(-1).value+'/4 el '+p.at(-1).day+'. '+trend(p)+'.');
+  if(t.length)sections.push('Índice de orientación textual (1–3): '+t.length+' día(s), '+t[0].value+'/3 el '+t[0].day+' y '+t.at(-1).value+'/3 el '+t.at(-1).day+'. '+trend(t)+'. No mide intensidad.');
+  if(reported.length){const x=reported.at(-1);sections.push('Última puntuación expresada en texto: '+x.analysis.reportedScore.value+'/'+x.analysis.reportedScore.max+' ('+x.date+').');}
+  lines.push(label+'. '+sections.join(' '));
  }
- lines.push('', 'NOTAS PARA LA CONSULTA (completar voluntariamente)','Acontecimientos relevantes: ','Repercusión en la vida diaria: ','Cambios de tratamiento percibidos: ','Estrategias y resultados observados: ','Preguntas para el profesional: ','','Los patrones no demuestran causalidad. Revisar junto al profesional.');
- $('obs-report-text').value=lines.join('\n');$('obs-report-text').hidden=false;$('obs-report-download').hidden=false;$('obs-report-text').focus();say('Informe preparado. Puedes editarlo y retirar información antes de exportar.');
+ if(!count)lines.push('No hay puntuaciones elegibles en el intervalo.');
+ lines.push('Las fuentes numéricas se mantienen separadas. Una variación de puntuación no implica necesariamente mejoría o empeoramiento.');
+ lines.push('','4. PATRONES EXPLORATORIOS');
+ try{const patterns=engine?.patterns(e.filter(x=>!x.correction&&!x.analysis?.learnedDirection))||[];
+ if(patterns.length)for(const p of patterns)lines.push(p.question+' Co-menciones: '+p.both+' días. No demuestra causalidad; contrastar circunstancias compartidas y hábitos de registro.');
+ else lines.push('No hay suficientes co-menciones elegibles para los patrones previstos. Esto no excluye relaciones.');
+ }catch{lines.push('No fue posible calcular patrones; el resto del informe se conserva.');}
+ lines.push('','5. CUESTIONARIOS');
+ if(q.length)for(const x of q)lines.push(x.date+' · '+x.instrument+': '+x.total+' (puntuación registrada, no interpretada).');else lines.push('Sin resultados registrados.');
+ if(options.evidence){lines.push('','6. FRAGMENTOS ORIGINALES (revisar antes de compartir)');const examples=[...self,...observed].filter(x=>x.evidence||x.context).sort((a,b)=>b.date.localeCompare(a.date));if(!examples.length)lines.push('Sin fragmentos asociados.');for(const x of examples.slice(0,40))lines.push(x.date+' · '+title(effectiveDim(x))+' · '+(x.source==='texto'?textualLabel(x):'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?.temporal?' | '+x.analysis.temporal:''));if(examples.length>40)lines.push('Se incluyen 40 de '+examples.length+' fragmentos disponibles.');}
+ if(options.hypotheses){lines.push('','HIPÓTESIS Y EXPERIMENTOS GUARDADOS (no necesariamente del periodo)');for(const h of data.hypotheses)lines.push(h.text+' | Plan: '+h.plan+((h.outcomes||[]).length?' | Resultados del periodo: '+h.outcomes.filter(within).map(o=>o.date+' '+o.rating+(o.note?' — '+o.note:'')).join('; '):''));if(!data.hypotheses.length)lines.push('Sin hipótesis guardadas.');}
+ lines.push('','7. CUESTIONES PARA REVISAR EN CONSULTA');
+ if(dimensions.length)lines.push('Explorar el contexto, la repercusión funcional y las estrategias relacionadas con '+dimensions.slice(0,3).map(d=>d.label.toLowerCase()).join(', ')+'. Estas son prioridades sugeridas por frecuencia de registro, no por gravedad.');
+ lines.push('Contrastar con el profesional si las observaciones reflejan cambios reales o diferencias en qué se ha anotado.','No se han inferido diagnósticos, causas ni cambios de tratamiento.','','Notas adicionales (opcional):');
+ return {text:lines.join('\n'),count:e.length,questionnaires:q.length};
+}
+const reportStatus=text=>{$('obs-report-status').textContent=text;};
+function clearReport(){ $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;reportStatus(''); }
+function setReportPeriod(period){const b=reportBounds(period);$('obs-report-from').value=b.from;$('obs-report-to').value=b.to;clearReport();}
+setReportPeriod('30');
+for(const button of root.querySelectorAll('[data-report-period]'))button.addEventListener('click',()=>setReportPeriod(button.dataset.reportPeriod));
+for(const id of ['obs-report-from','obs-report-to','obs-report-evidence','obs-report-hypotheses'])$(id).addEventListener('change',clearReport);
+$('obs-report').addEventListener('click',()=>{
+ if(locked){reportStatus('Abre primero la bóveda.');return;}
+ clearReport();
+ const from=$('obs-report-from').value,to=$('obs-report-to').value;
+ if(!strictDay(from)||!strictDay(to)||from>to||to>day()){reportStatus('Selecciona un periodo válido, sin fechas futuras.');return;}
+ try{
+  const result=buildReport(records,from,to,{evidence:$('obs-report-evidence').checked,hypotheses:$('obs-report-hypotheses').checked});
+  $('obs-report-text').value=result.text;$('obs-report-text').hidden=false;$('obs-report-download').hidden=false;
+  reportStatus(result.count||result.questionnaires?'Informe generado. Puedes editarlo antes de exportar.':'Informe generado sin registros en el periodo. Prueba Todo el historial.');
+  $('obs-report-text').focus();$('obs-report-text').scrollIntoView({block:'nearest'});
+ }catch{reportStatus('No se ha podido generar el informe. Tus registros se conservan. Cambia el periodo e inténtalo de nuevo.');}
 });
 $('obs-report-download').addEventListener('click',()=>{
  if(locked||$('obs-report-text').hidden||!$('obs-report-text').value.trim())return;
