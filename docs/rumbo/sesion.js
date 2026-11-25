@@ -101,6 +101,8 @@
    const ok=await safe();
    if(!ok)return false;
   }
+  // El cierre voluntario revoca también la apertura recordada del observatorio.
+  if(typeof window.RumboObservatory?.close==='function')await window.RumboObservatory.close();
   if(credential)await lock();
   else await pending.catch(()=>{});
   if(dialog?.open)dialog.close();
