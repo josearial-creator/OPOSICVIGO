@@ -20,7 +20,8 @@ const en=new TextEncoder(),de=new TextDecoder();
 let historyCandidates=[],historyBusy=false,historyMode='imported',historyGeneration=0;
 let key=null,salt=null,locked=true,records={version:1,entries:[],questionnaires:[],hypotheses:[]};
 const title=id=>DIM.find(x=>x[0]===id)?.[1]||id;
-const say=text=>{$('obs-status').textContent=text;};
+const say=text=>{for(const id of ['obs-unlock-status','obs-status']){const el=$(id);if(el)el.textContent=text;}};
+function busy(value,label='Abriendo…'){opening=value;const button=$('obs-open');button.disabled=value;button.textContent=value?label:'Abrir observatorio';}
 const dateOK=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x+'T12:00:00'));
 const empty=()=>({version:1,entries:[],questionnaires:[],hypotheses:[]});
 function valid(d){
@@ -55,19 +56,32 @@ const DEVICE_MARK='rumbo-observatorio-device-v1';
 let sessionEpoch=0,opening=false;
 function deviceStore(action,value){
  return new Promise((resolve,reject)=>{
-  const req=indexedDB.open('rumbo-observatorio-device',1);
-  req.onupgradeneeded=()=>req.result.createObjectStore('session');
-  req.onerror=()=>reject(req.error);
-  req.onblocked=()=>reject(Error('Almacenamiento de dispositivo bloqueado'));
-  req.onsuccess=()=>{
-   const db=req.result;
-   try{
-    const tx=db.transaction('session',action==='get'?'readonly':'readwrite'),store=tx.objectStore('session');
-    const op=action==='get'?store.get('key'):action==='put'?store.put(value,'key'):store.delete('key');
-    tx.oncomplete=()=>{db.close();resolve(op.result);};
-    tx.onabort=tx.onerror=()=>{db.close();reject(tx.error||Error('Almacenamiento no disponible'));};
-   }catch(e){db.close();reject(e);}
+  let settled=false,db=null,tx=null;
+  const finish=(error,result)=>{
+   if(settled)return;
+   settled=true;clearTimeout(timer);
+   if(error&&tx){try{tx.abort();}catch{}}
+   if(db)db.close();
+   if(error)reject(error);else resolve(result);
   };
+  const timer=setTimeout(()=>finish(Error('El almacenamiento del dispositivo no responde')),4000);
+  try{
+   const req=indexedDB.open('rumbo-observatorio-device',1);
+   req.onupgradeneeded=()=>{if(settled){req.transaction.abort();return;}req.result.createObjectStore('session');};
+   req.onerror=()=>finish(req.error||Error('Almacenamiento no disponible'));
+   req.onblocked=()=>finish(Error('Almacenamiento de dispositivo bloqueado'));
+   req.onsuccess=()=>{
+    db=req.result;
+    if(settled){db.close();return;}
+    try{
+     tx=db.transaction('session',action==='get'?'readonly':'readwrite');
+     const store=tx.objectStore('session');
+     const op=action==='get'?store.get('key'):action==='put'?store.put(value,'key'):store.delete('key');
+     tx.oncomplete=()=>finish(null,op.result);
+     tx.onabort=tx.onerror=()=>finish(tx.error||Error('Almacenamiento no disponible'));
+    }catch(e){finish(e);}
+   };
+  }catch(e){finish(e);}
  });
 }
 async function rememberDevice(epoch){
@@ -95,7 +109,7 @@ window.addEventListener('storage',event=>{
 });
 async function restoreDevice(){
  if(opening)return;
- const epoch=sessionEpoch;opening=true;$('obs-open').disabled=true;
+ const epoch=sessionEpoch;busy(true,'Recuperando sesión…');
  try{
   const token=localStorage.getItem(DEVICE_MARK),raw=localStorage.getItem(STORAGE);
   if(!token||!raw)return;
@@ -108,34 +122,36 @@ async function restoreDevice(){
   say('Bóveda abierta en este dispositivo recordado.');
  }catch{
   if(epoch===sessionEpoch){toggle(true);say('No se pudo restaurar el acceso recordado. Introduce tu contraseña; los datos se conservan.');}
- }finally{opening=false;$('obs-open').disabled=false;}
+ }finally{busy(false);}
 }
 async function unlock(){
  if(opening)return;
  const pass=$('obs-password').value;
  if(pass.length<12){say('La contraseña debe tener al menos 12 caracteres. No se guarda.');return;}
- const epoch=sessionEpoch;opening=true;$('obs-open').disabled=true;
+ const epoch=sessionEpoch;busy(true);say('Comprobando el acceso a la bóveda…');
+ let phase='storage';
  try{
   const stored=localStorage.getItem(STORAGE);
   if(stored){
-   const blob=JSON.parse(stored),tempSalt=from64(blob.salt),candidate=await derive(pass,tempSalt);
-   const text=de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(blob.iv)},candidate,from64(blob.cipher)));
-   const decoded=JSON.parse(text);if(!valid(decoded))throw Error('Datos inválidos');
+   const blob=JSON.parse(stored),tempSalt=from64(blob.salt),iv=from64(blob.iv),cipher=from64(blob.cipher);
+   phase='derive';const candidate=await derive(pass,tempSalt);
+   phase='decrypt';const text=de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},candidate,cipher));
+   phase='validate';const decoded=JSON.parse(text);if(!valid(decoded))throw Error('Datos inválidos');
    if(epoch!==sessionEpoch)return;
    key=candidate;salt=tempSalt;records=decoded;toggle(false);
   }else{
-   const tempSalt=crypto.getRandomValues(new Uint8Array(16)),candidate=await derive(pass,tempSalt);
+   phase='derive';const tempSalt=crypto.getRandomValues(new Uint8Array(16)),candidate=await derive(pass,tempSalt);
    if(epoch!==sessionEpoch)return;
-   salt=tempSalt;key=candidate;toggle(false);await save(empty());
+   phase='create';salt=tempSalt;key=candidate;toggle(false);await save(empty());
   }
   if(epoch!==sessionEpoch)return;
-  $('obs-password').value='';render();
+  phase='render';render();$('obs-password').value='';say('Bóveda abierta.');
   try{
    if($('obs-remember').checked){if(await rememberDevice(epoch))say('Bóveda abierta y recordada en este dispositivo.');}
    else{localStorage.removeItem(DEVICE_MARK);await deviceStore('delete');if(epoch===sessionEpoch)say('Bóveda abierta solo para esta sesión.');}
   }catch{if(epoch===sessionEpoch)say('Bóveda abierta, pero no se pudo recordar este dispositivo.');}
- }catch{if(epoch===sessionEpoch){toggle(true);say('No se pudo abrir la bóveda. Comprueba la contraseña. No se han borrado datos.');}}
- finally{opening=false;$('obs-open').disabled=false;}
+ }catch{if(epoch===sessionEpoch){toggle(true);const messages={storage:'No se pudo leer el almacenamiento cifrado.',derive:'No se pudo iniciar el cifrado en este navegador.',decrypt:'No se pudo descifrar la bóveda. Comprueba la contraseña; también podría estar dañado el archivo cifrado.',validate:'La contraseña permitió descifrar la bóveda, pero el formato de los registros no es compatible.',create:'No se pudo preparar la bóveda en este dispositivo.',render:'Los registros se descifraron, pero no se pudo mostrar el observatorio.'};say((messages[phase]||'No se pudo abrir la bóveda.')+' No se han borrado datos.');}}
+ finally{busy(false);}
 }
 function classify(text){return engine?.uniqueByDimension(text)||[];}
 function metadata(hit,dateBasis){return {method:hit.method,direction:hit.direction,kind:hit.kind,temporal:hit.temporal,dateBasis,index:hit.index,end:hit.end,match:hit.match,additionalEvidence:hit.additionalEvidence||null};}
@@ -278,8 +294,9 @@ root.innerHTML=[
 '<p class="obs-disclaimer">Solo texto que aportes voluntariamente. No accede automáticamente a ChatGPT. No mencionar un síntoma no equivale a intensidad cero.</p></section>',
 '<div id="obs-locked" class="obs-vault"><h3>Bóveda cifrada en este dispositivo</h3>',
 '<p>Contraseña propia de al menos 12 caracteres, cifrado AES-GCM y PBKDF2. Sin sincronización entre dispositivos. Conserva la contraseña y una copia cifrada. Borrar el almacenamiento del navegador puede eliminar también los registros.</p>',
-'<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
+'<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" aria-describedby="obs-unlock-status" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><p id="obs-unlock-status" role="status" aria-live="polite"></p><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
 '<div id="obs-private" hidden>',
+'<p id="obs-status" role="status" aria-live="polite"></p>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
 '<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
 '<section class="obs-block"><h3>Registrar cómo me encuentro</h3><p>Escala ordinal: 0 significa ausencia expresamente indicada; 1 leve, 2 moderada, 3 alta, 4 muy alta. Sin dato no es cero.</p>',
@@ -309,8 +326,7 @@ root.innerHTML=[
 '<div class="obs-form"><label>Desde<input id="obs-report-from" type="date"></label><label>Hasta<input id="obs-report-to" type="date"></label>',
 '<label><input type="checkbox" id="obs-report-evidence"> Incluir frases originales y contexto (opcional)</label><label><input type="checkbox" id="obs-report-hypotheses"> Incluir hipótesis y planes sin fecha (opcional)</label></div>',
 '<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Preparar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
-'<textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>',
-'<p id="obs-status" role="status" aria-live="polite"></p>'
+'<textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>'
 ].join('');
 $('obs-open').addEventListener('click',()=>void unlock());
 $('obs-password').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void unlock();}});
