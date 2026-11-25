@@ -27,21 +27,21 @@
     const day = parts.year + '-' + parts.month + '-' + parts.day;
     return parts.hour === '23' && parts.minute === '59' ? dayPlus(day,1) : day;
   }
-  let url = '', generation = 0, lastRead = 0, requestedDay = '';
+  let url = '', generation = 0, lastRead = 0, requestedDay = '', lastSuccess = 0, pending = false, hadError = false;
   try { url = localStorage.getItem(key) || ''; } catch {}
   function controls() {
     details.open = !url;
     refresh.hidden = disconnect.hidden = !url;
-    card.querySelector('summary').textContent = url ? 'Configurar calendario' : 'Conectar Google Calendar';
+    details.querySelector('summary').textContent = url ? 'Configurar calendario' : 'Conectar Google Calendar';
     if (!url) status.textContent = 'Conecta tu calendario para ver aquí tus citas de los próximos siete días.';
   }
   async function read(candidate = url, connect = false) {
     if (!candidate) return;
     const id = ++generation;
-    lastRead = Date.now();
+    lastRead = Date.now(); pending=true;
     requestedDay = windowStart();
     status.textContent = 'Consultando citas…';
-    list.replaceChildren();
+    if(connect||!lastSuccess||card.dataset.agendaDay!==requestedDay)list.replaceChildren();
     try {
       const response = await fetch('/agenda-semanal', {method:'POST', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:candidate})});
       if (id !== generation) return;
@@ -61,6 +61,7 @@
         form.reset();
         controls();
       }
+      list.replaceChildren();lastSuccess=Date.now();hadError=false;card.dataset.agendaDay=data.start;
       const formatDay = day => dateLabel.format(new Date(day + 'T12:00:00Z'));
       status.textContent = 'Del ' + formatDay(data.start) + ' al ' + formatDay(data.last) +
         (data.events.length ? '' : ' · Sin citas.');
@@ -82,20 +83,22 @@
         list.append(items);
       }
     } catch (error) {
-      if (id === generation) status.textContent = error instanceof SyntaxError ? 'El servicio de agenda no está disponible en esta versión.' : (error.message || 'No se pudo cargar la agenda.');
-    }
+      if (id === generation) {hadError=true;status.textContent = error instanceof SyntaxError ? 'El servicio de agenda no está disponible en esta versión.' : (error.message || 'No se pudo cargar la agenda.');}
+    }finally{if(id===generation)pending=false;}
   }
   form.addEventListener('submit', event => { event.preventDefault(); void read(input.value.trim(), true); });
   disconnect.addEventListener('click', () => {
     ++generation;
     localStorage.removeItem(key);
-    url = '';
+    url = '';pending=false;lastSuccess=0;hadError=false;
     list.replaceChildren();
     form.reset();
     controls();
   });
   refresh.addEventListener('click', () => void read());
+  window.RumboAgenda=Object.freeze({controls:()=>details,refreshControl:()=>refresh,connected:()=>Boolean(url),status:()=>({connected:Boolean(url),pending,lastSuccess,error:hadError}),sync:()=>!pending&&url?read():Promise.resolve()});
   function updateIfDue() {
+    if(pending)return;
     if (url && requestedDay !== windowStart()) {
       void read();
     } else if (!document.hidden && url && Date.now() - lastRead >= 300000) {

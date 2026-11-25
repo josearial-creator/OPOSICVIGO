@@ -20,7 +20,7 @@
     diario: [['mi-espacio','Mi espacio'],['ev-diary','Diario'],['historial-rumbo','Historial'],
       ['mi-evolucion','Mis prácticas'],['observatorio-personal','Observatorio emocional'],['ev-training','Entrenamiento']],
     mas: [['productividad','Productividad'],['proyectos','Proyectos'],
-      ['metricas-personales','Métricas'],['copias-rumbo','Copias']]
+      ['metricas-personales','Métricas'],['panel-control','Panel de control'],['copias-rumbo','Copias']]
   };
   const groupTitles = {hoy:'Hoy',oposiciones:'Oposiciones',diario:'Diario',mas:'Foco y herramientas'};
   const routeGroups = new Map(Object.entries(groups).flatMap(([group,items])=>items.map(([id])=>[id,group])));

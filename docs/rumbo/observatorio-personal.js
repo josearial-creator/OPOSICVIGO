@@ -2,6 +2,9 @@
 'use strict';
 const root=document.getElementById('observatorio-personal');if(!root)return;
 const STORAGE='rumbo-observatorio-encrypted-v1';
+const AUTO_KEY='rumbo-observatorio-auto-v1';
+const autoEnabled=()=>localStorage.getItem(AUTO_KEY)==='1';
+let lastAutoSuccess=0,lastAutoError=false;
 const DIM=[
 ['animo','Estado de ánimo','Emocional'],['ansiedad','Ansiedad','Emocional'],['frustracion','Frustración','Emocional'],
 ['disfrute','Disfrute','Emocional'],['ilusion','Ilusión','Emocional'],['indefension','Indefensión','Emocional'],
@@ -15,11 +18,127 @@ const PRIOR=['animo','ansiedad','urgencia','atencion','autoeficacia','disfrute']
 const engine=window.RumboPsychEngine;
 const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
-const day=()=>new Date().toLocaleDateString('sv-SE');
+const day=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Madrid'});
 const en=new TextEncoder(),de=new TextDecoder();
 let historyCandidates=[],historyBusy=false,historyMode='imported',historyGeneration=0;
 let persistedRaw=null;
 let key=null,salt=null,locked=true,records={version:1,entries:[],questionnaires:[],hypotheses:[]};
+
+const CLOUD_MARK='rumbo-observatorio-cloud-v1',CLOUD_API='https://rumbo-entrenador.jose-arial.workers.dev/observatory';
+const COLLECTIONS=['entries','questionnaires','hypotheses'];
+let cloudBusy=false,cloudLast=0,cloudError=false,cloudGeneration=0;
+const cloudEnabled=()=>localStorage.getItem(CLOUD_MARK)==='1';
+function cloudStatus(){return {connected:cloudEnabled()&&!locked&&Boolean(window.RumboSession?.available()),pending:cloudBusy,lastSuccess:cloudLast,error:cloudError};}
+const stable=value=>value===undefined?'null':value===null||typeof value!=='object'?JSON.stringify(value):Array.isArray(value)?'['+value.map(stable).join(',')+']':'{'+Object.keys(value).filter(k=>value[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stable(value[k])).join(',')+'}';
+function revs(data){
+ const map=new Map();
+ for(const row of data.cloudRevisions||[]){
+  if(!row||typeof row.key!=='string'||!COLLECTIONS.some(c=>row.key.startsWith(c+':'))||row.key.length>400||!Number.isSafeInteger(row.at)||row.at<0||typeof row.nonce!=='string'||row.nonce.length>100||typeof row.deleted!=='boolean'||map.has(row.key))throw Error('Revisiones cifradas incompatibles');
+  map.set(row.key,row);
+ }
+ return map;
+}
+function withRevisions(old,next){
+ const map=revs(old);
+ for(const name of COLLECTIONS){
+  const a=new Map(old[name].map(x=>[x.id,x])),b=new Map(next[name].map(x=>[x.id,x]));
+  for(const id of new Set([...a.keys(),...b.keys()])){
+   if(typeof id!=='string'||!id)continue;
+   if(stable(a.get(id)??null)===stable(b.get(id)??null))continue;
+   const k=name+':'+id;map.set(k,{key:k,at:Math.max(Date.now(),(map.get(k)?.at||0)+1),nonce:crypto.randomUUID(),deleted:!b.has(id)});
+  }
+ }
+ return {...next,cloudRevisions:[...map.values()].sort((a,b)=>a.key.localeCompare(b.key))};
+}
+function normalizeCloud(data){
+ if(!valid(data))throw Error('Copia del observatorio incompatible');
+ const revisions=revs(data);if(revisions.size>60000)throw Error('Demasiadas revisiones');
+ const next={...data,cloudRevisions:[...revisions.values()].sort((a,b)=>a.key.localeCompare(b.key)),historySeen:[...new Set(data.historySeen||[])].sort()};
+ for(const c of COLLECTIONS){
+  if(data[c].some(x=>typeof x.id!=='string'||!x.id||x.id.length>300)||new Set(data[c].map(x=>x.id)).size!==data[c].length)throw Error('Identificadores incompatibles en la copia');
+  next[c]=[...data[c]].sort((a,b)=>a.id.localeCompare(b.id));
+  for(const x of next[c])if(revisions.get(c+':'+x.id)?.deleted)throw Error('Una revisión eliminada contiene un registro');
+ }
+ return next;
+}
+function mergeCloud(left,right){
+ const a=normalizeCloud(left),b=normalizeCloud(right),ar=revs(a),br=revs(b),merged=new Map(),out={...a,historySeen:[...new Set([...a.historySeen,...b.historySeen])].sort()};
+ for(const c of COLLECTIONS){
+  const x=new Map(a[c].map(e=>[e.id,e])),y=new Map(b[c].map(e=>[e.id,e])),ids=new Set([...x.keys(),...y.keys(),...[...ar.keys(),...br.keys()].filter(k=>k.startsWith(c+':')).map(k=>k.slice(c.length+1))]);out[c]=[];
+  for(const id of ids){
+   const k=c+':'+id,ra=ar.get(k),rb=br.get(k),va=x.get(id),vb=y.get(id);
+   const av=ra|| (va?{at:0,nonce:'legacy',deleted:false}:null),bv=rb||(vb?{at:0,nonce:'legacy',deleted:false}:null);
+   if(!av&&!bv)continue;
+   // Never choose silently between two legacy copies with the same ID and different contents.
+   if(av&&bv&&av.at===bv.at&&(av.deleted!==bv.deleted||stable(va??null)!==stable(vb??null))&&av.nonce!==bv.nonce)throw Error('Cambios simultáneos en el mismo registro; ambas copias se conservan.');
+   if(av&&bv&&av.at===bv.at&&av.nonce===bv.nonce&&(av.deleted!==bv.deleted||stable(va??null)!==stable(vb??null)))throw Error('Versiones incompatibles del mismo registro; ambas copias se conservan.');
+   const pick=av&&(!bv||av.at>=bv.at)?'a':'b',rev=pick==='a'?ra:rb,value=pick==='a'?va:vb;
+   if(rev)merged.set(k,rev);
+   if(!(rev?.deleted)&&value)out[c].push(value);
+  }
+ }
+ out.cloudRevisions=[...merged.values()];return normalizeCloud(out);
+}
+const shaText=async str=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',en.encode(str))),v=>v.toString(16).padStart(2,'0')).join('');
+async function cloudConnect(phrase){
+ if(typeof phrase!=='string'||phrase.length<16)throw Error('Usa una frase de sincronización privada de al menos 16 caracteres.');
+ const pass=window.RumboSession?.use();if(!pass||locked)throw Error('Abre Acceso privado y la bóveda antes de activar.');
+ if(phrase===pass)throw Error('La frase de sincronización debe ser distinta de la credencial de acceso privado.');
+ const gen=cloudGeneration,account=await shaText('rumbo-observatorio-account:'+pass),saltBytes=new Uint8Array(await crypto.subtle.digest('SHA-256',en.encode('rumbo-observatorio-salt:'+account)));
+ const k=await derive(phrase,saltBytes.slice(0,16));
+ if(gen!==cloudGeneration||locked||window.RumboSession?.use()!==pass)throw Error('Sesión cerrada');
+ await deviceStore('put',{account,key:k},'cloud');
+ if(gen!==cloudGeneration||locked||window.RumboSession?.use()!==pass)throw Error('Sesión cerrada');
+ localStorage.setItem(CLOUD_MARK,'1');cloudError=false;return cloudSync();
+}
+async function setCloud(value){
+ if(value)return;
+ cloudGeneration++;cloudLast=0;cloudError=false;
+ localStorage.removeItem(CLOUD_MARK);
+ try{await deviceStore('delete',null,'cloud');}catch{}
+}
+async function cloudSync(){
+ if(!cloudEnabled()||cloudBusy||locked||!window.RumboSession?.available()||!navigator.onLine)return;
+ cloudBusy=true;cloudError=false;
+ const pass=window.RumboSession.use(),gen=cloudGeneration,active=key;
+ const guard=()=>gen===cloudGeneration&&cloudEnabled()&&!locked&&key===active&&window.RumboSession?.use()===pass;
+ const check=()=>{if(!guard())throw Error('La sesión de sincronización se cerró');};
+ try{
+  const saved=await deviceStore('get',null,'cloud'),account=await shaText('rumbo-observatorio-account:'+pass);
+  if(!saved||saved.account!==account||!saved.key||saved.key.extractable!==false)throw Error('Configura la misma frase de sincronización en este dispositivo.');
+  const call=async(path='',body)=>{check();const res=await fetch(CLOUD_API+path,{method:body?'POST':'GET',headers:{Authorization:'Rumbo '+to64(en.encode(pass)),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(30000)});if(!res.ok)throw Error('Servidor del Observatorio no disponible (HTTP '+res.status+').');return res.json();};
+  const versions=new Set();let cursor='';
+  for(let i=0;i<100;i++){const page=await call(cursor?'?cursor='+encodeURIComponent(cursor):'');if(!Array.isArray(page.versions))throw Error('Listado incompatible');for(const v of page.versions){if(!/^[a-f0-9]{64}$/.test(v.id))throw Error('Identificador inválido');versions.add(v.id);}if(!page.cursor){cursor='';break;}if(page.cursor===cursor)throw Error('Paginación inválida');cursor=page.cursor;}
+  if(cursor)throw Error('Demasiadas copias remotas; exporta una copia y revisa la conexión.');
+  let merged=normalizeCloud(records);
+  for(const id of versions){
+   const snap=(await call('/'+id)).snapshot;if(!snap||snap.id!==id||typeof snap.cipher!=='string')throw Error('Copia remota incompleta');
+   const iv=from64(snap.iv);if(iv.length!==12)throw Error('Copia remota dañada');
+   let plain;try{plain=de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},saved.key,from64(snap.cipher)));}catch{throw Error('La frase de sincronización no coincide con las copias guardadas. No se sustituyó ningún dato.');}
+   if(await shaText(plain)!==id)throw Error('La copia no supera la comprobación de integridad.');
+   merged=mergeCloud(merged,JSON.parse(plain));
+  }
+  check();
+  // Incorporar también cambios realizados localmente durante la lectura remota.
+  merged=mergeCloud(records,merged);
+  if(stable(normalizeCloud(records))!==stable(merged))await save(merged,guard,true);
+  check();
+  const current=records,plain=stable(normalizeCloud(current)),id=await shaText(plain);check();
+  if(!versions.has(id)&&(COLLECTIONS.some(c=>current[c].length)||(current.cloudRevisions||[]).length)){
+   const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=to64(new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},saved.key,en.encode(plain))));
+   if(cipher.length>6000000)throw Error('La copia supera el tamaño del servidor; conserva la copia local.');
+   check();if(records!==current)throw Error('Hay cambios nuevos; se reintentará.');
+   const saltBytes=new Uint8Array(await crypto.subtle.digest('SHA-256',en.encode('rumbo-observatorio-salt:'+account)));
+   const payload={version:1,id,createdAt:new Date().toISOString(),count:Math.max(1,COLLECTIONS.reduce((n,c)=>n+current[c].length,0)),salt:to64(saltBytes.slice(0,16)),iv:to64(iv),cipher};
+   try{await call('',payload);}catch(e){if(!e.message.includes('409'))throw e;}
+   const confirmation=(await call('/'+id)).snapshot;
+   if(!confirmation||confirmation.id!==id||await shaText(de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(confirmation.iv)},saved.key,from64(confirmation.cipher))))!==id)throw Error('El servidor no confirmó la copia.');
+  }
+  check();cloudLast=Date.now();cloudError=false;say('Observatorio: sincronización cifrada confirmada.');
+ }catch(e){if(guard()){cloudError=true;say('Sincronización del Observatorio pendiente: '+e.message+' Los registros locales se conservan.');}}
+ finally{cloudBusy=false;window.dispatchEvent(new Event('rumbo:observatorio-sync-state'));}
+}
+
 const title=id=>DIM.find(x=>x[0]===id)?.[1]||id;
 const say=text=>{$('obs-status').textContent=text;};
 const dateOK=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x+'T12:00:00'));
@@ -38,7 +157,8 @@ function valid(d){
 function to64(bytes){let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);}
 function from64(s){return Uint8Array.from(atob(s),x=>x.charCodeAt(0));}
 async function derive(pass,s){const base=await crypto.subtle.importKey('raw',en.encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:220000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
-async function save(next,stillValid=()=>true){
+async function save(next,stillValid=()=>true,remote=false){
+ if(!remote)next=withRevisions(records,next);
  if(locked||!key||!valid(next))throw Error('Bóveda cerrada o datos no válidos');
  if(localStorage.getItem(STORAGE)!==persistedRaw)throw Error('Otra pestaña modificó la bóveda. Recarga para evitar pérdidas.');
  const previous=records,activeKey=key;
@@ -46,7 +166,7 @@ async function save(next,stillValid=()=>true){
  const crypt=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,en.encode(JSON.stringify(next))));
  if(locked||key!==activeKey||records!==previous||localStorage.getItem(STORAGE)!==persistedRaw||!stillValid())throw Error('La bóveda cambió durante el guardado; vuelve a intentarlo.');
  const raw=JSON.stringify({version:1,salt:to64(salt),iv:to64(iv),cipher:to64(crypt)});localStorage.setItem(STORAGE,raw);persistedRaw=raw;
- records=next;render();
+ records=next;render();if(!remote)window.dispatchEvent(new Event('rumbo:observatorio-guardado'));
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
@@ -55,7 +175,7 @@ function toggle(value){
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
 const DEVICE_MARK='rumbo-observatorio-device-v1';
 let sessionEpoch=0,opening=false;
-function deviceStore(action,value){
+function deviceStore(action,value,slot='key'){
  return new Promise((resolve,reject)=>{
   const req=indexedDB.open('rumbo-observatorio-device',1);
   req.onupgradeneeded=()=>req.result.createObjectStore('session');
@@ -65,7 +185,7 @@ function deviceStore(action,value){
    const db=req.result;
    try{
     const tx=db.transaction('session',action==='get'?'readonly':'readwrite'),store=tx.objectStore('session');
-    const op=action==='get'?store.get('key'):action==='put'?store.put(value,'key'):store.delete('key');
+    const op=action==='get'?store.get(slot):action==='put'?store.put(value,slot):store.delete(slot);
     tx.oncomplete=()=>{db.close();resolve(op.result);};
     tx.onabort=tx.onerror=()=>{db.close();reject(tx.error||Error('Almacenamiento no disponible'));};
    }catch(e){db.close();reject(e);}
@@ -84,15 +204,18 @@ async function closeDevice(){
  toggle(true);
  // Invalidar primero el marcador evita recuperar una clave residual.
  localStorage.removeItem(DEVICE_MARK);
+ await setCloud(false);
  try{await deviceStore('delete');}catch{/* sin marcador no se restaura */}
  say('Bóveda cerrada. La próxima vez se solicitará la contraseña.');
  return true;
 }
-window.RumboObservatory=Object.freeze({close:closeDevice});
+window.RumboObservatory=Object.freeze({cloudEnabled,cloudConnect,cloudSync,cloudStatus,setCloud,close:closeDevice,available:()=>!locked,automatic:()=>autoEnabled(),setAutomatic:value=>{localStorage.setItem(AUTO_KEY,value?'1':'0');if(value&&!locked)void syncAutomatic();},sync:()=>syncAutomatic(),status:()=>({connected:!locked,pending:historyBusy,lastSuccess:lastAutoSuccess,error:lastAutoError,automatic:autoEnabled()})});
 window.addEventListener('storage',event=>{
+ if(event.key===CLOUD_MARK){cloudGeneration++;cloudLast=0;cloudError=false;return;}
  if(event.key===DEVICE_MARK||event.key===STORAGE||event.key===null){
   sessionEpoch++;toggle(true);
-  say('La bóveda o el acceso cambió en otra pestaña. Recarga para evitar pérdidas.');
+  say('La bóveda o el acceso cambió en otra pestaña.');
+  if(event.key===STORAGE&&localStorage.getItem(DEVICE_MARK))void restoreDevice();
  }
 });
 async function restoreDevice(){
@@ -303,7 +426,7 @@ function render(){
  for(const entry of recent){
   const card=node('article','obs-entry');
   card.append(node('strong','',title(effectiveDim(entry))+' · '+entry.date),
-   node('small','',entry.source==='texto'?'Observación textual · '+textualLabel(entry):'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
+   node('small','',entry.source==='texto'?'Observación textual · '+(entry.automatic?'Automática provisional · ':'')+textualLabel(entry):'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
    node('p','',entry.evidence||'Sin frase asociada'),node('small','',entry.context));
   if(entry.analysis){card.append(node('small','',analysisLabel(entry.analysis)));if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión del mismo registro: '+entry.analysis.additionalEvidence.match));}
   if(entry.source==='texto'&&entry.analysis){
@@ -376,6 +499,7 @@ root.innerHTML=[
 '<div class="obs-form"><label>Desde (opcional)<input type="date" id="obs-history-from"></label><label>Hasta (opcional)<input type="date" id="obs-history-to"></label></div>',
 '<div class="obs-inline"><button type="button" id="obs-all-scan" class="button primary">Revisar todos los registros disponibles</button><button type="button" id="obs-history-scan" class="button secondary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-select-all" class="button secondary" disabled>Seleccionar todos</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados y calcular índice textual</button></div>',
 '<p>La revisión conjunta usa el historial de este navegador y el diario ya abierto. No consulta tus chats de ChatGPT directamente. Para revisar el diario privado, abre Mi espacio e inicia sesión primero. Las notas pueden contener citas o resúmenes: se clasifican como texto del diario, no como palabras verificadas tuyas. El análisis no cambia ni elimina las notas.</p>',
+'<p>La incorporación automática se configura en el <a href="#panel-control">Panel de control</a>. Los índices automáticos son provisionales y se pueden corregir.</p>',
 '<label><input type="checkbox" id="obs-auto-open"> Preparar propuestas al abrir el observatorio (sin guardar sin revisión)</label>',
 '<label><input type="checkbox" id="obs-diary-auto"> Preparar propuestas al guardar notas (solo mientras ambas sesiones estén abiertas; no guarda observaciones sin revisión)</label>',
 '<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
@@ -489,10 +613,10 @@ async function historyId(source,dimension){
  const digest=await crypto.subtle.digest('SHA-256',en.encode(source));
  return 'history-'+Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('')+'-'+dimension;
 }
-async function scanHistory(mode='imported'){
+async function scanHistory(mode='imported',automatic=false){
  if(locked||historyBusy)return;
  resetHistory();historyMode=mode;historyBusy=true;$('obs-history-scan').disabled=true;$('obs-diary-scan').disabled=true;$('obs-all-scan').disabled=true;
- const active=key,generation=historyGeneration,from=$('obs-history-from').value,to=$('obs-history-to').value;
+ const active=key,generation=historyGeneration,from=automatic?'':$('obs-history-from').value,to=automatic?'':$('obs-history-to').value;
  try{
   if((from&&!strictDay(from))||(to&&!strictDay(to))||(from&&to&&from>to))throw Error('Selecciona fechas válidas.');
   const items=[],sources=[],unavailable=[];
@@ -523,7 +647,7 @@ async function scanHistory(mode='imported'){
     }
    }catch{unavailable.push('bandeja antigua incompatible');}
   }
-  if(!sources.length){historyStatus('Sin fuentes disponibles. '+unavailable.join('; ')+'. Abre Mi espacio o recupera el historial.');return;}
+  if(!sources.length){if(automatic)lastAutoError=true;historyStatus('Sin fuentes disponibles. '+unavailable.join('; ')+'. Abre Mi espacio o recupera el historial.');return;}
   const coverage=sources.join('; ')+(unavailable.length?' | No incluido: '+unavailable.join('; '):'');
   const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
   if(!engine)throw Error('El motor no está disponible. Recarga la aplicación.');
@@ -547,8 +671,18 @@ async function scanHistory(mode='imported'){
     proposed.push({id,sourceHash,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:item.kind==='diary'?'Diario privado · fecha de creación; autoría y fecha del suceso sin verificar':item.kind==='legacy-chatgpt'?'ChatGPT · bandeja antigua; texto de registro, autoría sin verificar':original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,item.kind==='diary'?'fecha de anotación':original?'registro original':'fecha de registro')});
    }
   }
-  if(locked||key!==active||generation!==historyGeneration||from!==$('obs-history-from').value||to!==$('obs-history-to').value)return;
+  if(locked||key!==active||generation!==historyGeneration||(!automatic&&(from!==$('obs-history-from').value||to!==$('obs-history-to').value)))return;
   if((mode==='diary'||mode==='all')&&sources.some(x=>x.startsWith('diario privado:'))&&!window.RumboPrivateSpace?.readForObservatory())return;
+  if(automatic){
+   if(!autoEnabled())return;
+   if(records.entries.length+proposed.length>20000)throw Error('Límite de registros alcanzado; exporta una copia cifrada.');
+   const selected=proposed.map(e=>({...e,automatic:true}));
+   if(selected.length)await save({...records,entries:[...records.entries,...selected],historySeen:[...new Set([...(records.historySeen||[]),...selected.map(e=>e.id)])]},()=>generation===historyGeneration&&autoEnabled());
+   if(locked||key!==active)return;
+   lastAutoSuccess=Date.now();lastAutoError=unavailable.length>0;
+   historyStatus(coverage+'. '+selected.length+' indicadores automáticos provisionales incorporados; '+duplicates+' duplicados omitidos; '+missing+' sin texto o fecha. '+(matched>limit?'El resto se revisará en el próximo ciclo.':'Puedes corregirlos en Registros.'));
+   return;
+  }
   historyCandidates=proposed;
   for(const entry of proposed){
    const card=node('article','obs-suggestion'),label=node('label',''),check=node('input','');
@@ -560,7 +694,7 @@ async function scanHistory(mode='imported'){
   }
   $('obs-history-save').hidden=!proposed.length;$('obs-history-select-all').disabled=!proposed.length;
   historyStatus(coverage+'. Reflexiones ChatGPT: '+coverageCounts.reflection+'; bandeja antigua: '+coverageCounts['legacy-chatgpt']+'. '+matched+' propuestas nuevas; '+proposed.length+' visibles. '+duplicates+' coincidencias ya registradas o duplicadas. '+missing+' registros sin texto atribuible o fecha válida (no clasificados). '+(matched>limit?'Acota las fechas para revisar las restantes. ':'')+'Usa Seleccionar todos para marcar las propuestas visibles o elige las que consideres pertinentes.');
- }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
+ }catch(e){if(automatic)lastAutoError=true;if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
  finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;$('obs-all-scan').disabled=false;}
 }
 $('obs-all-scan').addEventListener('click',()=>void scanHistory('all'));
@@ -569,17 +703,20 @@ $('obs-diary-scan').addEventListener('click',()=>void scanHistory('diary'));
 function invalidateDiary(){if(historyMode==='diary'||historyMode==='all'){resetHistory();if(!locked)historyStatus('El diario cambió. Vuelve a revisarlo; las observaciones ya guardadas se conservan.');}}
 window.addEventListener('rumbo:diario-cerrado',()=>{invalidateDiary();$('obs-diary-auto').checked=false;});
 window.addEventListener('rumbo:diario-cambiado',invalidateDiary);
+async function syncAutomatic(){if(locked||historyBusy||historyCandidates.length||!autoEnabled())return;await scanHistory('all',true);}
 function maybeAutoScan(){
+ if(autoEnabled()){void syncAutomatic();return;}
  if(locked||historyBusy||historyCandidates.length||!$('obs-auto-open')?.checked||window.RumboNavigation?.current()!=='observatorio-personal')return;
  void scanHistory('all');
 }
 try{$('obs-auto-open').checked=localStorage.getItem('rumbo-obs-auto-scan')==='1';}catch{}
 $('obs-auto-open').addEventListener('change',()=>{try{localStorage.setItem('rumbo-obs-auto-scan',$('obs-auto-open').checked?'1':'0');}catch{}maybeAutoScan();});
 window.addEventListener('rumbo:route-changed',e=>{if(e.detail?.route==='observatorio-personal')maybeAutoScan();});
-for(const event of ['rumbo:historial-actualizado','rumbo:historial-recuperado','rumbo:diario-disponible'])window.addEventListener(event,()=>{if(!locked&&!historyBusy){historyStatus('Hay una fuente disponible o actualizada. Pulsa Revisar todos los registros disponibles.');maybeAutoScan();}});
+for(const event of ['rumbo:historial-actualizado','rumbo:historial-recuperado','rumbo:diario-disponible','rumbo:chatgpt-recibido'])window.addEventListener(event,()=>{if(!locked&&!historyBusy){historyStatus('Hay una fuente disponible o actualizada. Pulsa Revisar todos los registros disponibles.');maybeAutoScan();}});
 window.addEventListener('rumbo:diario-guardado',()=>{
  if(locked)return;
  invalidateDiary();
+ if(autoEnabled()){void syncAutomatic();return;}
  if(!$('obs-diary-auto').checked)return;
  if(historyBusy||historyCandidates.length){historyStatus('Hay una revisión pendiente. Puedes revisar el diario después.');return;}
  void scanHistory('diary');

@@ -8,7 +8,7 @@
  const label=document.getElementById('favorites-sync-status');
  const button=document.getElementById('favorites-sync-now');
  if(!link||!label||!button)return;
- let working=false,again=false,generation=0,lastSuccess=0;
+ let working=false,again=false,generation=0,lastSuccess=0,lastError=false;
  const say=message=>{label.textContent=message;};
  const bytesTo64=data=>{
   let text='';const bytes=new Uint8Array(data);
@@ -111,7 +111,7 @@
    button.hidden=true;return;
   }
   if(working){again=true;return;}
-  working=true;button.disabled=true;button.hidden=false;
+  working=true;lastError=false;button.disabled=true;button.hidden=false;
   const pass=window.RumboSession.use(),gen=generation;
   try{
    if(!crypto?.subtle)throw Error('La sincronización cifrada necesita HTTPS.');
@@ -158,7 +158,7 @@
    lastSuccess=Date.now();
    say('Favoritos sincronizados: '+selected.length+'. También estarán disponibles en el otro dispositivo al abrir acceso privado.');
   }catch(error){
-   if(gen===generation)say('Sin sincronizar: '+error.message+' Tus favoritos locales se conservan.');
+   if(gen===generation){lastError=true;say('Sin sincronizar: '+error.message+' Tus favoritos locales se conservan.');}
   }finally{
    working=false;button.disabled=false;
    if(again){again=false;if(window.RumboSession?.available())void sync();}
@@ -183,6 +183,7 @@
   if(connected)void sync();
   else{button.hidden=true;say('Favoritos guardados en este dispositivo. Entra en «Acceso privado» para sincronizar entre móvil y ordenador.');}
  });
+ window.RumboFavoritesCloud=Object.freeze({sync,status:()=>({connected:Boolean(window.RumboSession?.available()),pending:working,lastSuccess,error:lastError})});
  button.addEventListener('click',()=>void sync());
  window.addEventListener('online',()=>{if(window.RumboSession?.available())void sync();});
  document.addEventListener('visibilitychange',()=>{

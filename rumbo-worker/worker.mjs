@@ -18,7 +18,7 @@ export default {async fetch(request,env){
  headers['Access-Control-Allow-Origin']=allowed;
  if(request.method==='OPTIONS'){headers['Access-Control-Allow-Headers']='Authorization, Content-Type';headers['Access-Control-Allow-Methods']='GET, POST, PUT, DELETE, OPTIONS';headers['Access-Control-Max-Age']='600';return new Response(null,{status:204,headers});}
  const route=new URL(request.url).pathname;
- if(route!=='/chat'&&!route.startsWith('/notes')&&!route.startsWith('/training')&&!route.startsWith('/history')&&!route.startsWith('/favorites')&&route!=='/rumbo-assistant')return reply(404,{error:'Ruta no disponible'});
+ if(route!=='/chat'&&!route.startsWith('/notes')&&!route.startsWith('/training')&&!route.startsWith('/history')&&!route.startsWith('/favorites')&&!route.startsWith('/observatory')&&route!=='/rumbo-assistant')return reply(404,{error:'Ruta no disponible'});
  if(route==='/chat'&&request.method!=='POST')return reply(404,{error:'Ruta no disponible'});
  if(!env.RUMBO_ACCESS_TOKEN||env.RUMBO_ACCESS_TOKEN.length<32)return reply(503,{error:'Autenticación no configurada'});
  if(route==='/chat'&&(env.FREE_TIER_CONFIRMED!=='true'||!env.GEMINI_API_KEY))return reply(503,{error:'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.'});
@@ -40,6 +40,10 @@ export default {async fetch(request,env){
  if(route==='/favorites'||route.startsWith('/favorites/')){
    try { const res=await favoritesApi(request,env,route);const h=new Headers(res.headers);h.set('Access-Control-Allow-Origin',allowed);h.set('Vary','Origin');return new Response(res.body,{status:res.status,headers:h}); }
    catch {return reply(503,{error:'No se pudo sincronizar favoritos. Se conservan los favoritos del dispositivo.'});}
+ }
+ if(route==='/observatory'||route.startsWith('/observatory/')){
+   try {const res=await historyApi(request,env,route,{route:'/observatory',prefix:'private-observatory/v1/owner/',max:21000});const h=new Headers(res.headers);h.set('Access-Control-Allow-Origin',allowed);h.set('Vary','Origin');return new Response(res.body,{status:res.status,headers:h});}
+   catch{return reply(503,{error:'No se pudo sincronizar el observatorio. Los registros locales se conservan.'});}
  }
  if(route==='/history'||route.startsWith('/history/')){
    try { const res=await historyApi(request,env,route);const h=new Headers(res.headers);h.set('Access-Control-Allow-Origin',allowed);h.set('Vary','Origin');return new Response(res.body,{status:res.status,headers:h}); }

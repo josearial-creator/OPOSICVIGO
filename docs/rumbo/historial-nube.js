@@ -7,7 +7,7 @@
  const STORE='rumbo-historial-importado-v1',MAX=5000;
  const enc=new TextEncoder(),dec=new TextDecoder(),vault=window.RumboHistoryVault;
  const saltBytes=16,ivBytes=12;
- let busy=false,retry=false,generation=0;
+ let busy=false,retry=false,generation=0,lastSuccess=0,lastError=false;
  const panel=document.createElement('section');
  panel.className='historic-cloud';
  panel.innerHTML='<h3>Copia privada sincronizada</h3><p id="historic-cloud-status" role="status" aria-live="polite">Abre «Acceso privado» para conectar tu historial cifrado.</p><p class="historic-cloud-note">Se cifra en este dispositivo antes de enviarse. Se conserva también la copia local y puedes exportar otra. La primera vez importa tu JSON de 132 registros; después se recuperarán al entrar con la misma contraseña.</p><button id="historic-cloud-retry" type="button" class="button secondary">Comprobar sincronización</button>';
@@ -78,7 +78,7 @@
   if(!window.RumboSession?.available()){say('Abre «Acceso privado» para recuperar o guardar tu historial cifrado.');return;}
   if(busy){retry=true;return;}
   const pass=window.RumboSession.use(),at=generation;
-  busy=true;button.disabled=true;
+  busy=true;lastError=false;button.disabled=true;
   try{
    if(!crypto?.subtle)throw Error('La conexión cifrada requiere HTTPS.');
    say('Comprobando el historial privado…');
@@ -121,8 +121,9 @@
     await open(confirmed,pass);
     say('Copia cifrada confirmada: '+store.entries.length+' registros guardados en Cloudflare. Se recuperarán al iniciar sesión en otro dispositivo.');
    }else say('Historial sincronizado: '+store.entries.length+' registros protegidos en Cloudflare.');
+   lastSuccess=Date.now();
   }catch(e){
-   if(at===generation)say('Sincronización no completada: '+e.message+' Conserva el JSON original; no se han borrado registros.');
+   if(at===generation){lastError=true;say('Sincronización no completada: '+e.message+' Conserva el JSON original; no se han borrado registros.');}
   }finally{
    busy=false;button.disabled=false;
    if(retry){retry=false;if(window.RumboSession?.available())void sync();}
@@ -135,6 +136,6 @@
   else{retry=false;say('Acceso cerrado. El archivo remoto permanece cifrado; tus copias locales no se han eliminado.');}
  });
  window.addEventListener('rumbo:historial-actualizado',()=>{if(window.RumboSession?.available())void sync();});
- window.RumboHistoryCloud=Object.freeze({sync});
+ window.RumboHistoryCloud=Object.freeze({sync,status:()=>({connected:Boolean(window.RumboSession?.available()),pending:busy,lastSuccess,error:lastError})});
  if(window.RumboSession?.available())void sync();
 })();

@@ -17,6 +17,7 @@
  }
  const openChat=()=>{
    if(!chatDetails||!chatSection)return;
+   if(document.getElementById('control-chat-host')?.contains(chatSection)){if(dialog.open)dialog.close();window.RumboNavigation?.go('panel-control');document.getElementById('control-chat-details').open=true;return;}
    if(!dialog.open)dialog.showModal();
    chatDetails.open=true;
    chatDetails.scrollIntoView({block:'nearest',behavior:'auto'});

@@ -9,7 +9,7 @@
   ['mi-espacio','Mi espacio','Diario'],['ev-diary','Diario','Diario'],
   ['historial-rumbo','Historial recuperado','Diario'],['mi-evolucion','Mis prácticas','Diario'],['observatorio-personal','Observatorio emocional','Diario'],
   ['ev-training','Entrenamiento','Diario'],['productividad','Productividad','Herramientas'],
-  ['proyectos','Proyectos','Herramientas'],['metricas-personales','Métricas','Herramientas']
+  ['proyectos','Proyectos','Herramientas'],['metricas-personales','Métricas','Herramientas'],['panel-control','Panel de control','Herramientas']
  ];
  const norm=text=>String(text).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
  const button=document.createElement('button');

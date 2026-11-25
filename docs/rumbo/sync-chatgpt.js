@@ -11,7 +11,7 @@
   const unbase64=str=>Uint8Array.from(atob(str),c=>c.charCodeAt(0));
   const b64array=buffer=>base64(new Uint8Array(buffer));
   const rsa={name:'RSA-OAEP',hash:'SHA-256'};
-  const state={publicBlob:null,key:null,busy:false};
+  const state={publicBlob:null,key:null,busy:false,lastSuccess:0,error:false};
   function message(s,error=false){const e=$('rs-status');e.textContent=s;e.setAttribute('role','status');e.classList.toggle('rs-error',error);}
   function openDB(){return new Promise((resolve,reject)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('keys');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
   async function readKey(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('keys','readonly'),q=tx.objectStore('keys').get('active');q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error);tx.oncomplete=()=>db.close();});}
@@ -103,12 +103,12 @@
         added.push(note);existing.add(externalId);
       }
       if(added.length){
-        data.real.push(...added);
-        localStorage.setItem(STORE,JSON.stringify(data)); // Escribe primero, recarga solo tras confirmar.
-        message('Incorporados '+added.length+' registros. Actualizando el diario...');
-        location.reload();
+        if(!window.RumboEvolutionSync)throw Error('La recepción sin recarga no está disponible');
+        const count=window.RumboEvolutionSync.mergeChatGPT(added);
+        message('Incorporados '+count+' registros, sin recargar la página.');
       }else if(!automatic)message('Todo actualizado: no hay registros nuevos para esta clave.');
-    }catch(e){message('No se ha modificado tu diario: '+e.message,true);}
+      state.lastSuccess=Date.now();state.error=false;
+    }catch(e){state.error=true;message('No se ha modificado tu diario: '+e.message,true);}
     finally{state.busy=false;$('rs-fetch').disabled=false;}
   }
   root.innerHTML='<h3>Conexión privada con ChatGPT</h3>'+
@@ -120,6 +120,7 @@
    '<p class="rs-privacy">La bandeja de GitHub es pública pero contiene únicamente datos cifrados; la actividad y el número de registros pueden ser visibles. La clave privada permanece en este dispositivo y la copia descargable está cifrada. No se sincroniza el resto de tu diario.</p>';
   $('rs-generate').addEventListener('click',generate);
   $('rs-restore').addEventListener('click',restore);
+  window.RumboChatInbox=Object.freeze({sync:()=>sync(true),status:()=>({connected:Boolean(state.key),pending:state.busy,lastSuccess:state.lastSuccess,error:state.error})});
   $('rs-fetch').addEventListener('click',()=>sync(false));
   $('rs-backup').addEventListener('click',()=>{if(!state.key?.backup){message('No hay copia disponible: usa la copia descargada al crear la clave.',true);return;}download('rumbo-recuperacion-'+state.key.keyId+'.json',state.key.backup);message('Copia cifrada descargada. Guarda la frase por separado.');});
   $('rs-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state.publicBlob);message('Clave pública copiada. Pégala en ChatGPT para terminar la vinculación.');}catch{ $('rs-public').focus();$('rs-public').select();message('Selecciona el texto y usa Copiar.');}});

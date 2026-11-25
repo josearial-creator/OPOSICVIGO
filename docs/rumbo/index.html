@@ -60,6 +60,8 @@
         <script defer src="historial-importado.js"></script>
         <script defer src="historial-nube.js"></script>
         <script defer src="ajustes.js"></script>
+        <script defer src="panel-control.js"></script>
+        <link rel="stylesheet" href="panel-control.css">
     </head>
     <body>
         <a class="rumbo-skip-link" href="#contenido-principal">Saltar al contenido principal</a>
@@ -221,6 +223,7 @@
                         </span>
                         Productividad
                     </a>
+                    <a class="nav-link" href="#panel-control" data-nav="panel-control"><span aria-hidden="true">⚙</span>Panel de control</a>
                     <a class="nav-link" href="#proyectos" data-nav="proyectos">
                         <span aria-hidden="true">
                             <svg class="rumbo-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
@@ -585,6 +588,7 @@
                     <section id="observatorio-personal" data-mobile-screen="diario" class="panel" aria-label="Observatorio emocional"></section>
                     <section id="historial-rumbo" data-mobile-screen="diario" class="panel historic-panel" aria-label="Historial recuperado"></section>
                     <section id="metricas-personales" data-mobile-screen="mas" class="panel org-metrics" aria-label="Mi evolución de organización y tiempo"></section>
+                    <section id="panel-control" data-mobile-screen="mas" class="panel" aria-label="Panel de control"></section>
                     <section id="copias-rumbo" data-mobile-screen="mas" class="panel backup-panel" aria-label="Copias cifradas e instalación"></section>
                     <footer>Rumbo · Versión independiente del panel, conectada al JSON de OPOSICVIGO. No es una exportación del código privado de ChatGPT Sites.</footer>
                 </div>
@@ -684,6 +688,7 @@
                 <section class="rumbo-settings-group" aria-labelledby="rumbo-settings-connections">
                     <h3 id="rumbo-settings-connections">Privacidad y conexiones</h3>
                     <div class="rumbo-settings-grid">
+                        <button type="button" data-settings-route="panel-control"><strong>Panel de control</strong><span>Conexiones y sincronización automática</span></button>
                         <button type="button" data-settings-chatgpt aria-controls="rumbo-settings-chatgpt">
                             <strong>Conectar ChatGPT</strong>
                             <span>Vinculación, frase de recuperación y registros cifrados</span>

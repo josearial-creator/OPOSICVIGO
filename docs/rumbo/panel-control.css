@@ -1,0 +1,20 @@
+#panel-control .control-body{padding:clamp(14px,3vw,28px);display:grid;gap:16px}
+#panel-control .control-top{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:18px;border:1px solid #c9ded5;background:#f5faf7;border-radius:16px}
+#panel-control .control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#panel-control .control-card{padding:18px;border:1px solid #d7e5df;border-radius:14px;background:white;display:flex;flex-direction:column;gap:9px;min-width:0;overflow-wrap:anywhere}
+#panel-control .control-card h3{font-size:17px;margin:0;color:#19493d}
+#panel-control p,#panel-control small{margin:0;color:#526e63;line-height:1.5;font-size:13px}
+#panel-control .control-tag{font-size:13px;color:#475b52}
+#panel-control .control-tag[data-state=ok]{color:#126448}
+#panel-control .control-tag[data-state=error]{color:#93461e}
+#panel-control .control-card .button{align-self:flex-start;min-height:44px}
+#panel-control label{display:flex;align-items:center;gap:10px;font-weight:600}
+#panel-control input[type=checkbox]{width:20px;height:20px;flex:none}
+#panel-control details summary{cursor:pointer;color:#19493d;font-weight:700}
+#panel-control details:not([open])>*:not(summary){display:none}
+#panel-control [hidden]{display:none!important}
+#control-agenda-host details{border:0}
+#control-agenda-host input{width:100%;max-width:100%;padding:10px;border:1px solid #afcfc0;border-radius:10px}
+#control-chat-host .rumbo-settings-chatgpt-panel{display:block!important}
+@media(max-width:560px){#panel-control .control-grid{grid-template-columns:1fr}#panel-control .control-top{align-items:flex-start;flex-direction:column}}
+#control-cloud-form{display:grid;gap:10px}#control-cloud-form input{width:100%;min-width:0;min-height:44px;padding:8px;border:1px solid #afcfc0;border-radius:10px}#control-cloud-form label{flex-direction:column;align-items:stretch}#control-agenda-host form label{display:flex;flex-direction:column;align-items:stretch}
