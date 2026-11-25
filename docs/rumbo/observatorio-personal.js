@@ -50,21 +50,92 @@ function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
  if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
+// Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
+const DEVICE_MARK='rumbo-observatorio-device-v1';
+let sessionEpoch=0,opening=false;
+function deviceStore(action,value){
+ return new Promise((resolve,reject)=>{
+  const req=indexedDB.open('rumbo-observatorio-device',1);
+  req.onupgradeneeded=()=>req.result.createObjectStore('session');
+  req.onerror=()=>reject(req.error);
+  req.onblocked=()=>reject(Error('Almacenamiento de dispositivo bloqueado'));
+  req.onsuccess=()=>{
+   const db=req.result;
+   try{
+    const tx=db.transaction('session',action==='get'?'readonly':'readwrite'),store=tx.objectStore('session');
+    const op=action==='get'?store.get('key'):action==='put'?store.put(value,'key'):store.delete('key');
+    tx.oncomplete=()=>{db.close();resolve(op.result);};
+    tx.onabort=tx.onerror=()=>{db.close();reject(tx.error||Error('Almacenamiento no disponible'));};
+   }catch(e){db.close();reject(e);}
+  };
+ });
+}
+async function rememberDevice(epoch){
+ const token=crypto.randomUUID(),active=key,salt64=to64(salt);
+ await deviceStore('put',{key:active,salt:salt64,token});
+ if(epoch!==sessionEpoch||locked||key!==active)return false;
+ localStorage.setItem(DEVICE_MARK,token);
+ return true;
+}
+async function closeDevice(){
+ sessionEpoch++;
+ toggle(true);
+ // Invalidar primero el marcador evita recuperar una clave residual.
+ localStorage.removeItem(DEVICE_MARK);
+ try{await deviceStore('delete');}catch{/* sin marcador no se restaura */}
+ say('Bóveda cerrada. La próxima vez se solicitará la contraseña.');
+ return true;
+}
+window.RumboObservatory=Object.freeze({close:closeDevice});
+window.addEventListener('storage',event=>{
+ if(event.key===DEVICE_MARK||event.key===null){
+  sessionEpoch++;toggle(true);
+  say('Acceso recordado cambiado en otra pestaña. Recarga para volver a abrir.');
+ }
+});
+async function restoreDevice(){
+ if(opening)return;
+ const epoch=sessionEpoch;opening=true;$('obs-open').disabled=true;
+ try{
+  const token=localStorage.getItem(DEVICE_MARK),raw=localStorage.getItem(STORAGE);
+  if(!token||!raw)return;
+  const saved=await deviceStore('get'),blob=JSON.parse(raw);
+  if(!saved||saved.token!==token||saved.salt!==blob.salt||!saved.key||saved.key.extractable!==false)throw Error('Acceso recordado no válido');
+  const decoded=JSON.parse(de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(blob.iv)},saved.key,from64(blob.cipher))));
+  if(!valid(decoded))throw Error('Datos inválidos');
+  if(epoch!==sessionEpoch||localStorage.getItem(DEVICE_MARK)!==token)return;
+  key=saved.key;salt=from64(blob.salt);records=decoded;toggle(false);render();
+  say('Bóveda abierta en este dispositivo recordado.');
+ }catch{
+  if(epoch===sessionEpoch){toggle(true);say('No se pudo restaurar el acceso recordado. Introduce tu contraseña; los datos se conservan.');}
+ }finally{opening=false;$('obs-open').disabled=false;}
+}
 async function unlock(){
+ if(opening)return;
  const pass=$('obs-password').value;
  if(pass.length<12){say('La contraseña debe tener al menos 12 caracteres. No se guarda.');return;}
+ const epoch=sessionEpoch;opening=true;$('obs-open').disabled=true;
  try{
   const stored=localStorage.getItem(STORAGE);
   if(stored){
    const blob=JSON.parse(stored),tempSalt=from64(blob.salt),candidate=await derive(pass,tempSalt);
    const text=de.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(blob.iv)},candidate,from64(blob.cipher)));
    const decoded=JSON.parse(text);if(!valid(decoded))throw Error('Datos inválidos');
+   if(epoch!==sessionEpoch)return;
    key=candidate;salt=tempSalt;records=decoded;toggle(false);
   }else{
-   salt=crypto.getRandomValues(new Uint8Array(16));key=await derive(pass,salt);toggle(false);await save(empty());
+   const tempSalt=crypto.getRandomValues(new Uint8Array(16)),candidate=await derive(pass,tempSalt);
+   if(epoch!==sessionEpoch)return;
+   salt=tempSalt;key=candidate;toggle(false);await save(empty());
   }
-  $('obs-password').value='';render();say('Bóveda abierta. Los datos están cifrados en este dispositivo.');
- }catch{toggle(true);say('No se pudo abrir la bóveda. Comprueba la contraseña. No se han borrado datos.');}
+  if(epoch!==sessionEpoch)return;
+  $('obs-password').value='';render();
+  try{
+   if($('obs-remember').checked){if(await rememberDevice(epoch))say('Bóveda abierta y recordada en este dispositivo.');}
+   else{localStorage.removeItem(DEVICE_MARK);await deviceStore('delete');if(epoch===sessionEpoch)say('Bóveda abierta solo para esta sesión.');}
+  }catch{if(epoch===sessionEpoch)say('Bóveda abierta, pero no se pudo recordar este dispositivo.');}
+ }catch{if(epoch===sessionEpoch){toggle(true);say('No se pudo abrir la bóveda. Comprueba la contraseña. No se han borrado datos.');}}
+ finally{opening=false;$('obs-open').disabled=false;}
 }
 function classify(text){return engine?.uniqueByDimension(text)||[];}
 function metadata(hit,dateBasis){return {method:hit.method,direction:hit.direction,kind:hit.kind,temporal:hit.temporal,dateBasis,index:hit.index,end:hit.end,match:hit.match,additionalEvidence:hit.additionalEvidence||null};}
@@ -206,8 +277,8 @@ root.innerHTML=[
 '<p>Analiza reflexiones, registra autovaloraciones y observa tendencias sin convertir el lenguaje en diagnósticos.</p>',
 '<p class="obs-disclaimer">Solo texto que aportes voluntariamente. No accede automáticamente a ChatGPT. No mencionar un síntoma no equivale a intensidad cero.</p></section>',
 '<div id="obs-locked" class="obs-vault"><h3>Bóveda cifrada en este dispositivo</h3>',
-'<p>Contraseña propia de al menos 12 caracteres, cifrado AES-GCM y PBKDF2. Sin sincronización entre dispositivos. Si olvidas la contraseña, los registros no se pueden recuperar.</p>',
-'<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div></div>',
+'<p>Contraseña propia de al menos 12 caracteres, cifrado AES-GCM y PBKDF2. Sin sincronización entre dispositivos. Recuerda la contraseña para recuperar el acceso si borras el almacenamiento del navegador.</p>',
+'<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
 '<div id="obs-private" hidden>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
 '<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
@@ -243,7 +314,7 @@ root.innerHTML=[
 ].join('');
 $('obs-open').addEventListener('click',()=>void unlock());
 $('obs-password').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void unlock();}});
-$('obs-lock').addEventListener('click',()=>{toggle(true);$('obs-text').value='';$('obs-suggestions').replaceChildren();$('obs-report-text').value='';$('obs-report-text').hidden=true;say('Bóveda cerrada.');});
+$('obs-lock').addEventListener('click',()=>{void closeDevice().catch(()=>say('No se pudo confirmar el cierre del acceso recordado.'));});
 $('obs-backup').addEventListener('click',()=>{
  const raw=localStorage.getItem(STORAGE);if(!raw)return;
  const blob=new Blob([raw],{type:'application/json'}),link=document.createElement('a');
@@ -473,4 +544,5 @@ $('obs-report-download').addEventListener('click',()=>{
  say('Exportación solicitada. El archivo no está cifrado.');
 });
 toggle(true);
+void restoreDevice();
 })();
