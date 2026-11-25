@@ -10,11 +10,12 @@
  let busy=false,retry=false,generation=0;
  const panel=document.createElement('section');
  panel.className='historic-cloud';
- panel.innerHTML='<h3>Copia privada sincronizada</h3><p id="historic-cloud-status" role="status" aria-live="polite">Abre «Acceso privado» para conectar tu historial cifrado.</p><p class="historic-cloud-note">Se cifra en este dispositivo antes de enviarse. Se conserva también la copia local y puedes exportar otra. La primera vez importa tu JSON de 132 registros; después se recuperarán al entrar con la misma contraseña.</p><button id="historic-cloud-retry" type="button" class="button secondary">Comprobar sincronización</button>';
+ panel.innerHTML='<h3>Copia privada sincronizada</h3><p id="historic-cloud-status" role="status" aria-live="polite">Abre «Acceso privado» para conectar tu historial cifrado.</p><p id="historic-reflection-status" role="status" aria-live="polite">Las reflexiones recibidas por el diario privado se comprobarán al abrir el acceso.</p><p class="historic-cloud-note">Se cifra en este dispositivo antes de enviarse. Se conserva también la copia local y puedes exportar otra. La primera vez importa tu JSON de 132 registros; después se recuperarán al entrar con la misma contraseña.</p><button id="historic-cloud-retry" type="button" class="button secondary">Comprobar sincronización</button>';
  const area=root.querySelector('.historic-vault');
  if(area)area.after(panel);else root.append(panel);
  const status=panel.querySelector('#historic-cloud-status');
  const button=panel.querySelector('#historic-cloud-retry');
+ const reflectionStatus=panel.querySelector('#historic-reflection-status');
  const say=text=>{status.textContent=text;};
  const b64=buffer=>{const bytes=new Uint8Array(buffer);let out='';for(let i=0;i<bytes.length;i+=8192)out+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(out);};
  const from64=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
@@ -74,6 +75,54 @@
   }
   throw Error('Demasiadas copias remotas; no se modifica ninguna.');
  }
+ // Contrato de recepción: solo sobres explícitos, nunca notas libres ni resúmenes inferidos.
+ function reflection(note){
+  if(!note||typeof note.text!=='string'||note.text.length>10000||!note.text.trimStart().startsWith('{'))return null;
+  let envelope;try{envelope=JSON.parse(note.text);}catch{return null;}
+  if(envelope?.type!=='rumbo-chatgpt-reflection-v1')return null;
+  const r=envelope.record;
+  const str=(v,max,required=false)=>typeof v==='string'&&v.length<=max&&(!required||v.trim().length>0);
+  if(!r||!str(r.id,249,true)||!str(r.sourceReference,300,true)||!str(r.date,10,true)||
+   !/^\d{4}-\d{2}-\d{2}$/.test(r.date)||!Number.isFinite(Date.parse(r.date))||new Date(r.date).toISOString().slice(0,10)!==r.date||
+   !str(r.title,160,true)||!str(r.summary,16000,true)||!str(r.reported,12000)||!str(r.conversationUrl,500)||
+   (r.recordedAt!==undefined&&(!str(r.recordedAt,30)||!Number.isFinite(Date.parse(r.recordedAt))))||
+   (r.sourceProject!==undefined&&!str(r.sourceProject,160)))throw Error('Hay una reflexión con formato no válido.');
+  if(r.conversationUrl){let url;try{url=new URL(r.conversationUrl);}catch{throw Error('Enlace de origen no válido.');}if(url.origin!=='https://chatgpt.com')throw Error('Enlace de origen no válido.');}
+  const payload={id:r.id,date:r.date,title:r.title,summary:r.summary,reported:r.reported,sourceReference:r.sourceReference,conversationUrl:r.conversationUrl,
+   ...(r.recordedAt!==undefined?{recordedAt:r.recordedAt}:{}),...(r.sourceProject!==undefined?{sourceProject:r.sourceProject}:{})};
+  return {id:'reflection:'+r.id,kind:'reflection',date:r.date,title:r.title,payload};
+ }
+ function sameReflection(a,b){
+  const x=a.payload,y=b.payload;
+  return ['date','title','summary','reported','conversationUrl'].every(k=>(x[k]||'')===(y[k]||''))&&
+   (!x.sourceReference||!y.sourceReference||x.sourceReference===y.sourceReference);
+ }
+ async function receiveReflections(pass,at){
+  check(pass,at);
+  const response=await fetch('https://rumbo-entrenador.jose-arial.workers.dev/notes',{headers:{Authorization:auth(pass)},cache:'no-store',signal:AbortSignal.timeout(30000)});
+  if(!response.ok)throw Error('No se pudo leer el diario privado (HTTP '+response.status+').');
+  const data=await response.json();check(pass,at);
+  if(!Array.isArray(data.notes))throw Error('Respuesta privada incompatible.');
+  const existing=local().entries.filter(e=>e.kind==='reflection'),byId=new Map(existing.map(e=>[e.id,e])),byRef=new Map(existing.filter(e=>e.payload.sourceReference).map(e=>[e.payload.sourceReference,e]));
+  const entries=[];let received=0,conflicts=0,invalid=0;
+  for(const note of data.notes){
+   let entry;try{entry=reflection(note);}catch{invalid++;continue;}
+   if(!entry)continue;
+   received++;
+   const a=byId.get(entry.id),b=byRef.get(entry.payload.sourceReference);
+   if(a||b){
+    if((a&&!sameReflection(a,entry))||(b&&!sameReflection(b,entry))||(a&&b&&a.id!==b.id))conflicts++;
+    continue;
+   }
+   entries.push(entry);byId.set(entry.id,entry);byRef.set(entry.payload.sourceReference,entry);
+  }
+  check(pass,at);
+  const merged=entries.length?await vault.mergeStore({version:1,entries}):{added:0};
+  check(pass,at);
+  reflectionStatus.textContent=received
+   ?'Reflexiones recibidas: '+received+'; incorporadas ahora: '+merged.added+'; conflictos conservados sin cambios: '+conflicts+'; formato inválido: '+invalid+'.'
+   :'No hay reflexiones de ChatGPT con el formato de conexión en este diario privado. '+(invalid?'Registros no válidos: '+invalid+'. ':'')+'Esto no confirma que el conector antiguo haya enviado datos.';
+ }
  async function sync(){
   if(!window.RumboSession?.available()){say('Abre «Acceso privado» para recuperar o guardar tu historial cifrado.');return;}
   if(busy){retry=true;return;}
@@ -102,6 +151,8 @@
     check(pass,at);
     if(result.added)window.dispatchEvent(new Event('rumbo:historial-recuperado'));
    }
+   try{await receiveReflections(pass,at);}catch(e){if(at===generation)reflectionStatus.textContent='Recepción de ChatGPT no completada. '+e.message;}
+   check(pass,at);
    const store=local();
    if(!store.entries.length){say('El archivo remoto está vacío. Importa una vez tu JSON de 132 registros para crear la copia privada.');return;}
    const id=await hash(JSON.stringify(store));
@@ -132,9 +183,10 @@
  window.RumboSession?.subscribe(connected=>{
   generation++;
   if(connected){void sync();}
-  else{retry=false;say('Acceso cerrado. El archivo remoto permanece cifrado; tus copias locales no se han eliminado.');}
+  else{retry=false;reflectionStatus.textContent='Acceso cerrado. La recepción de nuevas reflexiones está detenida.';say('Acceso cerrado. El archivo remoto permanece cifrado; tus copias locales no se han eliminado.');}
  });
  window.addEventListener('rumbo:historial-actualizado',()=>{if(window.RumboSession?.available())void sync();});
+ window.addEventListener('rumbo:route-changed',e=>{if(e.detail?.route==='historial-rumbo'&&window.RumboSession?.available())void sync();});
  window.RumboHistoryCloud=Object.freeze({sync});
  if(window.RumboSession?.available())void sync();
 })();

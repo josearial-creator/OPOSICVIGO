@@ -65,6 +65,21 @@ const password='clave-demo-historial-cifrado-de-32-caracteres',expected='Rumbo '
   await restored.locator('#rumbo-access-logout').click();
   assert.equal(await restored.evaluate(()=>window.RumboSession.available()),false);
   assert.equal(archives.size,1,'Salir no elimina la copia remota');
+  // Recepción de una reflexión ficticia, preservando el día original.
+  const record={id:'fixture-chatgpt-new',sourceReference:'fixture-chat-1',date:'2026-11-19',title:'Reflexión sintética',summary:'Resumen de prueba',reported:'Texto ficticio de prueba',conversationUrl:'',recordedAt:'2026-11-25T07:00:00Z'};
+  const note=(id,record)=>({id,createdAt:'2026-11-25T07:00:00Z',text:JSON.stringify({type:'rumbo-chatgpt-reflection-v1',record})});
+  notes.push(note('fixture-note-a',record),note('fixture-note-b',{...record,id:'fixture-duplicate'}),{id:'manual',text:'Nota libre ficticia',createdAt:'2026-11-25T07:00:00Z'});
+  await page.locator('#historic-cloud-retry').click();
+  await page.waitForFunction(()=>document.getElementById('historic-total').textContent==='133',{timeout:60000});
+  assert.equal(await page.locator('#historic-reflections').innerText(),'122');
+  const imported=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-historial-importado-v1')).entries.find(e=>e.id==='reflection:fixture-chatgpt-new'));
+  assert.equal(imported.date,'2026-11-19');
+  assert.equal(imported.payload.sourceReference,'fixture-chat-1');
+  assert.equal(imported.payload.reported,'Texto ficticio de prueba');
+  await page.waitForFunction(()=>!document.getElementById('historic-cloud-retry').disabled);
+  await page.locator('#historic-cloud-retry').click();
+  await page.waitForFunction(()=>!document.getElementById('historic-cloud-retry').disabled);
+  assert.equal(await page.locator('#historic-total').innerText(),'133','No duplica al reintentar');
   assert.deepEqual(errors,[],'Sin errores de JavaScript');
   console.log('PASS: 132 registros cifrados, comprobación remota, recuperación en otro navegador, no duplicación, logout.');
   await c2.close();await c1.close();
