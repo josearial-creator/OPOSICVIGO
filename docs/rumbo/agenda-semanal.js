@@ -13,7 +13,19 @@
   const status = card.querySelector('[role=status]'), refresh = card.querySelector('[data-refresh]');
   const disconnect = card.querySelector('[data-disconnect]');
   const dateLabel = new Intl.DateTimeFormat('es-ES', {weekday:'long', day:'numeric', month:'long',timeZone:'UTC'});
-  let url = '', generation = 0, lastRead = 0;
+  const madridDate = new Intl.DateTimeFormat('en-GB', {year:'numeric', month:'2-digit', day:'2-digit', timeZone:'Europe/Madrid'});
+  function dayAt(timestamp) { return madridDate.format(timestamp); }
+  function nextMidnight(now) {
+    const current = dayAt(now);
+    let low = now, high = now + 27 * 60 * 60 * 1000;
+    while (high - low > 1) {
+      const middle = low + Math.floor((high - low) / 2);
+      if (dayAt(middle) === current) low = middle;
+      else high = middle;
+    }
+    return high;
+  }
+  let url = '', generation = 0, lastDay = '', midnightTimer;
   try { url = localStorage.getItem(key) || ''; } catch {}
   function controls() {
     details.open = !url;
@@ -24,7 +36,7 @@
   async function read(candidate = url, connect = false) {
     if (!candidate) return;
     const id = ++generation;
-    lastRead = Date.now();
+    lastDay = dayAt(Date.now());
     status.textContent = 'Consultando citas…';
     list.replaceChildren();
     try {
@@ -72,11 +84,20 @@
     controls();
   });
   refresh.addEventListener('click', () => void read());
-  function updateIfDue() {
-    if (!document.hidden && url && Date.now() - lastRead >= 300000) void read();
+  function scheduleMidnight() {
+    window.clearTimeout(midnightTimer);
+    const now = Date.now();
+    midnightTimer = window.setTimeout(updateIfNewDay, Math.max(1, nextMidnight(now) - now));
+  }
+  function updateIfNewDay() {
+    if (url && dayAt(Date.now()) !== lastDay) void read();
+    scheduleMidnight();
   }
   controls();
   void read();
-  document.addEventListener('visibilitychange', updateIfDue);
-  window.setInterval(updateIfDue, 300000);
+  scheduleMidnight();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) updateIfNewDay();
+  });
+  window.addEventListener('pageshow', updateIfNewDay);
 })();
