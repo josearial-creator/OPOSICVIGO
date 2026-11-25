@@ -49,7 +49,7 @@ async function save(next,stillValid=()=>true){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;if($('obs-report-status'))$('obs-report-status').textContent='';$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
 const DEVICE_MARK='rumbo-observatorio-device-v1';
@@ -187,7 +187,7 @@ function textualSeries(id,all=records.entries){
 }
 function textualLabel(e){
  const score=textScore(e);
- return score===null?'Sin índice textual asignable':'Índice textual '+score+'/4 · orientación, no intensidad';
+ return score===null?'Sin índice textual asignable':'Índice textual '+score+'/3 · orientación, no intensidad';
 }
 function trend(points){
  if(points.length<6)return 'Sin tendencia suficiente';
@@ -229,7 +229,7 @@ function render(){
   card.append(node('strong','',title(id)));
   if(estimated.length){
    const latest=estimated[estimated.length-1];
-   card.append(node('strong','obs-estimated-value',latest.value+'/4 · índice textual'),node('small','',latest.day+' · '+estimated.length+' días con evidencia textual'),miniChart(estimated,'estimaciones textuales'),node('small','',trend(estimated)+' · orientación de menciones'));
+   card.append(node('strong','obs-estimated-value',latest.value+'/3 · índice textual'),node('small','',latest.day+' · '+estimated.length+' días con evidencia textual'),miniChart(estimated,'estimaciones textuales'),node('small','',trend(estimated)+' · orientación de menciones'));
   }else card.append(node('small','','Sin evidencia textual puntuable'));
   card.append(node('small','',points.length+' días con autovaloración declarada'));
   if(points.length)card.append(node('span','obs-trend',trend(points)),miniChart(points));
@@ -326,7 +326,7 @@ root.innerHTML=[
 '<div class="obs-form"><label>Desde<input id="obs-report-from" type="date"></label><label>Hasta<input id="obs-report-to" type="date"></label>',
 '<label><input type="checkbox" id="obs-report-evidence"> Incluir frases originales y contexto (opcional)</label><label><input type="checkbox" id="obs-report-hypotheses"> Incluir hipótesis y planes sin fecha (opcional)</label></div>',
 '<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Preparar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
-'<textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>'
+'<p id="obs-report-status" role="status" aria-live="polite"></p><textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>'
 ].join('');
 $('obs-open').addEventListener('click',()=>void unlock());
 $('obs-password').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void unlock();}});
@@ -502,21 +502,43 @@ const reportStart=new Date();reportStart.setDate(reportStart.getDate()-29);
 $('obs-report-from').value=reportStart.toLocaleDateString('sv-SE');
 $('obs-report-to').value=day();
 function clearReport(){
- $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;
+ $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-status').textContent='';
+}
+function reportStatus(message){$('obs-report-status').textContent=message;}
+function reportNarrative(entries,from,to){
+ const self=entries.filter(x=>x.source==='autovaloracion'),observed=entries.filter(x=>x.source==='texto');
+ const days=new Set(entries.map(x=>x.date)).size;
+ const paragraphs=[];
+ if(!entries.length)return ['No hay indicadores guardados entre '+from+' y '+to+'. No es posible describir una evolución emocional en este periodo. Revisa las fechas o guarda las observaciones del historial y del diario antes de generar el informe.'];
+ paragraphs.push('Entre '+from+' y '+to+' se registraron '+entries.length+' indicadores en '+days+' días distintos: '+self.length+' autovaloraciones y '+observed.length+' observaciones textuales. La cobertura es parcial y los días sin anotaciones no permiten concluir cómo se encontraba la persona.');
+ const themes=DIM.map(([id,label])=>({label,rows:observed.filter(x=>x.dimension===id)})).filter(x=>x.rows.length).map(x=>({...x,days:new Set(x.rows.map(e=>e.date)).size})).sort((a,b)=>b.days-a.days||b.rows.length-a.rows.length);
+ if(themes.length){paragraphs.push('Los temas más presentes en los registros escritos fueron '+themes.slice(0,5).map(x=>x.label.toLowerCase()+' ('+x.days+' días de mención)').join('; ')+'. Estas menciones describen el contenido registrado, no la frecuencia ni la gravedad de síntomas.');}
+ const changes=[];
+ for(const id of PRIOR){const p=textualSeries(id,entries);if(!p.length)continue;const adverse=['ansiedad','urgencia'].includes(id),describe=v=>v===2?'evidencia mixta':(adverse?v===3:v===1)?'expresiones de dificultad':'expresiones de recurso o ausencia referida';const last=p[p.length-1];changes.push('En '+title(id).toLowerCase()+', el último día con evidencia ('+last.day+') presentó '+describe(last.value)+(p.length>1?'; el primer día ('+p[0].day+') presentó '+describe(p[0].value):'; solo hay un día puntuable')+'.');}
+ if(changes.length)paragraphs.push(changes.join(' ')+' Son orientaciones de menciones, no medidas clínicas; no demuestran por sí solas una mejoría o empeoramiento.');
+ const declared=DIM.map(([id,label])=>({label,p:series(id,entries)})).filter(x=>x.p.length);
+ if(declared.length)paragraphs.push('En las autovaloraciones declaradas, '+declared.map(({label,p})=>label.toLowerCase()+': '+(p.length===1?'única puntuación '+p[0].value+'/4 el '+p[0].day:'de '+p[0].value+'/4 ('+p[0].day+') a '+p[p.length-1].value+'/4 ('+p[p.length-1].day+')')).join('; ')+'. Los cambios se interpretan según el significado de cada dimensión y no prueban una tendencia clínica.');
+ else paragraphs.push('No hay autovaloraciones numéricas suficientes para describir cambios de intensidad declarada.');
+ const patterns=engine?.patterns(entries)||[];
+ if(patterns.length)paragraphs.push('Como hipótesis para explorar en consulta, se observaron co-menciones de '+patterns.map(p=>title(p.a).toLowerCase()+' y '+title(p.b).toLowerCase()+' ('+p.both+' días)').join('; ')+'. Conviene revisar el contexto, la secuencia de los acontecimientos y explicaciones alternativas; no se ha establecido causalidad.');
+ paragraphs.push('Para la próxima consulta, puede ser útil revisar los temas registrados, su repercusión cotidiana y qué circunstancias o estrategias coincidieron con los cambios. El informe no permite atribuirlos a tratamientos ni establecer un diagnóstico.');
+ return paragraphs;
 }
 for(const id of ['obs-report-from','obs-report-to','obs-report-evidence','obs-report-hypotheses'])$(id).addEventListener('change',clearReport);
 $('obs-report').addEventListener('click',()=>{
  if(locked)return;
  clearReport();
+ reportStatus('Preparando informe local…');
+ try{
  const from=$('obs-report-from').value,to=$('obs-report-to').value;
- if(!dateOK(from)||!dateOK(to)||from>to||to>day()){say('Selecciona un periodo válido, sin fechas futuras.');return;}
+ if(!dateOK(from)||!dateOK(to)||from>to||to>day()){reportStatus('Selecciona un periodo válido, sin fechas futuras.');return;}
  const inPeriod=x=>x.date>=from&&x.date<=to;
  const e=records.entries.filter(inPeriod);
  const self=e.filter(x=>x.source==='autovaloracion'),observed=e.filter(x=>x.source==='texto');
  const distinct=new Set(e.map(x=>x.date)).size;
  const lines=['RUMBO · INFORME DESCRIPTIVO PARA CONSULTA','Periodo: '+from+' a '+to+' (inclusive)',
  'Elaborado a partir de registros personales; no constituye diagnóstico ni seguimiento sanitario permanente.',
- '', '1. COBERTURA DE LOS DATOS',
+ '', 'SÍNTESIS NARRATIVA', '', ...reportNarrative(e,from,to).flatMap(p=>[p,'']), '1. COBERTURA DE LOS DATOS',
  'Días con algún registro: '+distinct,'Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
  'Observaciones textuales (sin intensidad declarada): '+observed.length,
  'Los días sin registro no equivalen a ausencia de síntomas.',
@@ -533,7 +555,7 @@ $('obs-report').addEventListener('click',()=>{
  }
  if(!observed.length)lines.push('Sin observaciones textuales guardadas.');
  lines.push('', 'ÍNDICE TEXTUAL EXPLORATORIO (1 dificultad y 3 recurso para dimensiones positivas; inverso para ansiedad y urgencia; 2 mixto; no es intensidad ni escala clínica)');
- for(const id of PRIOR){const p=textualSeries(id,e);if(p.length)lines.push(title(id)+': '+p.length+' días · último índice '+p[p.length-1].value+'/4 ('+p[p.length-1].day+') · '+trend(p));}
+ for(const id of PRIOR){const p=textualSeries(id,e);if(p.length)lines.push(title(id)+': '+p.length+' días · último índice '+p[p.length-1].value+'/3 ('+p[p.length-1].day+') · '+trend(p));}
  const patterns=engine?.patterns(e)||[];
  if(patterns.length){lines.push('', 'PATRONES EXPLORATORIOS (co-menciones por fecha de registro; no causalidad)');for(const p of patterns)lines.push(p.question+' '+p.both+' días con ambas menciones; '+p.onlyA+' solo la primera; '+p.onlyB+' solo la segunda. Explorar circunstancias compartidas y hábitos de registro.');}
  lines.push('', '4. CUESTIONARIOS (puntuación manual, sin interpretación)');
@@ -550,7 +572,8 @@ $('obs-report').addEventListener('click',()=>{
   lines.push(...(records.hypotheses.length?records.hypotheses.map(h=>h.text+' | Plan: '+h.plan+((h.outcomes||[]).length?' | Resultados del periodo (percibidos): '+h.outcomes.filter(o=>o.date>=from&&o.date<=to).map(o=>o.date+' '+o.rating+(o.note?' — '+o.note:'')).join('; '):'')):['Sin hipótesis guardadas.']));
  }
  lines.push('', 'NOTAS PARA LA CONSULTA (completar voluntariamente)','Acontecimientos relevantes: ','Repercusión en la vida diaria: ','Cambios de tratamiento percibidos: ','Estrategias y resultados observados: ','Preguntas para el profesional: ','','Los patrones no demuestran causalidad. Revisar junto al profesional.');
- $('obs-report-text').value=lines.join('\n');$('obs-report-text').hidden=false;$('obs-report-download').hidden=false;$('obs-report-text').focus();say('Informe preparado. Puedes editarlo y retirar información antes de exportar.');
+ $('obs-report-text').value=lines.join('\n');$('obs-report-text').hidden=false;$('obs-report-download').hidden=false;$('obs-report-text').focus();reportStatus(e.length?'Informe preparado. Puedes editarlo y retirar información antes de exportar.':'Informe preparado sin indicadores en este periodo. Revisa las fechas o guarda observaciones.');
+ }catch{clearReport();reportStatus('No se pudo generar el informe. Los registros originales se conservan.');}
 });
 $('obs-report-download').addEventListener('click',()=>{
  if(locked||$('obs-report-text').hidden||!$('obs-report-text').value.trim())return;
