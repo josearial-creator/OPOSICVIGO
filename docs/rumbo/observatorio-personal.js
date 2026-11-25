@@ -277,7 +277,7 @@ root.innerHTML=[
 '<p>Analiza reflexiones, registra autovaloraciones y observa tendencias sin convertir el lenguaje en diagnósticos.</p>',
 '<p class="obs-disclaimer">Solo texto que aportes voluntariamente. No accede automáticamente a ChatGPT. No mencionar un síntoma no equivale a intensidad cero.</p></section>',
 '<div id="obs-locked" class="obs-vault"><h3>Bóveda cifrada en este dispositivo</h3>',
-'<p>Contraseña propia de al menos 12 caracteres, cifrado AES-GCM y PBKDF2. Sin sincronización entre dispositivos. Recuerda la contraseña para recuperar el acceso si borras el almacenamiento del navegador.</p>',
+'<p>Contraseña propia de al menos 12 caracteres, cifrado AES-GCM y PBKDF2. Sin sincronización entre dispositivos. Conserva la contraseña y una copia cifrada. Borrar el almacenamiento del navegador puede eliminar también los registros.</p>',
 '<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
 '<div id="obs-private" hidden>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
