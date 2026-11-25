@@ -48,7 +48,7 @@ async function save(next,stillValid=()=>true){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').hidden=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 async function unlock(){
  const pass=$('obs-password').value;
@@ -78,21 +78,50 @@ function series(id,all=records.entries){
  }
  return [...days].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,v])=>({day,value:v.slice().sort((a,b)=>a-b)[Math.floor(v.length/2)]}));
 }
+// Índice de orientación textual, no intensidad clínica ni autovaloración.
+function textScore(entry){
+ if(entry.source!=='texto'||!entry.analysis||!PRIOR.includes(entry.dimension)||entry.analysis.temporal==='pasado referido')return null;
+ const d=entry.analysis.direction, adverse=['ansiedad','urgencia'].includes(entry.dimension);
+ if(d==='mixto')return 2;
+ if(d==='malestar'||d==='dificultad')return adverse?3:1;
+ if(d==='recurso')return adverse?1:3;
+ if(d==='ausencia referida'&&adverse)return 1;
+ return null;
+}
+function textualSeries(id,all=records.entries){
+ const dates=new Map();
+ for(const e of all){
+  if(e.dimension!==id)continue;
+  const score=textScore(e);if(score===null)continue;
+  if(!dates.has(e.date))dates.set(e.date,new Set());
+  dates.get(e.date).add(score);
+ }
+ return [...dates].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,values])=>({day,value:values.size>1?2:[...values][0]}));
+}
+function textualLabel(e){
+ const score=textScore(e);
+ return score===null?'Sin índice textual asignable':'Índice textual '+score+'/4 · orientación, no intensidad';
+}
 function trend(points){
  if(points.length<6)return 'Sin tendencia suficiente';
  const median=a=>{const x=a.map(p=>p.value).sort((b,c)=>b-c);return x[1];};
  const diff=median(points.slice(-3))-median(points.slice(-6,-3));
  return diff===0?'Sin cambio en la mediana':diff>0?'Sube la mediana':'Baja la mediana';
 }
-function miniChart(points){
+function miniChart(points,source='autovaloraciones'){
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
  svg.setAttribute('viewBox','0 0 310 110');svg.setAttribute('role','img');
- svg.setAttribute('aria-label',points.slice(-10).map(p=>p.day+' '+p.value.toFixed(1)).join('; ')||'Sin autovaloraciones');
+ svg.setAttribute('aria-label',points.slice(-10).map(p=>p.day+' '+p.value.toFixed(1)).join('; ')||'Sin '+source);
  const last=points.slice(-10);
  if(!last.length)return svg;
  const poly=document.createElementNS(svg.namespaceURI,'polyline');
- poly.setAttribute('fill','none');poly.setAttribute('stroke','#0b6e64');poly.setAttribute('stroke-width','3');
+ poly.setAttribute('fill','none');poly.setAttribute('stroke',source==='estimaciones textuales'?'#9a5a12':'#0b6e64');poly.setAttribute('stroke-width','3');
  poly.setAttribute('points',last.map((p,i)=>(12+(last.length===1?0:i*286/(last.length-1)))+','+(98-p.value*22)).join(' '));svg.append(poly);
+ for(let i=0;i<last.length;i++){
+  const dot=document.createElementNS(svg.namespaceURI,'circle');
+  dot.setAttribute('cx',12+(last.length===1?0:i*286/(last.length-1)));dot.setAttribute('cy',98-last[i].value*22);
+  dot.setAttribute('r','3.5');dot.setAttribute('fill',source==='estimaciones textuales'?'#9a5a12':'#0b6e64');svg.append(dot);
+ }
  return svg;
 }
 const ACTIONS={
@@ -109,8 +138,14 @@ function render(){
  $('obs-count').textContent=records.entries.length+' indicadores · '+records.questionnaires.length+' cuestionarios · '+records.hypotheses.length+' hipótesis';
  const cards=$('obs-metrics');cards.replaceChildren();
  for(const id of PRIOR){
-  const points=series(id),card=node('article','obs-metric');
-  card.append(node('strong','',title(id)),node('span','obs-trend',trend(points)),miniChart(points),node('small','',points.length+' días con autovaloración'));
+  const points=series(id),estimated=textualSeries(id),card=node('article','obs-metric');
+  card.append(node('strong','',title(id)));
+  if(estimated.length){
+   const latest=estimated[estimated.length-1];
+   card.append(node('strong','obs-estimated-value',latest.value+'/4 · índice textual'),node('small','',latest.day+' · '+estimated.length+' días con evidencia textual'),miniChart(estimated,'estimaciones textuales'),node('small','',trend(estimated)+' · orientación de menciones'));
+  }else card.append(node('small','','Sin evidencia textual puntuable'));
+  card.append(node('small','',points.length+' días con autovaloración declarada'));
+  if(points.length)card.append(node('span','obs-trend',trend(points)),miniChart(points));
   cards.append(card);
  }
  const patternBox=$('obs-patterns');patternBox.replaceChildren();
@@ -137,7 +172,7 @@ function render(){
  for(const entry of recent){
   const card=node('article','obs-entry');
   card.append(node('strong','',title(entry.dimension)+' · '+entry.date),
-   node('small','',entry.source==='texto'?'Observación textual · sin puntuación':'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
+   node('small','',entry.source==='texto'?'Observación textual · '+textualLabel(entry):'Autovaloración · '+(entry.value===null?'Sin dato':entry.value+'/4')),
    node('p','',entry.evidence||'Sin frase asociada'),node('small','',entry.context));
   if(entry.analysis){card.append(node('small','',analysisLabel(entry.analysis)));if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión del mismo registro: '+entry.analysis.additionalEvidence.match));}
   const del=node('button','button secondary','Eliminar');del.type='button';
@@ -175,19 +210,19 @@ root.innerHTML=[
 '<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div></div>',
 '<div id="obs-private" hidden>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
-'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Las gráficas utilizan únicamente autovaloraciones declaradas. Una subida no implica siempre mejoría.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
+'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
 '<section class="obs-block"><h3>Registrar cómo me encuentro</h3><p>Escala ordinal: 0 significa ausencia expresamente indicada; 1 leve, 2 moderada, 3 alta, 4 muy alta. Sin dato no es cero.</p>',
 '<form id="obs-self-form" class="obs-form"><label>Fecha<input name="day" type="date" required></label>',
 '<label>Dimensión<select name="dimension"></select></label>',
 '<label>Intensidad declarada<select name="value"><option value="">Sin dato</option><option value="0">0 · Ausencia indicada</option><option value="1">1 · Leve</option><option value="2">2 · Moderada</option><option value="3">3 · Alta</option><option value="4">4 · Muy alta</option></select></label>',
 '<label>Mis palabras (opcional)<textarea name="evidence" maxlength="300" rows="2" placeholder="Hoy me he sentido…"></textarea></label>',
 '<label>Contexto (opcional)<input name="context" maxlength="160" placeholder="Trabajo, estudio, ejercicio…"></label><button type="submit" class="button primary">Guardar autovaloración</button></form></section>',
-'<section class="obs-block"><h3>Clasificar una reflexión</h3><p>El motor local aplica reglas contextuales, distingue dificultades, recursos y negaciones explícitas, y evita algunos casos ambiguos. No es IA generativa ni una evaluación clínica validada. No se envía texto a servicios externos. Se guarda solo si eliges hacerlo. Cada observación conserva una frase, pero no recibe una puntuación inventada.</p>',
+'<section class="obs-block"><h3>Clasificar una reflexión</h3><p>El motor local aplica reglas contextuales, distingue dificultades, recursos y negaciones explícitas, y evita algunos casos ambiguos. No es IA generativa ni una evaluación clínica validada. No se envía texto a servicios externos. Se guarda solo si eliges hacerlo. Cada observación conserva una frase y, cuando es elegible, muestra un índice de orientación textual separado de la intensidad declarada.</p>',
 '<label for="obs-text">Fragmento de conversación o diario</label><textarea id="obs-text" maxlength="6000" rows="5" placeholder="Pega el fragmento que quieras clasificar, sin datos de terceros."></textarea>',
 '<div class="obs-inline"><button class="button primary" id="obs-analyze" type="button">Identificar indicadores</button><button class="button secondary" id="obs-clear" type="button">Limpiar</button></div><div id="obs-suggestions" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Analizar mi historial recuperado</h3><p>Lee solo las reflexiones y situaciones ya importadas en este navegador. Las reglas contextuales se aplican a las palabras atribuidas a ti, no a los resúmenes de IA. Revisa las propuestas antes de guardar. No se modifica el historial original ni se envía texto a otro servicio.</p>',
 '<div class="obs-form"><label>Desde (opcional)<input type="date" id="obs-history-from"></label><label>Hasta (opcional)<input type="date" id="obs-history-to"></label></div>',
-'<div class="obs-inline"><button type="button" id="obs-all-scan" class="button primary">Revisar todos los registros disponibles</button><button type="button" id="obs-history-scan" class="button secondary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados sin puntuación</button></div>',
+'<div class="obs-inline"><button type="button" id="obs-all-scan" class="button primary">Revisar todos los registros disponibles</button><button type="button" id="obs-history-scan" class="button secondary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-select-all" class="button secondary" hidden>Seleccionar propuestas visibles</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados y calcular índice textual</button></div>',
 '<p>La revisión conjunta usa el historial de este navegador y el diario ya abierto. No consulta tus chats de ChatGPT directamente. Para revisar el diario privado, abre Mi espacio e inicia sesión primero. Las notas pueden contener citas o resúmenes: se clasifican como texto del diario, no como palabras verificadas tuyas. El análisis no cambia ni elimina las notas.</p>',
 '<label><input type="checkbox" id="obs-diary-auto"> Preparar propuestas al guardar notas (solo mientras ambas sesiones estén abiertas; no guarda observaciones sin revisión)</label>',
 '<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
@@ -235,12 +270,12 @@ $('obs-analyze').addEventListener('click',()=>{
  if(!found.length){box.append(node('p','obs-empty','No hay coincidencias explícitas. No se asigna ninguna puntuación.'));return;}
  for(const result of found){
   const div=node('article','obs-suggestion');
-  div.append(node('strong','',title(result.dimension)),node('p','',result.evidence),node('small','','Propuesta contextual · '+analysisLabel(result)+' · requiere revisión.'));
+  div.append(node('strong','',title(result.dimension)),node('p','',result.evidence),node('small','','Propuesta contextual · '+analysisLabel(result)+' · '+textualLabel({source:'texto',dimension:result.dimension,analysis:result})+' · requiere revisión.'));
   if(result.additionalEvidence)div.append(node('p','','Otra expresión: '+result.additionalEvidence.match));
-  const button=node('button','button secondary','Guardar sin puntuación');button.type='button';
+  const button=node('button','button secondary','Guardar observación');button.type='button';
   button.addEventListener('click',async()=>{
    try{const entry={id:crypto.randomUUID(),date:day(),dimension:result.dimension,source:'texto',value:null,evidence:result.evidence,context:'Fragmento aportado voluntariamente',analysis:metadata(result,'fecha de anotación')};
-    await save({...records,entries:[...records.entries,entry]});button.disabled=true;say('Observación guardada sin puntuación.');
+    await save({...records,entries:[...records.entries,entry]});button.disabled=true;say('Observación guardada. Se calcula el índice textual si existe evidencia suficiente.');
    }catch{say('No se pudo guardar.');}
   });div.append(button);box.append(div);
  }
@@ -261,7 +296,7 @@ $('obs-h-form').addEventListener('submit',async e=>{
 
 const historyStatus=t=>{$('obs-history-status').textContent=t;};
 function resetHistory(){
- historyGeneration++;historyCandidates=[];$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;
+ historyGeneration++;historyCandidates=[];$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;$('obs-history-select-all').hidden=true;
 }
 for(const id of ['obs-history-from','obs-history-to'])$(id).addEventListener('change',()=>{resetHistory();historyStatus('Vuelve a revisar el periodo.');});
 const strictDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&dateOK(s)&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
@@ -332,11 +367,11 @@ async function scanHistory(mode='imported'){
    const card=node('article','obs-suggestion'),label=node('label',''),check=node('input','');
    check.type='checkbox';check.dataset.historyId=entry.id;
    label.append(check,document.createTextNode(' '+title(entry.dimension)+' · '+entry.date));
-   card.append(label,node('p','',entry.evidence),node('small','',entry.context+' · '+analysisLabel(entry.analysis)+' · no diagnóstico'));
+   card.append(label,node('p','',entry.evidence),node('small','',entry.context+' · '+analysisLabel(entry.analysis)+' · '+textualLabel(entry)+' · no diagnóstico'));
    if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión: '+entry.analysis.additionalEvidence.match));
    $('obs-history-list').append(card);
   }
-  $('obs-history-save').hidden=!proposed.length;
+  $('obs-history-save').hidden=!proposed.length;$('obs-history-select-all').hidden=!proposed.length;
   historyStatus(coverage+'. '+matched+' propuestas nuevas; '+proposed.length+' visibles. '+missing+' registros sin texto atribuible o fecha válida (no clasificados). '+(matched>limit?'Acota las fechas para revisar las restantes. ':'')+'Selecciona solo las que consideres pertinentes.');
  }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
  finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;$('obs-all-scan').disabled=false;}
@@ -354,6 +389,7 @@ window.addEventListener('rumbo:diario-guardado',()=>{
  if(historyBusy||historyCandidates.length){historyStatus('Hay una revisión pendiente. Puedes revisar el diario después.');return;}
  void scanHistory('diary');
 });
+$('obs-history-select-all').addEventListener('click',()=>{if(!locked&&!historyBusy)for(const c of $('obs-history-list').querySelectorAll('input[type=checkbox]'))c.checked=true;});
 $('obs-history-save').addEventListener('click',async()=>{
  if(locked||historyBusy)return;
  if((historyMode==='diary'||historyMode==='all')&&!window.RumboPrivateSpace?.readForObservatory()&&historyCandidates.some(e=>e.context.startsWith('Diario privado'))){invalidateDiary();return;}
@@ -369,8 +405,8 @@ $('obs-history-save').addEventListener('click',async()=>{
   if(locked||key!==active)return;
   historyCandidates=historyCandidates.filter(x=>!chosen.has(x.id));
   for(const input of $('obs-history-list').querySelectorAll('input:checked'))input.closest('article').remove();
-  $('obs-history-save').hidden=!historyCandidates.length;
-  historyStatus(selected.length+' observaciones guardadas cifradas, sin puntuación. No se modifica el historial original.');
+  $('obs-history-save').hidden=!historyCandidates.length;$('obs-history-select-all').hidden=!historyCandidates.length;
+  historyStatus(selected.length+' observaciones guardadas cifradas. Índice textual actualizado cuando procede. No se modifica el historial original.');
  }catch(e){if(!locked&&key===active)historyStatus('No se ha confirmado el guardado. Vuelve a revisar.');}
  finally{historyBusy=false;$('obs-history-save').disabled=false;}
 });
@@ -395,7 +431,7 @@ $('obs-report').addEventListener('click',()=>{
  'Elaborado a partir de registros personales; no constituye diagnóstico ni seguimiento sanitario permanente.',
  '', '1. COBERTURA DE LOS DATOS',
  'Días con algún registro: '+distinct,'Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
- 'Observaciones textuales sin puntuación: '+observed.length,
+ 'Observaciones textuales (sin intensidad declarada): '+observed.length,
  'Los días sin registro no equivalen a ausencia de síntomas.',
  '', '2. EVOLUCIÓN DECLARADA (escala ordinal 0–4, intensidad; no siempre una subida es mejoría)'];
  for(const [id,label] of DIM){
@@ -409,6 +445,8 @@ $('obs-report').addEventListener('click',()=>{
   if(matches.length)lines.push(label+': '+matches.length+' registros en '+new Set(matches.map(x=>x.date)).size+' días.');
  }
  if(!observed.length)lines.push('Sin observaciones textuales guardadas.');
+ lines.push('', 'ÍNDICE TEXTUAL EXPLORATORIO (1 dificultad y 3 recurso para dimensiones positivas; inverso para ansiedad y urgencia; 2 mixto; no es intensidad ni escala clínica)');
+ for(const id of PRIOR){const p=textualSeries(id,e);if(p.length)lines.push(title(id)+': '+p.length+' días · último índice '+p[p.length-1].value+'/4 ('+p[p.length-1].day+') · '+trend(p));}
  const patterns=engine?.patterns(e)||[];
  if(patterns.length){lines.push('', 'PATRONES EXPLORATORIOS (co-menciones por fecha de registro; no causalidad)');for(const p of patterns)lines.push(p.question+' '+p.both+' días con ambas menciones; '+p.onlyA+' solo la primera; '+p.onlyB+' solo la segunda. Explorar circunstancias compartidas y hábitos de registro.');}
  lines.push('', '4. CUESTIONARIOS (puntuación manual, sin interpretación)');
@@ -417,7 +455,7 @@ $('obs-report').addEventListener('click',()=>{
  if($('obs-report-evidence').checked){
   lines.push('', '5. FRAGMENTOS Y CONTEXTO (revisar antes de compartir)');
   const examples=e.filter(x=>x.evidence||x.context).sort((a,b)=>b.date.localeCompare(a.date));
-  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?'observación sin puntuación':'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis)+(x.analysis.additionalEvidence?' | Otra expresión: '+x.analysis.additionalEvidence.match:''):'')):['Sin fragmentos asociados.']));
+  lines.push(...(examples.length?examples.slice(0,20).map(x=>x.date+' · '+title(x.dimension)+' · '+(x.source==='texto'?textualLabel(x):'autovaloración')+(x.evidence?': '+x.evidence:'')+(x.context?' | Contexto: '+x.context:'')+(x.analysis?' | '+analysisLabel(x.analysis)+(x.analysis.additionalEvidence?' | Otra expresión: '+x.analysis.additionalEvidence.match:''):'')):['Sin fragmentos asociados.']));
   if(examples.length>20)lines.push('Se muestran los 20 registros más recientes de '+examples.length+'.');
  }
  if($('obs-report-hypotheses').checked){
