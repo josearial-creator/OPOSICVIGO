@@ -510,7 +510,7 @@ function reportNarrative(entries,from,to){
  const days=new Set(entries.map(x=>x.date)).size;
  const paragraphs=[];
  if(!entries.length)return ['No hay indicadores guardados entre '+from+' y '+to+'. No es posible describir una evolución emocional en este periodo. Revisa las fechas o guarda las observaciones del historial y del diario antes de generar el informe.'];
- paragraphs.push('Entre '+from+' y '+to+' se registraron '+entries.length+' indicadores en '+days+' días distintos: '+self.length+' autovaloraciones y '+observed.length+' observaciones textuales. La cobertura es parcial y los días sin anotaciones no permiten concluir cómo se encontraba la persona.');
+ paragraphs.push('Entre '+from+' y '+to+' se registraron '+entries.length+(entries.length===1?' indicador en ':' indicadores en ')+days+(days===1?' día distinto: ':' días distintos: ')+self.length+' autovaloraciones y '+observed.length+' observaciones textuales. La cobertura es parcial y los días sin anotaciones no permiten concluir cómo se encontraba la persona.');
  const themes=DIM.map(([id,label])=>({label,rows:observed.filter(x=>x.dimension===id)})).filter(x=>x.rows.length).map(x=>({...x,days:new Set(x.rows.map(e=>e.date)).size})).sort((a,b)=>b.days-a.days||b.rows.length-a.rows.length);
  if(themes.length){paragraphs.push('Los temas más presentes en los registros escritos fueron '+themes.slice(0,5).map(x=>x.label.toLowerCase()+' ('+x.days+' días de mención)').join('; ')+'. Estas menciones describen el contenido registrado, no la frecuencia ni la gravedad de síntomas.');}
  const changes=[];
