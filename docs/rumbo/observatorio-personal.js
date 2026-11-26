@@ -19,7 +19,8 @@ const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
 const day=()=>new Date().toLocaleDateString('sv-SE');
 const en=new TextEncoder(),de=new TextDecoder();
-let historyCandidates=[],historyBusy=false,historyMode='imported',historyGeneration=0;
+let historyCandidates=[],historyBusy=false,historyMode='imported',historyGeneration=0,historyPage=0;
+const HISTORY_PAGE_SIZE=200;
 let key=null,salt=null,locked=true,records={version:1,entries:[],questionnaires:[],hypotheses:[]};
 const title=id=>DIM.find(x=>x[0]===id)?.[1]||id;
 const say=text=>{$('obs-status').textContent=text;};
@@ -54,7 +55,7 @@ async function save(next,stillValid=()=>true){
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
  if(value){interview?.reset();clearDailyReport();}
- if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-exercises'))$('obs-exercises').open=false;if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
+ if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];historyPage=0;$('obs-history-pages').hidden=true;if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-exercises'))$('obs-exercises').open=false;if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
 const DEVICE_MARK='rumbo-observatorio-device-v1';
@@ -336,10 +337,10 @@ root.innerHTML=[
 '<div class="obs-inline"><button class="button primary" id="obs-analyze" type="button">Identificar indicadores</button><button class="button secondary" id="obs-clear" type="button">Limpiar</button></div><div id="obs-suggestions" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Analizar mi historial recuperado</h3><p>Lee solo las reflexiones y situaciones ya importadas en este navegador. Las reglas contextuales se aplican a las palabras atribuidas a ti, no a los resúmenes de IA. Revisa las propuestas antes de guardar. No se modifica el historial original ni se envía texto a otro servicio.</p>',
 '<div class="obs-form"><label>Desde (opcional)<input type="date" id="obs-history-from"></label><label>Hasta (opcional)<input type="date" id="obs-history-to"></label></div>',
-'<div class="obs-inline"><button type="button" id="obs-all-scan" class="button primary">Revisar todos los registros disponibles</button><button type="button" id="obs-history-scan" class="button secondary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-select-all" class="button secondary" disabled>Seleccionar todos</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados y calcular índice textual</button></div>',
+'<div class="obs-inline"><button type="button" id="obs-all-scan" class="button primary">Revisar todos los registros disponibles</button><button type="button" id="obs-history-scan" class="button secondary">Revisar historial importado</button><button type="button" id="obs-diary-scan" class="button secondary">Revisar diario privado</button><button type="button" id="obs-history-select-all" class="button secondary" disabled>Seleccionar página</button><button type="button" id="obs-history-save" class="button secondary" hidden>Guardar seleccionados y calcular índice textual</button></div>',
 '<p>La revisión conjunta usa el historial de este navegador y el diario ya abierto. No consulta tus chats de ChatGPT directamente. Para revisar el diario privado, abre Mi espacio e inicia sesión primero. Las notas pueden contener citas o resúmenes: se clasifican como texto del diario, no como palabras verificadas tuyas. El análisis no cambia ni elimina las notas.</p>',
 '<label><input type="checkbox" id="obs-diary-auto"> Preparar propuestas al guardar notas (solo mientras ambas sesiones estén abiertas; no guarda observaciones sin revisión)</label>',
-'<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
+'<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-pages" class="obs-inline" hidden><button type="button" class="button secondary" id="obs-history-prev">Anterior</button><span id="obs-history-page-label"></span><button type="button" class="button secondary" id="obs-history-next">Siguiente</button></div><div id="obs-history-list" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Patrones para investigar</h3><p>Co-menciones en días de registro; no son correlaciones ni prevalencia de síntomas. Una mención aislada no demuestra nada.</p><div id="obs-patterns" class="obs-entry-list"></div></section>',
 '<details class="obs-block" id="obs-daily"><summary><strong>Informes diarios</strong></summary><p>Un informe por fecha. El borrador reúne las fuentes disponibles y las valoraciones revisadas; todavía no redacta una síntesis semántica. Las frases y los resúmenes se distinguen. Puedes editarlo y guardar una versión cifrada.</p><label>Fecha<input type="date" id="obs-daily-date"></label><div class="obs-inline"><button type="button" id="obs-daily-prepare" class="button secondary">Preparar borrador del día</button><button type="button" id="obs-daily-save" class="button primary" disabled>Guardar informe</button></div><p id="obs-daily-status" role="status"></p><textarea id="obs-daily-text" rows="15" maxlength="60000" hidden autocomplete="off" spellcheck="false" aria-label="Informe diario editable"></textarea><div id="obs-daily-saved"></div><details><summary>Historial de evidencias individuales</summary><div id="obs-entries" class="obs-entry-list"></div></details></details>',
 '<section class="obs-block"><h3>Resultados de cuestionarios</h3><p>Registro manual de instrumentos realizados fuera de Rumbo. Los resultados no se interpretan clínicamente. WHO-5: escala original 0–25.</p>',
@@ -424,7 +425,7 @@ $('obs-h-form').addEventListener('submit',async e=>{
 
 const historyStatus=t=>{$('obs-history-status').textContent=t;};
 function resetHistory(){
- historyGeneration++;historyCandidates=[];$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;$('obs-history-select-all').disabled=true;
+ historyGeneration++;historyCandidates=[];historyPage=0;$('obs-history-pages').hidden=true;$('obs-history-list').replaceChildren();$('obs-history-save').hidden=true;$('obs-history-select-all').disabled=true;
 }
 for(const id of ['obs-history-from','obs-history-to'])$(id).addEventListener('change',()=>{resetHistory();historyStatus('Vuelve a revisar el periodo.');});
 const strictDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&dateOK(s)&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
@@ -450,7 +451,7 @@ async function scanHistory(mode='imported'){
    const notes=window.RumboPrivateSpace?.readForObservatory();
    if(!notes){unavailable.push('diario privado no abierto');}
    else{
-    const rows=notes.slice(0,1000).filter(n=>n&&typeof n.id==='string'&&typeof n.text==='string')
+    const rows=notes.filter(n=>n&&typeof n.id==='string'&&typeof n.text==='string')
      .map(n=>({id:'diary:'+n.id,date:n.createdAt,kind:'diary',payload:{text:n.text,edited:n.updatedAt!==n.createdAt}}));
     items.push(...rows);sources.push('diario privado: '+rows.length+' notas cargadas');
    }
@@ -468,8 +469,9 @@ async function scanHistory(mode='imported'){
   const coverage=sources.join('; ')+(unavailable.length?' | No incluido: '+unavailable.join('; '):'');
   const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
   if(!engine)throw Error('El motor no está disponible. Recarga la aplicación.');
-  const proposed=[],limit=200;let missing=0,matched=0,reviewed=0,withoutMatches=0,outside=0,already=0;
+  const proposed=[];let missing=0,matched=0,reviewed=0,withoutMatches=0,outside=0,already=0;
   for(const item of [...items].sort((a,b)=>b.date.localeCompare(a.date))){
+   if(locked||key!==active||generation!==historyGeneration)return;
    const p=item.payload;
    // No usar el resumen de IA como si fueran palabras del usuario.
    const text=item.kind==='reflection'?p.reported:p.text;
@@ -486,14 +488,25 @@ async function scanHistory(mode='imported'){
     const id=await historyId(source,hit.dimension);
     if(seen.has(id)){already++;continue;}
      seen.add(id);matched++;
-    if(proposed.length>=limit)continue;
     proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:item.kind==='diary'?'Diario privado · fecha de creación; autoría y fecha del suceso sin verificar':original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,item.kind==='diary'?'fecha de anotación':original?'registro original':'fecha de registro')});
    }
   }
   if(locked||key!==active||generation!==historyGeneration||from!==$('obs-history-from').value||to!==$('obs-history-to').value)return;
   if((mode==='diary'||mode==='all')&&sources.some(x=>x.startsWith('diario privado:'))&&!window.RumboPrivateSpace?.readForObservatory())return;
-  historyCandidates=proposed;
-  for(const entry of proposed){
+  historyCandidates=proposed;historyPage=0;renderHistoryPage();
+  historyStatus(coverage+'. '+reviewed+' registros analizados; '+withoutMatches+' sin coincidencias; '+already+' observaciones ya incorporadas o repetidas; '+missing+' sin texto o fecha válida; '+outside+' fuera del periodo. '+matched+' propuestas nuevas. Revisa por páginas; no es necesario volver a analizar para ver las siguientes. Sin evidencia no equivale a cero.');
+ }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
+ finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;$('obs-all-scan').disabled=false;}
+}
+
+function renderHistoryPage(){
+ if(locked)return;
+ const total=historyCandidates.length;
+ const pages=Math.max(1,Math.ceil(total/HISTORY_PAGE_SIZE));
+ historyPage=Math.max(0,Math.min(historyPage,pages-1));
+ const visible=historyCandidates.slice(historyPage*HISTORY_PAGE_SIZE,(historyPage+1)*HISTORY_PAGE_SIZE);
+ $('obs-history-list').replaceChildren();
+  for(const entry of visible){
    const card=node('article','obs-suggestion'),label=node('label',''),check=node('input','');
    check.type='checkbox';check.dataset.historyId=entry.id;
    label.append(check,document.createTextNode(' '+title(entry.dimension)+' · '+entry.date));
@@ -501,16 +514,26 @@ async function scanHistory(mode='imported'){
    if(entry.analysis.additionalEvidence)card.append(node('p','','Otra expresión: '+entry.analysis.additionalEvidence.match));
    $('obs-history-list').append(card);
   }
-  $('obs-history-save').hidden=!proposed.length;$('obs-history-select-all').disabled=!proposed.length;
-  historyStatus(coverage+'. '+reviewed+' registros analizados; '+withoutMatches+' sin coincidencias; '+already+' observaciones ya incorporadas o repetidas; '+missing+' sin texto o fecha válida; '+outside+' fuera del periodo. '+matched+' propuestas nuevas; '+proposed.length+' visibles. '+(matched>limit?'Tras guardar, vuelve a revisar para incorporar las siguientes. ':'')+'Selecciona las propuestas pertinentes. Sin evidencia no equivale a cero.');
- }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
- finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;$('obs-all-scan').disabled=false;}
+
+ $('obs-history-save').hidden=!visible.length;$('obs-history-select-all').disabled=!visible.length;
+ $('obs-history-pages').hidden=!total;
+ $('obs-history-page-label').textContent=total?('Página '+(historyPage+1)+' de '+pages+' · '+total+' pendientes'):'';
+ $('obs-history-prev').disabled=historyPage===0;
+ $('obs-history-next').disabled=historyPage>=pages-1;
 }
+function changeHistoryPage(delta){
+ if(locked||historyBusy)return;
+ if($('obs-history-list').querySelector('input:checked')&&!confirm('Hay propuestas marcadas sin guardar. ¿Cambiar de página sin guardar esta selección?'))return;
+ historyPage+=delta;renderHistoryPage();
+}
+$('obs-history-prev').addEventListener('click',()=>changeHistoryPage(-1));
+$('obs-history-next').addEventListener('click',()=>changeHistoryPage(1));
+
 $('obs-all-scan').addEventListener('click',()=>void scanHistory('all'));
 $('obs-history-scan').addEventListener('click',()=>void scanHistory('imported'));
 $('obs-diary-scan').addEventListener('click',()=>void scanHistory('diary'));
 function invalidateDiary(){if(historyMode==='diary'||historyMode==='all'){resetHistory();if(!locked)historyStatus('El diario cambió. Vuelve a revisarlo; las observaciones ya guardadas se conservan.');}}
-window.addEventListener('rumbo:diario-cerrado',()=>{invalidateDiary();$('obs-diary-auto').checked=false;});
+window.addEventListener('rumbo:diario-cerrado',()=>{invalidateDiary();$('obs-diary-auto').checked=false;if(!locked&&dailyDirty){clearDailyReport();$('obs-daily-status').textContent='Borrador descartado al cerrar el diario privado. Los informes guardados se conservan.';renderDailyReports();}});
 window.addEventListener('rumbo:diario-cambiado',invalidateDiary);
 window.addEventListener('rumbo:diario-guardado',()=>{
  if(locked)return;
@@ -519,7 +542,7 @@ window.addEventListener('rumbo:diario-guardado',()=>{
  if(historyBusy||historyCandidates.length){historyStatus('Hay una revisión pendiente. Puedes revisar el diario después.');return;}
  void scanHistory('diary');
 });
-$('obs-history-select-all').addEventListener('click',()=>{if(!locked&&!historyBusy){const checks=[...$('obs-history-list').querySelectorAll('input[type=checkbox]')];for(const c of checks)c.checked=true;historyStatus(checks.length+' propuestas seleccionadas. Pulsa Guardar seleccionados y calcular índice textual.');}});
+$('obs-history-select-all').addEventListener('click',()=>{if(!locked&&!historyBusy){const checks=[...$('obs-history-list').querySelectorAll('input[type=checkbox]')];for(const c of checks)c.checked=true;historyStatus(checks.length+' propuestas de esta página seleccionadas. Pulsa Guardar seleccionados y calcular índice textual.');}});
 $('obs-history-save').addEventListener('click',async()=>{
  if(locked||historyBusy)return;
  if((historyMode==='diary'||historyMode==='all')&&!window.RumboPrivateSpace?.readForObservatory()&&historyCandidates.some(e=>e.context.startsWith('Diario privado'))){invalidateDiary();return;}
@@ -534,8 +557,7 @@ $('obs-history-save').addEventListener('click',async()=>{
   await save({...records,entries:[...records.entries,...selected],historySeen:[...new Set([...(records.historySeen||[]),...selected.map(e=>e.id)])]},()=>scanGeneration===historyGeneration);
   if(locked||key!==active)return;
   historyCandidates=historyCandidates.filter(x=>!chosen.has(x.id));
-  for(const input of $('obs-history-list').querySelectorAll('input:checked'))input.closest('article').remove();
-  $('obs-history-save').hidden=!historyCandidates.length;$('obs-history-select-all').disabled=!historyCandidates.length;
+  renderHistoryPage();
   historyStatus(selected.length+' observaciones guardadas cifradas. Índice textual actualizado cuando procede. No se modifica el historial original.');
  }catch(e){if(!locked&&key===active)historyStatus('No se ha confirmado el guardado. Vuelve a revisar.');}
  finally{historyBusy=false;$('obs-history-save').disabled=false;}
