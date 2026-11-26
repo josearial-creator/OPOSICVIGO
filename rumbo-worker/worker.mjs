@@ -1,3 +1,5 @@
+import {syncCalendar} from './calendar-sync.mjs';
+import {anytypeApi} from './anytype-api.mjs';
 import {notesApi} from './notes-api.mjs';
 import {trainingApi} from './training-api.mjs';
 import {historyApi} from './history-api.mjs';
@@ -14,11 +16,19 @@ export default {async fetch(request,env){
  const allowed=origins.includes(origin)?origin:null;
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers});
+ if(new URL(request.url).pathname==='/calendar/sync'&&!request.headers.has('Origin'))return syncCalendar(request,env,reply,equalSecret);
+ const anytypeRoute=new URL(request.url).pathname==='/anytype/tasks';
+ if(anytypeRoute&&request.method==='POST'){
+  if(!env.ANYTYPE_SYNC_TOKEN||env.ANYTYPE_SYNC_TOKEN.length<32)return reply(503,{error:'Sincronización no configurada'});
+  const token=request.headers.get('Authorization')||'';
+  if(!token.startsWith('Bearer ')||token.length>300||!await equalSecret(token.slice(7),env.ANYTYPE_SYNC_TOKEN))return reply(401,{error:'Acceso no autorizado'});
+  try{return await anytypeApi(request,env,reply);}catch{return reply(503,{error:'No se pudo guardar la sincronización'});}
+ }
  if(!allowed||origin!==allowed)return reply(403,{error:'Origen no autorizado'});
  headers['Access-Control-Allow-Origin']=allowed;
  if(request.method==='OPTIONS'){headers['Access-Control-Allow-Headers']='Authorization, Content-Type';headers['Access-Control-Allow-Methods']='GET, POST, PUT, DELETE, OPTIONS';headers['Access-Control-Max-Age']='600';return new Response(null,{status:204,headers});}
  const route=new URL(request.url).pathname;
- if(route!=='/chat'&&!route.startsWith('/notes')&&!route.startsWith('/training')&&!route.startsWith('/history')&&!route.startsWith('/favorites')&&route!=='/rumbo-assistant')return reply(404,{error:'Ruta no disponible'});
+ if(route!=='/anytype/tasks'&&route!=='/chat'&&!route.startsWith('/notes')&&!route.startsWith('/training')&&!route.startsWith('/history')&&!route.startsWith('/favorites')&&route!=='/rumbo-assistant')return reply(404,{error:'Ruta no disponible'});
  if(route==='/chat'&&request.method!=='POST')return reply(404,{error:'Ruta no disponible'});
  if(!env.RUMBO_ACCESS_TOKEN||env.RUMBO_ACCESS_TOKEN.length<32)return reply(503,{error:'Autenticación no configurada'});
  if(route==='/chat'&&(env.FREE_TIER_CONFIRMED!=='true'||!env.GEMINI_API_KEY))return reply(503,{error:'Servicio sin configurar. Se requiere confirmar proyecto Gemini sin facturación y Workers Free.'});
@@ -30,6 +40,10 @@ export default {async fetch(request,env){
   }else if(auth.startsWith('Bearer ')&&auth.length<=300){supplied=auth.slice(7);}
  }catch{return reply(401,{error:'Acceso no autorizado'});}
  if(!supplied||!await equalSecret(supplied,env.RUMBO_ACCESS_TOKEN))return reply(401,{error:'Acceso no autorizado'});
+ if(route==='/anytype/tasks'){
+  if(request.method!=='GET')return reply(405,{error:'Método no permitido'});
+  try{return await anytypeApi(request,env,reply);}catch{return reply(503,{error:'No se pudo consultar la sincronización'});}
+ }
  if(route==='/rumbo-assistant'){
    try{
      const res=await rumboChatApi(request,env),h=new Headers(res.headers);

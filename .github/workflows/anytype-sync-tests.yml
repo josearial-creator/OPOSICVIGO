@@ -1,0 +1,21 @@
+name: Anytype sync tests
+on:
+  pull_request:
+    paths:
+      - 'rumbo-worker/**'
+      - 'tests/anytype-sync.mjs'
+      - 'docs/rumbo/anytype-tasks.js'
+      - '.github/workflows/anytype-sync-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --check docs/rumbo/anytype-tasks.js
+      - run: node tests/anytype-sync.mjs
