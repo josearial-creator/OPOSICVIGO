@@ -78,19 +78,15 @@
   margin: 0 0 .5rem;
 }
 #mi-dia .weekly-agenda [role=status] {color: #684516; font-weight: 600;}
-.weekly-agenda ul {list-style: none; margin: .75rem 0; padding: 0;}
+.weekly-agenda h4 {color: #754008; margin: 1rem 0 .25rem;}
+.weekly-agenda ul {list-style: none; margin: 0 0 .75rem; padding: 0;}
 .weekly-agenda li {
   display: grid;
-  grid-template-columns: minmax(9rem, 14rem) minmax(5rem, 7rem) minmax(0, 1fr);
+  grid-template-columns: minmax(5rem, 6rem) minmax(0, 1fr);
   gap: .25rem .75rem;
   align-items: baseline;
   padding: .7rem 0;
   border-block-start: 1px solid #e8cd88;
   overflow-wrap: anywhere;
 }
-.weekly-agenda li time {color: #754008; font-weight: 650;}
 .weekly-agenda li strong {color: #754008; font-variant-numeric: tabular-nums;}
-@media (max-width: 560px) {
-  .weekly-agenda li {grid-template-columns: minmax(0, 1fr) auto;}
-  .weekly-agenda li span {grid-column: 1 / -1;}
-}
