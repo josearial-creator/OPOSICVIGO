@@ -15,3 +15,7 @@ assert.match(js,/noopener noreferrer/);
 assert.match(js,/localStorage\.setItem\(key,url\)/);
 assert.doesNotMatch(html+mobile+js,/bafyreigzx4fwpdfnni4waf5w3lsqlcsyfqk3uplzilrepymw5ni4oscp4y/);
 console.log('PASS: enlaces escritorio/móvil, validación HTTPS, aislamiento del enlace personal.');
+
+assert.match(html,/src="anytype-tasks\.js"/);
+assert.ok(html.indexOf('src="asistente.js"') < html.indexOf('src="anytype-tasks.js"'), 'El módulo de tareas debe cargarse después de construir Productividad');
+console.log('PASS: orden de inicialización del listado Anytype.');
