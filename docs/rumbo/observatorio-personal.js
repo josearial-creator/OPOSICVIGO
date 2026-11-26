@@ -498,12 +498,15 @@ $('obs-report').addEventListener('click',()=>{
  const e=records.entries.filter(inPeriod);
  const self=e.filter(x=>x.source==='autovaloracion'),observed=e.filter(x=>x.source==='texto');
  const distinct=new Set(e.map(x=>x.date)).size;
+ const periodDays=Math.round((Date.parse(to+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000)+1;
+ const coverage=(100*distinct/periodDays).toFixed(1).replace('.',',');
  const lines=['RUMBO · INFORME DESCRIPTIVO PARA CONSULTA','Periodo: '+from+' a '+to+' (inclusive)',
  'Elaborado a partir de registros personales; no constituye diagnóstico ni seguimiento sanitario permanente.',
  '', '1. COBERTURA DE LOS DATOS',
- 'Días con algún registro: '+distinct,'Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
+ 'Días con algún registro: '+distinct+' de '+periodDays+' ('+coverage+'% de cobertura de registros; no de síntomas)','Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
  'Observaciones textuales (sin intensidad declarada): '+observed.length,
  'Los días sin registro no equivalen a ausencia de síntomas.',
+ 'Cobertura limitada: las conclusiones describen únicamente los días registrados; la clasificación textual no mide intensidad, frecuencia ni prevalencia.',
  '', '2. EVOLUCIÓN DECLARADA (escala ordinal 0–4, intensidad; no siempre una subida es mejoría)'];
  for(const [id,label] of DIM){
   const p=series(id,e);if(!p.length)continue;
