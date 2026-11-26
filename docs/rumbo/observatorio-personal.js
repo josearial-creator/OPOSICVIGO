@@ -306,6 +306,7 @@ root.innerHTML=[
 '<form class="obs-form" id="obs-h-form"><label>Hipótesis<input name="text" maxlength="300" required placeholder="El ejercicio se relaciona con un mejor estado de ánimo"></label>',
 '<label>Cómo probarla<textarea name="plan" rows="3" maxlength="500" required placeholder="Registrar antes/después, contrastar con días sin ejercicio y controlar sueño."></textarea></label><button type="submit" class="button secondary">Guardar hipótesis</button></form><div id="obs-hypotheses"></div></section>',
 '<section class="obs-block"><h3>Informe para la consulta</h3><p>Selecciona el periodo desde tu última consulta. Revisa y edita el informe antes de compartirlo. No se envía automáticamente ni sustituye una valoración clínica.</p>',
+'<div class="obs-inline"><button type="button" class="button secondary" data-obs-period="7">Últimos 7 días</button><button type="button" class="button secondary" data-obs-period="30">Últimos 30 días</button><button type="button" class="button secondary" data-obs-period="365">Últimos 365 días</button></div>',
 '<div class="obs-form"><label>Desde<input id="obs-report-from" type="date"></label><label>Hasta<input id="obs-report-to" type="date"></label>',
 '<label><input type="checkbox" id="obs-report-evidence"> Incluir frases originales y contexto (opcional)</label><label><input type="checkbox" id="obs-report-hypotheses"> Incluir hipótesis y planes sin fecha (opcional)</label></div>',
 '<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Preparar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
@@ -485,6 +486,13 @@ $('obs-history-save').addEventListener('click',async()=>{
 const reportStart=new Date();reportStart.setDate(reportStart.getDate()-29);
 $('obs-report-from').value=reportStart.toLocaleDateString('sv-SE');
 $('obs-report-to').value=day();
+for(const button of root.querySelectorAll('[data-obs-period]'))button.addEventListener('click',()=>{
+ if(locked)return;
+ const days=Number(button.dataset.obsPeriod);if(![7,30,365].includes(days))return;
+ const end=day(),start=new Date(end+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-(days-1));
+ $('obs-report-from').value=start.toISOString().slice(0,10);$('obs-report-to').value=end;clearReport();
+ say('Periodo de '+days+' días seleccionado. Pulsa Preparar informe.');
+});
 function clearReport(){
  $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;
 }
