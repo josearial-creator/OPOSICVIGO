@@ -13,6 +13,7 @@ const DIM=[
 ];
 const PRIOR=['animo','ansiedad','urgencia','atencion','autoeficacia','disfrute'];
 const engine=window.RumboPsychEngine;
+const dailyReport=window.RumboDailyReport;
 let interview=null;
 const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
@@ -27,7 +28,7 @@ const exerciseDay=(start,days)=>{const d=new Date(start+'T12:00:00Z');d.setUTCDa
 const exerciseState=(h,today)=>!h.exercise?'legacy':(h.outcomes||[]).some(o=>o.rating==='peor')?'stopped':(h.outcomes||[]).some(o=>o.date>exerciseDay(h.exercise.start,h.exercise.days))?'completed':today>exerciseDay(h.exercise.start,h.exercise.days)?'review':'active';
 const empty=()=>({version:1,entries:[],questionnaires:[],hypotheses:[]});
 function valid(d){
- return d&&d.version===1&&Array.isArray(d.entries)&&d.entries.length<=2000&&d.entries.every(e=>
+ return d&&d.version===1&&(d.dailyReports===undefined||(Array.isArray(d.dailyReports)&&d.dailyReports.length<=366&&new Set(d.dailyReports.map(r=>r?.date)).size===d.dailyReports.length&&d.dailyReports.every(r=>r&&dateOK(r.date)&&typeof r.text==='string'&&r.text.length<=60000)))&&Array.isArray(d.entries)&&d.entries.length<=2000&&d.entries.every(e=>
   typeof e.id==='string'&&dateOK(e.date)&&DIM.some(x=>x[0]===e.dimension)&&
   ['texto','autovaloracion'].includes(e.source)&&(e.value===null||(Number.isInteger(e.value)&&e.value>=0&&e.value<=4))&&
   typeof e.evidence==='string'&&e.evidence.length<=300&&typeof e.context==='string'&&e.context.length<=160&&validAnalysis(e.analysis))&&
@@ -52,7 +53,7 @@ async function save(next,stillValid=()=>true){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
- if(value)interview?.reset();
+ if(value){interview?.reset();clearDailyReport();}
  if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-exercises'))$('obs-exercises').open=false;if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
@@ -279,6 +280,7 @@ function render(){
    catch{say('No se pudo actualizar la bóveda.');}
   });card.append(del);list.append(card);
  }
+ renderDailyReports();
  const q=$('obs-questionnaires');q.replaceChildren();
  for(const item of [...records.questionnaires].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12)){
   q.append(node('p','obs-entry',item.instrument+' · '+item.date+' · '+item.total+' (introducido manualmente, no interpretado)'));
@@ -339,7 +341,7 @@ root.innerHTML=[
 '<label><input type="checkbox" id="obs-diary-auto"> Preparar propuestas al guardar notas (solo mientras ambas sesiones estén abiertas; no guarda observaciones sin revisión)</label>',
 '<p id="obs-history-status" role="status" aria-live="polite"></p><div id="obs-history-list" class="obs-suggestions"></div></section>',
 '<section class="obs-block"><h3>Patrones para investigar</h3><p>Co-menciones en días de registro; no son correlaciones ni prevalencia de síntomas. Una mención aislada no demuestra nada.</p><div id="obs-patterns" class="obs-entry-list"></div></section>',
-'<section class="obs-block"><h3>Historial de evidencias</h3><div id="obs-entries" class="obs-entry-list"></div></section>',
+'<details class="obs-block" id="obs-daily"><summary><strong>Informes diarios</strong></summary><p>Un informe por fecha. El borrador reúne las fuentes disponibles y las valoraciones revisadas; todavía no redacta una síntesis semántica. Las frases y los resúmenes se distinguen. Puedes editarlo y guardar una versión cifrada.</p><label>Fecha<input type="date" id="obs-daily-date"></label><div class="obs-inline"><button type="button" id="obs-daily-prepare" class="button secondary">Preparar borrador del día</button><button type="button" id="obs-daily-save" class="button primary" disabled>Guardar informe</button></div><p id="obs-daily-status" role="status"></p><textarea id="obs-daily-text" rows="15" maxlength="60000" hidden autocomplete="off" spellcheck="false" aria-label="Informe diario editable"></textarea><div id="obs-daily-saved"></div><details><summary>Historial de evidencias individuales</summary><div id="obs-entries" class="obs-entry-list"></div></details></details>',
 '<section class="obs-block"><h3>Resultados de cuestionarios</h3><p>Registro manual de instrumentos realizados fuera de Rumbo. Los resultados no se interpretan clínicamente. WHO-5: escala original 0–25.</p>',
 '<form class="obs-form" id="obs-q-form"><label>Instrumento<select name="instrument"><option>PHQ-9</option><option>GAD-7</option><option>WHO-5</option><option>OCI-R</option><option>WSAS</option></select></label>',
 '<label>Fecha<input name="day" type="date" required></label><label>Puntuación total<input type="number" name="total" min="0" max="150" step="1" required></label><button type="submit" class="button secondary">Registrar puntuación</button></form><div id="obs-questionnaires"></div></section>',
@@ -601,6 +603,69 @@ $('obs-report-download').addEventListener('click',()=>{
  a.href=url;a.download='rumbo-informe-consulta-'+day()+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
  say('Exportación solicitada. El archivo no está cifrado.');
 });
+
+let dailyDate=null,dailyDirty=false,dailyRevision=0;
+function clearDailyReport(){
+ dailyRevision++;dailyDate=null;dailyDirty=false;
+ if(!$('obs-daily-text'))return;
+ $('obs-daily-text').value='';$('obs-daily-text').hidden=true;$('obs-daily-save').disabled=true;$('obs-daily-status').textContent='';$('obs-daily-saved').replaceChildren();$('obs-daily').open=false;
+}
+function setDailyText(date,text,status){
+ dailyDate=date;dailyDirty=false;dailyRevision++;$('obs-daily-text').value=text;$('obs-daily-text').hidden=false;$('obs-daily-save').disabled=false;$('obs-daily-status').textContent=status;
+}
+function renderDailyReports(){
+ if(locked)return;
+ const box=$('obs-daily-saved');box.replaceChildren();
+ for(const report of records.dailyReports||[]){
+  const b=node('button','button secondary',report.date+' · Informe guardado');b.type='button';
+  b.addEventListener('click',()=>{if(locked)return;if(dailyDirty&&!confirm('¿Descartar los cambios sin guardar?'))return;$('obs-daily-date').value=report.date;setDailyText(report.date,report.text,'Versión guardada. Puedes editarla.');});
+  box.append(b);
+ }
+}
+function prepareDailyReport(){
+ if(locked||!dailyReport)return;
+ const date=$('obs-daily-date').value;
+ if(!dailyReport.validDay(date)||date>day()){$('obs-daily-status').textContent='Selecciona una fecha válida.';return;}
+ if(dailyDirty&&!confirm('¿Sustituir el borrador sin guardar?'))return;
+ if((records.dailyReports||[]).some(r=>r.date===date)&&!confirm('Ya existe un informe guardado. ¿Preparar un borrador nuevo sin modificar aún el anterior?'))return;
+ const items=[],coverage=[];
+ try{
+  const raw=localStorage.getItem('rumbo-historial-importado-v1');
+  if(raw){const store=JSON.parse(raw);if(!window.RumboHistoryVault?.validStore(store))throw Error();items.push(...store.entries);coverage.push('historial importado');}
+  else coverage.push('historial no disponible');
+ }catch{coverage.push('historial incompatible, no modificado');}
+ const notes=window.RumboPrivateSpace?.readForObservatory();
+ if(notes){items.push(...notes.map(n=>({id:'diary:'+n.id,date:n.createdAt,kind:'diary',payload:{text:n.text}})));coverage.push('diario abierto');}
+ else coverage.push('diario no abierto');
+ const sources=dailyReport.dailySources(items,date);
+ const text=dailyReport.draft(date,sources,records.entries,Object.fromEntries(DIM.map(([id,label])=>[id,label])));
+ if(text.length>60000){$('obs-daily-status').textContent='El borrador supera el límite de almacenamiento. No se ha truncado ni guardado; revisa las fuentes originales.';return;}
+ setDailyText(date,text,'Borrador local · '+coverage.join('; ')+'. Revisa antes de guardar.');
+ dailyDirty=true;
+}
+$('obs-daily-date').value=day();
+$('obs-daily-date').addEventListener('change',()=>{
+ if(locked)return;
+ if(dailyDirty&&!confirm('¿Descartar los cambios sin guardar?')){$('obs-daily-date').value=dailyDate;return;}
+ dailyRevision++;dailyDate=null;dailyDirty=false;$('obs-daily-text').value='';$('obs-daily-text').hidden=true;$('obs-daily-save').disabled=true;$('obs-daily-status').textContent='';
+ const report=(records.dailyReports||[]).find(r=>r.date===$('obs-daily-date').value);
+ if(report)setDailyText(report.date,report.text,'Versión guardada. Puedes editarla.');
+});
+$('obs-daily-prepare').addEventListener('click',prepareDailyReport);
+$('obs-daily-text').addEventListener('input',()=>{dailyDirty=true;dailyRevision++;});
+$('obs-daily-save').addEventListener('click',async()=>{
+ if(locked||!dailyReport||!dailyDate||dailyDate!==$('obs-daily-date').value)return;
+ const date=dailyDate,text=$('obs-daily-text').value.trim(),revision=dailyRevision,active=key;
+ try{
+  const reports=dailyReport.upsert(records.dailyReports||[],{date,text});
+  if(reports.length>366)throw Error('Límite de 366 informes en la bóveda actual.');
+  $('obs-daily-save').disabled=true;
+  await save({...records,dailyReports:reports},()=>revision===dailyRevision);
+  if(!locked&&key===active&&revision===dailyRevision){dailyDirty=false;$('obs-daily-status').textContent='Informe guardado cifrado. Una versión por fecha; no altera las valoraciones.';}
+ }catch(e){if(!locked&&key===active)$('obs-daily-status').textContent='No se guardó el informe. '+(e.message||'Revisa el espacio disponible.');}
+ finally{if(!locked&&key===active&&dailyDate)$('obs-daily-save').disabled=false;}
+});
+
 toggle(true);
 void restoreDevice();
 })();
