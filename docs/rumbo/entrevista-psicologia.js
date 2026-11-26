@@ -56,17 +56,18 @@ function nextQuestion(state){
 
 
 
-function mount(root,{isOpen,transfer}){
+function mount(root,{isOpen,transfer,inspect=()=>({hints:[]})}){
  if(!root||typeof isOpen!=='function'||typeof transfer!=='function')return {reset(){}};
  const $=id=>root.querySelector('[data-field="'+id+'"]');
  const node=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;};
  const button=(text,fn)=>{const el=node('button',text);el.type='button';el.className='button secondary';el.addEventListener('click',fn);return el;};
  let state=null,context='',answers=[],current=null;
  const intro=$('intro'),active=$('active'),summary=$('summary'),notice=$('notice'),input=$('answer'),initial=$('context'),result=$('result'),known=$('known');
+ const hints=$('hints');
  const knownLabels={situacion:'Situación',interpretacion:'Interpretación',emocion:'Emoción',conducta:'Conducta',consecuencia:'Consecuencia',evidencia:'Evidencias',alternativa:'Alternativas',recursos:'Recursos',objetivo:'Objetivo'};
  for(const q of QUESTIONS){const label=node('label'),check=node('input');check.type='checkbox';check.value=q.id;label.append(check,document.createTextNode(' '+knownLabels[q.id]));known.append(label);}
  function clear(){
-  state=null;context='';answers=[];current=null;initial.value='';input.value='';result.value='';$('question').textContent='';notice.textContent='';
+  hints.replaceChildren();state=null;context='';answers=[];current=null;initial.value='';input.value='';result.value='';$('question').textContent='';notice.textContent='';
   $('contrast').checked=false;for(const c of known.querySelectorAll('input'))c.checked=false;
   intro.hidden=false;active.hidden=true;summary.hidden=true;
  }
@@ -94,12 +95,28 @@ function mount(root,{isOpen,transfer}){
   else state.skipped.push(current.id);
   advance();
  }
+ $('preview').addEventListener('click',()=>{
+  if(!isOpen()||state)return;
+  hints.replaceChildren();
+  const text=initial.value.trim().slice(0,2400);
+  if(!text){hints.append(node('p','Describe primero la situación.'));return;}
+  const result=inspect(text);
+  if(!result.hints.length){hints.append(node('p','Sin información explícita reconocida. Puedes indicar manualmente lo que ya has explicado.'));return;}
+  hints.append(node('p','Propuestas de campos ya mencionados. Confirma solo los que estén suficientemente explicados:'));
+  for(const h of result.hints){
+   const label=node('label'),check=node('input');check.type='checkbox';
+   const target=[...known.querySelectorAll('input')].find(c=>c.value===h.field);
+   check.checked=!!target?.checked;check.addEventListener('change',()=>{if(target)target.checked=check.checked;});
+   label.append(check,document.createTextNode(' '+knownLabels[h.field]+' — «'+h.quote+'»'));hints.append(label);
+  }
+ });
+ initial.addEventListener('input',()=>{hints.replaceChildren();for(const c of known.querySelectorAll('input'))c.checked=false;});
  $('start').addEventListener('click',()=>{
   if(!isOpen()||state)return;
   context=initial.value.trim().slice(0,2400);
   if(!context){notice.textContent='Describe brevemente una situación que quieras explorar.';return;}
   state={consent:true,asked:[],known:[...known.querySelectorAll('input:checked')].map(c=>c.value),skipped:[],exploreInterpretation:$('contrast').checked};
-  answers=[];initial.value='';intro.hidden=true;active.hidden=false;advance();
+  answers=[];initial.value='';hints.replaceChildren();intro.hidden=true;active.hidden=false;advance();
  });
  $('next').addEventListener('click',()=>submit(false));
  $('skip').addEventListener('click',()=>submit(true));
@@ -113,7 +130,7 @@ function mount(root,{isOpen,transfer}){
   if(!isOpen()||!state||summary.hidden)return;
   const value=result.value.trim();
   if(!value){notice.textContent='No hay texto para trasladar.';return;}
-  if(transfer(value.slice(0,6000))){clear();notice.textContent='Texto trasladado al clasificador. Revisa sus propuestas antes de guardar.';}
+  if(transfer(value.slice(0,6000))){clear();notice.textContent='Propuestas de valoración preparadas. Revisa antes de guardar.';}
  });
  clear();return {reset:clear};
 }

@@ -36,3 +36,23 @@ test('patrones: mínimo de tres días distintos y cobertura sin inferir síntoma
  assert.equal(p.both,3);assert.equal(p.onlyA,1);assert.equal(p.onlyB,1);assert.equal(p.days,5);
  assert.equal(engine.patterns(entries.slice(0,4)).length,0);
 });
+
+test('grado de evidencia no representa intensidad',()=>{
+ const assess=text=>{const [hit]=engine.uniqueByDimension(text);return engine.evidenceAssessment(hit);};
+ assert.equal(assess('Tengo ansiedad.').level,1);
+ assert.equal(assess('Tengo mucha ansiedad.').level,2);
+ assert.equal(assess('Tengo mucha ansiedad.').rating,null);
+ assert.equal(assess('La ansiedad me impidió trabajar.').level,3);
+ assert.equal(assess('He logrado detenerme.').level,2);
+ assert.equal(assess('No tengo ansiedad.').rating,null);
+});
+test('puntuación directa con escala original y abstención',()=>{
+ const assess=text=>{const [hit]=engine.uniqueByDimension(text);return engine.evidenceAssessment(hit);};
+ assert.deepEqual(assess('Urgencia: 6 sobre 10.').rating,{value:6,max:10});
+ assert.deepEqual(assess('Ansiedad: 0/4.').rating,{value:0,max:4});
+ assert.equal(assess('Ansiedad: 7/4.'),null);
+ assert.equal(assess('¿Ansiedad: 6/10?'),null);
+ assert.equal(assess('Mi amigo dijo: ansiedad: 6/10.'),null);
+ assert.equal(assess('Ansiedad: 6/10. Ansiedad: 3/10.').rating,null);
+ assert.equal(assess('No tengo ansiedad, pero tengo ansiedad.').level,null);
+});
