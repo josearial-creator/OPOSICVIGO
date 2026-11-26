@@ -30,6 +30,36 @@
   nav.className = 'rumbo-section-nav';
   nav.setAttribute('aria-label','Apartados de Rumbo');
   page.insertBefore(nav,page.firstElementChild);
+  // Acciones cotidianas: reutilizar los controles existentes, sin duplicar datos.
+  const daily = document.createElement('nav');
+  daily.className = 'rumbo-daily-actions';
+  daily.setAttribute('aria-label','Acciones de hoy');
+  daily.hidden = true;
+  const dailyActions = [
+    ['Nueva tarea','task','M12 5v14M5 12h14'],
+    ['Agenda','agenda','M5 7h14v13H5zM5 11h14M8 4v5M16 4v5'],
+    ['Escribir','mi-espacio','M4 20l4-1 12-12-3-3L5 16zM14 7l3 3'],
+    ['Estudiar / foco','productividad','M12 8v5l3 2M9 2h6M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16']
+  ];
+  for(const [label,id,path] of dailyActions){
+    const local=id==='task'||id==='agenda';
+    const control=document.createElement(local?'button':'a');
+    if(local)control.type='button';else control.href='#'+id;
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+    svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');
+    svg.setAttribute('stroke-width','1.8');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');
+    const line=document.createElementNS('http://www.w3.org/2000/svg','path');line.setAttribute('d',path);svg.append(line);
+    const name=document.createElement('span');name.textContent=label;control.append(svg,name);
+    if(local)control.addEventListener('click',()=>{
+      const target=document.querySelector(id==='task'?'#assistant-capture input[name="text"]':'#weekly-agenda-heading');
+      if(!target)return;
+      if(id==='agenda')target.tabIndex=-1;
+      target.focus({preventScroll:true});target.scrollIntoView({block:'center',behavior:'instant'});
+    });
+    daily.append(control);
+  }
+  nav.insertAdjacentElement('afterend',daily);
   let active='inicio';
 
   function visible(el,route){
@@ -85,6 +115,11 @@
       else tab.removeAttribute('aria-current');
     }
     renderNav(group,route);
+    daily.hidden=route!=='inicio'&&route!=='mi-dia';
+    // En escritorio, mantener desplegado el grupo activo en lugar de todos.
+    for(const tree of document.querySelectorAll('.sidebar nav details.ev-nav-tree')){
+      tree.open=Boolean(tree.querySelector('[data-nav="'+route+'"]'));
+    }
     // Una sola pantalla también al entrar sin fragmento desde un ordenador.
     document.body.classList.add('rumbo-separated');
     const label=labels.get(route)||'Portada';
