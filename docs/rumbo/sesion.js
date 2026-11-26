@@ -4,6 +4,8 @@
  const device=window.RumboRemember;
  let credential='',generation=0,remembered=false,storageError='',restoring=true;
  let pending=Promise.resolve();
+ let restorePending=null,lastRestoreAttempt=0;
+ const RESTORE_RETRY_MS=15000;
  const listeners=new Set();
  const button=document.getElementById('rumbo-access-open');
  const dialog=document.getElementById('rumbo-access-dialog');
@@ -140,16 +142,30 @@
  // La restauración siempre se valida con Cloudflare. Una caída de red
  // no borra la credencial cifrada; al recuperar conexión se puede reintentar.
  async function restore(){
+  if(credential)return;
+  if(restorePending)return restorePending;
   const at=generation;
-  try{
-   const password=await device?.restore();
-   if(at!==generation||!password)return;
-   await signIn(password,{restored:true});
-  }catch(err){
-   if(at===generation){storageError='Acceso recordado no disponible: '+err.message;}
-  }finally{restoring=false;renderAccess();}
+  lastRestoreAttempt=Date.now();
+  const work=(async()=>{
+   try{
+    const password=await device?.restore();
+    if(at!==generation||!password)return;
+    await signIn(password,{restored:true});
+   }catch(err){
+    if(at===generation){storageError='Acceso recordado no disponible: '+err.message;}
+   }finally{restoring=false;renderAccess();}
+  })();
+  restorePending=work;
+  try{await work;}finally{if(restorePending===work)restorePending=null;}
  }
- window.addEventListener('online',()=>{if(!credential&&!restoring)void restore();});
+ function retryRestore(){
+  if(credential||restoring||restorePending||document.hidden)return;
+  if(Date.now()-lastRestoreAttempt<RESTORE_RETRY_MS)return;
+  void restore();
+ }
+ window.addEventListener('online',retryRestore);
+ window.addEventListener('focus',retryRestore);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)retryRestore();});
  renderAccess();
  void restore();
 })();
