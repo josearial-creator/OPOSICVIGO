@@ -36,3 +36,19 @@ test('patrones: mínimo de tres días distintos y cobertura sin inferir síntoma
  assert.equal(p.both,3);assert.equal(p.onlyA,1);assert.equal(p.onlyB,1);assert.equal(p.days,5);
  assert.equal(engine.patterns(entries.slice(0,4)).length,0);
 });
+
+test('nuevas expresiones cotidianas: clasificación exploratoria sin intensidad',()=>{
+ const casos=[
+  ['Me siento desbordado.','ansiedad'],
+  ['Me cuesta disfrutar.','disfrute'],
+  ['Siento prisa por terminar.','urgencia'],
+  ['Me cuesta dejar de darle vueltas.','rumiacion'],
+  ['Me cuesta mantener la concentración.','atencion']
+ ];
+ for(const [texto,dimension] of casos){
+  const filas=observations(texto);
+  assert.ok(filas.some(f=>f.dimension===dimension),texto);
+  assert.ok(filas.every(f=>f.value===undefined),texto);
+ }
+ for(const texto of ['¿Me siento desbordado?','Mi amigo dijo que me cuesta disfrutar.','Quizás siento prisa por terminar.'])assert.equal(observations(texto).length,0,texto);
+});
