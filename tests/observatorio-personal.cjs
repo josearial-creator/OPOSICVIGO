@@ -29,7 +29,7 @@ const assert=require('node:assert/strict');
    await page.getByRole('button',{name:'Identificar indicadores'}).click();
    assert.equal(await page.locator('.obs-suggestion').count(),2);
    assert.equal(await page.locator('#obs-count').innerText().then(x=>Number.parseInt(x)),1,'Analizar no guarda automáticamente');
-   await page.locator('.obs-suggestion').first().getByRole('button',{name:'Guardar sin puntuación'}).click();
+   await page.locator('.obs-suggestion').first().getByRole('button',{name:'Guardar observación'}).click();
    assert.match(await page.locator('#obs-count').innerText(),/2 indicadores/);
    const entries=await page.locator('#obs-entries .obs-entry').allInnerTexts();
    assert.ok(entries.some(x=>x.includes('sin puntuación')));
