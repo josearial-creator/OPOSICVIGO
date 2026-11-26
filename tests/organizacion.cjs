@@ -35,6 +35,8 @@ await page.locator('#assistant-inbox').getByRole('button',{name:'Priorizar'}).fi
 assert.match(await page.locator('#assistant-now-task').innerText(),/Escribir tres respuestas/);
 assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')).priorityIds.length),1);
 await go(page,'productividad');
+assert.equal(await page.locator('#rumbo-manual-time').evaluate(el=>el.open),false);
+await page.locator('#rumbo-manual-time > summary').click();
 await page.locator('#assistant-manual [name=title]').fill('Preparar entrevista');
 await page.locator('#assistant-manual [name=area]').selectOption('Trabajo y empleo');
 await page.locator('#assistant-manual [name=project]').selectOption(projectId);
