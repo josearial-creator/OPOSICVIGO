@@ -61,7 +61,17 @@ const endpoint=(()=>{try{const s=localStorage.getItem('rumbo-ai-endpoint')||endp
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 const auth=()=> 'Rumbo '+btoa(String.fromCharCode(...enc.encode(token)));
 async function api(path='',method='GET',body) {
- const r=await fetch(endpoint+'/notes'+path,{method,headers:{Authorization:auth(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(15000)});
+ let r;
+ try{
+  r=await fetch(endpoint+'/notes'+path,{method,headers:{Authorization:auth(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(15000)});
+ }catch(error){
+  // El navegador no distingue de forma fiable CORS, red caída y DNS en un TypeError.
+  // Mantener la autenticación y los orígenes permitidos sin cambios.
+  if(error?.name==='TimeoutError')throw Error('Tiempo de espera agotado al contactar con el servidor privado.');
+  throw Error(window.self!==window.top
+   ?'No se pudo conectar desde esta vista previa. Puede deberse a un dominio no autorizado (CORS) o a la red. Abre el Rumbo publicado para acceder a tus registros.'
+   :'No se pudo contactar con el servidor privado. Comprueba la conexión y el estado del servicio.');
+ }
  let data;try{data=await r.json();}catch{throw Error('El servidor no devolvió una respuesta válida');}
  if(!r.ok)throw Error(data.error||'Error del servidor');
  return data;
