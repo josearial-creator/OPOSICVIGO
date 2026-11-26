@@ -27,3 +27,14 @@ assert.match(js,/const menu=event\.target\.closest\?\.\('\.rumbo-anytype-link'\)
 assert.match(js,/const link=event\.target\.closest\?\.\('\.rumbo-anytype-external'\)/);
 assert.ok(js.indexOf('if(menu)') < js.indexOf('window.prompt'));
 console.log('PASS: menú interno y enlace externo opcional.');
+
+assert.match(js,/panel\.id='rumbo-anytype-space'/);
+assert.match(js,/card\.before\(panel\)/);
+assert.match(js,/localStorage\.setItem\(viewerKey,url\)/);
+assert.match(js,/localStorage\.removeItem\(viewerKey\)/);
+const vm=require('node:vm');
+const validator=js.slice(js.indexOf('  function validViewer('),js.indexOf('  function savedViewer('));
+const check=vm.runInNewContext(validator+';validViewer',{URL});
+assert.equal(check('https://server.example.ts.net:8443/'),'https://server.example.ts.net:8443/');
+for(const bad of ['http://server.example.ts.net/','https://example.com/','https://server.example.ts.net.evil.com/','https://u:p@server.example.ts.net/','https://server.example.ts.net/?token=secret','https://server.example.ts.net/#token','javascript:alert(1)'])assert.equal(check(bad),null);
+console.log('PASS: visor privado, HTTPS Tailscale y almacenamiento local sin secretos.');
