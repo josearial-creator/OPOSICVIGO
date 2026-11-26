@@ -19,6 +19,8 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.locator('#study-save').click();
  await page.getByText('Apuntes guardados en este navegador.',{exact:true}).waitFor();
  await page.reload();
+ assert.equal(await page.locator('#rumbo-study-notes').evaluate(el=>el.open),false,'Los apuntes permanecen plegados tras recargar');
+ await page.locator('#rumbo-study-notes > summary').click();
  await page.locator('#study-list').getByRole('button',{name:'Abrir apuntes'}).click();
  assert.equal(await page.locator('#study-text').inputValue(),'Tema 1: repasar mañana <script>bad()</script>');
  assert.equal(await page.locator('#study-list script').count(),0);
