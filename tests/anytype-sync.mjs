@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 const sql=new DatabaseSync(':memory:');
 sql.exec(readFileSync(new URL('../rumbo-worker/anytype-schema.sql',import.meta.url),'utf8'));
 const db={
- prepare(query){const run=(...args)=>({meta:{changes:Number(sql.prepare(query).run(...args).changes)}});return {run:()=>run(),all:async()=>({results:sql.prepare(query).all()}),bind(...args){return {run:()=>run(...args)}}};},
+ prepare(query){const run=(...args)=>({meta:{changes:Number(sql.prepare(query).run(...args).changes)}});return {run:()=>run(),all:async()=>({results:sql.prepare(query).all()}),bind(...args){return {run:()=>run(...args),first:async()=>sql.prepare(query).get(...args)||null}}};},
  async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}
 };
 const env={ALLOWED_ORIGIN:origin,RUMBO_ACCESS_TOKEN:access,ANYTYPE_SYNC_TOKEN:sync,db};
@@ -49,3 +49,18 @@ assert.equal(JSON.parse(sql.prepare('SELECT events_json FROM rumbo_calendar_snap
 assert.equal((await (await get()).json()).total,2);
 assert.equal((await post(calendarToken,task)).status,401);
 console.log('Calendar and Anytype independent credentials and SQLite snapshot regression passed');
+
+const readAgenda=(token,from=origin,method='GET')=>worker.fetch(new Request('https://worker.test/calendar/events',{method,headers:{Origin:from,Authorization:'Bearer '+token}}),env);
+assert.equal((await readAgenda(calendarToken)).status,401);
+assert.equal((await readAgenda(sync)).status,401);
+assert.equal((await readAgenda(access,'https://unauthorized.invalid')).status,403);
+assert.equal((await readAgenda(access,origin,'DELETE')).status,405);
+const capturedAt=new Date(Date.now()+1000).toISOString();
+assert.equal((await calendarPost(calendarToken,[event],capturedAt)).status,200);
+const response=await readAgenda(access);
+assert.equal(response.status,200);
+assert.equal(response.headers.get('cache-control'),'no-store');
+assert.equal(response.headers.get('access-control-allow-origin'),origin);
+assert.deepEqual(await response.json(),{captured_at:capturedAt,events:[{id:event.source_event_id,title:event.title,start:event.start,end:event.end,all_day:event.all_day}]});
+assert.equal((await (await get()).json()).total,2);
+console.log('Private read-only calendar endpoint passes');

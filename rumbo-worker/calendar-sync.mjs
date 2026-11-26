@@ -28,3 +28,15 @@ export async function syncCalendar(request,env,reply,equalSecret){
  if(events.some(e=>!e)||new Set(events.map(e=>e.id)).size!==events.length)return reply(422,{error:'Citas inválidas o identificadores repetidos'});
  try{const [,saved]=await env.db.batch([env.db.prepare(createTable),env.db.prepare(saveSnapshot).bind('primary',payload.captured_at,JSON.stringify(events))]);return reply(200,{applied:saved.meta.changes===1,count:events.length});}catch{return reply(503,{error:'No se pudo guardar la agenda'});}
 }
+
+export async function readCalendar(request,env,reply){
+ if(request.method!=='GET')return reply(405,{error:'Método no permitido'});
+ if(!env.db)return reply(503,{error:'Agenda sin configurar'});
+ try{
+  const row=await env.db.prepare('SELECT captured_at, events_json FROM rumbo_calendar_snapshot WHERE calendar_id = ?').bind('primary').first();
+  if(!row)return reply(200,{captured_at:null,events:[]});
+  const events=JSON.parse(row.events_json);
+  if(!Array.isArray(events)||!Number.isFinite(Date.parse(row.captured_at)))throw Error('Invalid snapshot');
+  return reply(200,{captured_at:row.captured_at,events});
+ }catch{return reply(503,{error:'No se pudo consultar la agenda'});}
+}
