@@ -39,7 +39,7 @@ const date=new Date(Date.now()-2000).toISOString();
 const calendarPost=(token,events,captured=date,extra={})=>worker.fetch(new Request(calendarUrl,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...extra},body:JSON.stringify({captured_at:captured,count:events.length,events})}),env);
 assert.equal((await calendarPost(sync,[event])).status,401);
 assert.equal((await calendarPost(access,[event])).status,401);
-assert.equal((await calendarPost(calendarToken,[event],date,{Origin:origin})).status,401);
+assert.equal((await calendarPost(calendarToken,[event],date,{Origin:origin})).status,404);
 assert.equal((await calendarPost(calendarToken,[event,event])).status,422);
 assert.deepEqual(await (await calendarPost(calendarToken,[event])).json(),{applied:true,count:1});
 assert.deepEqual(await (await calendarPost(calendarToken,[],new Date(Date.now()-3000).toISOString())).json(),{applied:false,count:0});
