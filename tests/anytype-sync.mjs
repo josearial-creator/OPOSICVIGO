@@ -6,8 +6,8 @@ import {readFileSync} from 'node:fs';
 const sql=new DatabaseSync(':memory:');
 sql.exec(readFileSync(new URL('../rumbo-worker/anytype-schema.sql',import.meta.url),'utf8'));
 const db={
- prepare(query){return {all:async()=>({results:sql.prepare(query).all()}),bind(...args){return {run:()=>sql.prepare(query).run(...args)}}};},
- async batch(statements){sql.exec('BEGIN');try{for(const s of statements)s.run();sql.exec('COMMIT');}catch(e){sql.exec('ROLLBACK');throw e;}}
+ prepare(query){const run=(...args)=>({meta:{changes:Number(sql.prepare(query).run(...args).changes)}});return {run:()=>run(),all:async()=>({results:sql.prepare(query).all()}),bind(...args){return {run:()=>run(...args)}}};},
+ async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}
 };
 const env={ALLOWED_ORIGIN:origin,RUMBO_ACCESS_TOKEN:access,ANYTYPE_SYNC_TOKEN:sync,db};
 const url='https://worker.test/anytype/tasks';
@@ -30,3 +30,22 @@ const second={...task,id:'bafy'+'b'.repeat(50)};
 await Promise.all([post(sync,second),post(sync,{...task,estado:'completada'})]);
 assert.equal((await (await get()).json()).total,2);
 console.log('Anytype synthetic smoke tests passed');
+
+const calendarToken='c'.repeat(40);
+env.CALENDAR_SYNC_TOKEN=calendarToken;
+const calendarUrl='https://worker.test/calendar/sync';
+const event={source:'google-calendar',calendar_id:'primary',source_event_id:'fixture-1',title:'Cita ficticia',start:'2026-11-26T11:00:00Z',end:'2026-11-26T12:00:00Z',all_day:false};
+const date=new Date(Date.now()-2000).toISOString();
+const calendarPost=(token,events,captured=date,extra={})=>worker.fetch(new Request(calendarUrl,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...extra},body:JSON.stringify({captured_at:captured,count:events.length,events})}),env);
+assert.equal((await calendarPost(sync,[event])).status,401);
+assert.equal((await calendarPost(access,[event])).status,401);
+assert.equal((await calendarPost(calendarToken,[event],date,{Origin:origin})).status,401);
+assert.equal((await calendarPost(calendarToken,[event,event])).status,422);
+assert.deepEqual(await (await calendarPost(calendarToken,[event])).json(),{applied:true,count:1});
+assert.deepEqual(await (await calendarPost(calendarToken,[],new Date(Date.now()-3000).toISOString())).json(),{applied:false,count:0});
+assert.equal(JSON.parse(sql.prepare('SELECT events_json FROM rumbo_calendar_snapshot').get().events_json).length,1);
+assert.deepEqual(await (await calendarPost(calendarToken,[],new Date().toISOString())).json(),{applied:true,count:0});
+assert.equal(JSON.parse(sql.prepare('SELECT events_json FROM rumbo_calendar_snapshot').get().events_json).length,0);
+assert.equal((await (await get()).json()).total,2);
+assert.equal((await post(calendarToken,task)).status,401);
+console.log('Calendar and Anytype independent credentials and SQLite snapshot regression passed');
