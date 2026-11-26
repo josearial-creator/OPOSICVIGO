@@ -209,7 +209,11 @@ function render(){
  $('obs-count').textContent=records.entries.length+' indicadores · '+records.questionnaires.length+' cuestionarios · '+records.hypotheses.length+' hipótesis';
  const cards=$('obs-metrics');cards.replaceChildren();
  for(const id of PRIOR){
-  const points=series(id),estimated=textualSeries(id),card=node('article','obs-metric');
+  const period=Number($('obs-metrics-period').value)||30;
+  const cutoff=new Date(day()+'T12:00:00Z');cutoff.setUTCDate(cutoff.getUTCDate()-(period-1));
+  const from=cutoff.toISOString().slice(0,10);
+  const subset=records.entries.filter(x=>x.date>=from&&x.date<=day());
+  const points=series(id,subset),estimated=textualSeries(id,subset),card=node('article','obs-metric');
   card.append(node('strong','',title(id)));
   if(estimated.length){
    const latest=estimated[estimated.length-1];
@@ -281,7 +285,7 @@ root.innerHTML=[
 '<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
 '<div id="obs-private" hidden>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
-'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
+'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><div class="obs-inline"><label for="obs-metrics-period">Periodo de las gráficas</label><select id="obs-metrics-period"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="365">1 año</option></select></div><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
 '<section class="obs-block"><h3>Registrar cómo me encuentro</h3><p>Escala ordinal: 0 significa ausencia expresamente indicada; 1 leve, 2 moderada, 3 alta, 4 muy alta. Sin dato no es cero.</p>',
 '<form id="obs-self-form" class="obs-form"><label>Fecha<input name="day" type="date" required></label>',
 '<label>Dimensión<select name="dimension"></select></label>',
@@ -484,6 +488,7 @@ $('obs-history-save').addEventListener('click',async()=>{
 });
 
 const reportStart=new Date();reportStart.setDate(reportStart.getDate()-29);
+$('obs-metrics-period').addEventListener('change',()=>{if(!locked)render();});
 $('obs-report-from').value=reportStart.toLocaleDateString('sv-SE');
 $('obs-report-to').value=day();
 for(const button of root.querySelectorAll('[data-obs-period]'))button.addEventListener('click',()=>{
