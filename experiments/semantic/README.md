@@ -6,7 +6,7 @@ Requiere Node.js 20+ y un servicio Ollama **local** con un modelo descargado e i
 - `node --test experiments/semantic/validator.test.mjs`
 - `node experiments/semantic/evaluate.mjs NOMBRE_MODELO_LOCAL`
 
-El resultado JSON incluye etiquetas, citas comprobables, índices, alternativas y errores. Se informa precisión y exhaustividad micro por etiqueta y dirección, además de etiquetas prohibidas y rechazos. El corpus de diez casos es **de desarrollo**, no evidencia de rendimiento independiente. Los resultados deben revisarse a mano: las etiquetas alternativas plausibles no siempre son errores clínicos, y una cita literal no prueba la inferencia. Las puntuaciones de evaluación son del motor, no del usuario. No se asigna intensidad a partir de lenguaje.
+El resultado JSON incluye etiquetas, citas comprobables, índices, alternativas y errores. Se informa precisión y exhaustividad micro por etiqueta y dirección, además de etiquetas prohibidas y rechazos. El corpus de veinte casos es **de desarrollo**, no evidencia de rendimiento independiente. Los resultados deben revisarse a mano: las etiquetas alternativas plausibles no siempre son errores clínicos, y una cita literal no prueba la inferencia. Las puntuaciones de evaluación son del motor, no del usuario. No se asigna intensidad a partir de lenguaje.
 
 ## Antes de integrar en producción
 1. Revisar privacidad, modelo, accesos, registros del servidor, retención y borrado; bloquear salidas de red del proceso y confirmar que el servicio no está expuesto. Consentimiento específico antes de tratar datos personales.
@@ -16,3 +16,6 @@ El resultado JSON incluye etiquetas, citas comprobables, índices, alternativas 
 5. Validar con navegador, pruebas de seguridad y revisión profesional antes de activar. No utilizar este prototipo para asistencia clínica ni monitorizar urgencias.
 
 Este experimento es independiente de las PR anteriores del Observatorio y no activa Vercel ni modifica el backend.
+
+## Comparación y diagnóstico del servidor
+`bash experiments/semantic/preflight.sh` comprueba CPU, memoria, disco, Node, Ollama, escucha local y modelos sin instalar nada. Ejecutar solo en el servidor propio. El evaluador incluye ahora una referencia del motor de reglas sobre los mismos episodios ficticios y latencia por ejemplo. Se han añadido casos de ánimo, disfrute, atribución de terceros y preocupaciones fundadas. Las etiquetas esperadas son propuestas del desarrollador: no son un patrón oro; revisar etiquetas adicionales plausibles y validar un conjunto independiente. No usar resultados de desarrollo para afirmar eficacia clínica.
