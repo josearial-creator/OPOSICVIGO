@@ -174,6 +174,20 @@ function dayEvidenceLabel(d){
  const mixed=dirs.includes('mixto')||(negative&&(dirs.includes('recurso')||dirs.includes('ausencia referida')));
  return (mixed?'Orientación mixta':dirs.join(' / '))+' · '+(level===null?'sin grado de evidencia':'mayor grado de evidencia '+level+'/3')+(d.ratings.size===1&&!mixed?' · intensidad declarada '+[...d.ratings][0]:d.ratings.size>1?' · puntuaciones distintas, sin combinar':'')+(d.uncertain?' · fecha del suceso no confirmada':'');
 }
+// Puntuaciones originales: solo un valor compatible por día y denominador.
+// Puntos sin líneas: no interpolar fechas ni inferir una evolución clínica.
+function ratingPoints(days,max){
+ return days.filter(d=>!d.uncertain&&d.ratings.size===1&&!d.directions.has('mixto')&&!(d.directions.has('ausencia referida')&&(d.directions.has('dificultad')||d.directions.has('malestar')))&&!(d.directions.has('recurso')&&(d.directions.has('dificultad')||d.directions.has('malestar'))))
+ .map(d=>({day:d.day,parts:[...d.ratings][0].split('/').map(Number)}))
+ .filter(d=>d.parts[1]===max).map(d=>({day:d.day,value:d.parts[0]}));
+}
+function ratingChart(points,max){
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 310 110');svg.setAttribute('role','img');
+ const last=points.slice(-30),t=d=>Date.parse(d+'T12:00:00Z'),a=t(last[0].day),b=t(last[last.length-1].day);
+ svg.setAttribute('aria-label','Intensidades declaradas en conversaciones, fecha de registro, escala 0–'+max+': '+last.map(p=>p.day+' '+p.value+'/'+max).join('; '));
+ for(const p of last){const dot=document.createElementNS(svg.namespaceURI,'circle'),label=document.createElementNS(svg.namespaceURI,'title');dot.setAttribute('cx',12+(b===a?0:(t(p.day)-a)/(b-a)*286));dot.setAttribute('cy',98-p.value/max*88);dot.setAttribute('r','4');dot.setAttribute('fill','#9a5a12');label.textContent=p.day+': '+p.value+'/'+max;dot.append(label);svg.append(dot);}
+ return svg;
+}
 function trend(points){
  if(points.length<6)return 'Sin tendencia suficiente';
  const median=a=>{const x=a.map(p=>p.value).sort((b,c)=>b-c);return x[1];};
@@ -217,6 +231,10 @@ function render(){
    const latest=estimated[estimated.length-1];
    card.append(node('strong','obs-estimated-value',dayEvidenceLabel(latest)),node('small','',latest.day+' · '+estimated.length+' días con evidencia textual'));
   }else card.append(node('small','','Sin evidencia textual puntuable'));
+  for(const max of [4,10]){
+   const rated=ratingPoints(estimated,max);
+   if(rated.length)card.append(node('small','','Conversaciones · escala 0–'+max+' · '+rated.length+' días con valor explícito · último '+rated[rated.length-1].value+'/'+max),ratingChart(rated,max));
+  }
   card.append(node('small','',points.length+' días con autovaloración declarada'));
   if(points.length)card.append(node('span','obs-trend',trend(points)),miniChart(points));
   cards.append(card);
