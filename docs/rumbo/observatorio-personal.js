@@ -13,6 +13,7 @@ const DIM=[
 ];
 const PRIOR=['animo','ansiedad','urgencia','atencion','autoeficacia','disfrute'];
 const engine=window.RumboPsychEngine;
+let interview=null;
 const $=id=>document.getElementById(id);
 const node=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x;};
 const day=()=>new Date().toLocaleDateString('sv-SE');
@@ -48,6 +49,7 @@ async function save(next,stillValid=()=>true){
 }
 function toggle(value){
  locked=value;$('obs-locked').hidden=!value;$('obs-private').hidden=value;
+ if(value)interview?.reset();
  if(value){key=null;salt=null;records=empty();historyGeneration++;historyCandidates=[];if($('obs-diary-auto'))$('obs-diary-auto').checked=false;$('obs-history-list')?.replaceChildren();if($('obs-history-status'))$('obs-history-status').textContent='';if($('obs-history-save'))$('obs-history-save').hidden=true;if($('obs-history-select-all'))$('obs-history-select-all').disabled=true;for(const id of ['obs-patterns','obs-metrics','obs-entries','obs-questionnaires','obs-hypotheses','obs-suggestions'])$(id)?.replaceChildren();if($('obs-text'))$('obs-text').value='';if($('obs-h-form'))$('obs-h-form').reset();if($('obs-report-text')){$('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;$('obs-report-evidence').checked=false;$('obs-report-hypotheses').checked=false;}}
 }
 // Recordar una clave CryptoKey no exportable, nunca la contraseña ni texto descifrado.
@@ -288,6 +290,10 @@ root.innerHTML=[
 '<label>Intensidad declarada<select name="value"><option value="">Sin dato</option><option value="0">0 · Ausencia indicada</option><option value="1">1 · Leve</option><option value="2">2 · Moderada</option><option value="3">3 · Alta</option><option value="4">4 · Muy alta</option></select></label>',
 '<label>Mis palabras (opcional)<textarea name="evidence" maxlength="300" rows="2" placeholder="Hoy me he sentido…"></textarea></label>',
 '<label>Contexto (opcional)<input name="context" maxlength="160" placeholder="Trabajo, estudio, ejercicio…"></label><button type="submit" class="button primary">Guardar autovaloración</button></form></section>',
+'<section class="obs-block" id="obs-interview"><h3>Comprender una situación · Psicología</h3><p>Entrevista guiada experimental. No es una evaluación clínica. Puedes finalizar en cualquier momento; las respuestas solo permanecen en esta pantalla hasta que decidas trasladarlas.</p>',
+'<div data-field="intro"><label>¿Qué situación quieres comprender?<textarea data-field="context" rows="4" maxlength="2400" autocomplete="off"></textarea></label><details><summary>Información que ya he explicado (opcional)</summary><div data-field="known" class="obs-form"></div></details><label><input type="checkbox" data-field="contrast"> Quiero explorar posibles interpretaciones alternativas.</label><button type="button" class="button primary" data-field="start">Comenzar revisión</button></div>',
+'<div data-field="active" hidden><p><strong data-field="question"></strong></p><label>Mi respuesta (opcional)<textarea data-field="answer" maxlength="600" rows="3" autocomplete="off"></textarea></label><div class="obs-inline"><button type="button" class="button primary" data-field="next">Continuar</button><button type="button" class="button secondary" data-field="skip">Pasar</button><button type="button" class="button secondary" data-field="finish">Finalizar y revisar</button><button type="button" class="button secondary" data-stop>Salir sin guardar</button></div></div>',
+'<div data-field="summary" hidden><label>Revisa y edita tus palabras<textarea data-field="result" maxlength="6000" rows="6" autocomplete="off"></textarea></label><p>Solo se trasladan tus palabras, no las preguntas ni interpretaciones de IA. Después podrás identificar indicadores y decidir cuáles guardar en la bóveda.</p><div class="obs-inline"><button type="button" class="button primary" data-field="transfer">Trasladar al análisis</button><button type="button" class="button secondary" data-stop>Descartar</button></div></div><p data-field="notice" role="status" aria-live="polite"></p></section>',
 '<section class="obs-block"><h3>Clasificar una reflexión</h3><p>El motor local aplica reglas contextuales, distingue dificultades, recursos y negaciones explícitas, y evita algunos casos ambiguos. No es IA generativa ni una evaluación clínica validada. No se envía texto a servicios externos. Se guarda solo si eliges hacerlo. Cada observación conserva una frase y, cuando es elegible, muestra un índice de orientación textual separado de la intensidad declarada.</p>',
 '<label for="obs-text">Fragmento de conversación o diario</label><textarea id="obs-text" maxlength="6000" rows="5" placeholder="Pega el fragmento que quieras clasificar, sin datos de terceros."></textarea>',
 '<div class="obs-inline"><button class="button primary" id="obs-analyze" type="button">Identificar indicadores</button><button class="button secondary" id="obs-clear" type="button">Limpiar</button></div><div id="obs-suggestions" class="obs-suggestions"></div></section>',
@@ -312,6 +318,15 @@ root.innerHTML=[
 '<textarea id="obs-report-text" rows="14" hidden aria-label="Informe descriptivo" autocomplete="off" spellcheck="false"></textarea><p>La exportación es un archivo de texto sin cifrar. Compártelo únicamente por un canal seguro con el profesional que elijas.</p></section></div>',
 '<p id="obs-status" role="status" aria-live="polite"></p>'
 ].join('');
+interview=window.RumboInterview?.mount($('obs-interview'),{
+ isOpen:()=>!locked,
+ transfer:text=>{
+  if(locked)return false;
+  const field=$('obs-text');
+  if(field.value.trim()&&!confirm('¿Sustituir el borrador del clasificador por las palabras de esta revisión?'))return false;
+  field.value=text;$('obs-suggestions').replaceChildren();field.focus();return true;
+ }
+});
 $('obs-open').addEventListener('click',()=>void unlock());
 $('obs-password').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void unlock();}});
 $('obs-lock').addEventListener('click',()=>{void closeDevice().catch(()=>say('No se pudo confirmar el cierre del acceso recordado.'));});
