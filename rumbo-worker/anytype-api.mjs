@@ -1,11 +1,14 @@
 // Private, single-space snapshot; no AI or logging.
-const key='anytype:tasks:v1';
+
 const states=new Set(['pendiente','hoy','en_curso','en_espera','completada','archivada','por_revisar']);
 export async function anytypeApi(request,env,reply){
- if(!env.NOTES_KV)return reply(503,{error:'Almacenamiento no configurado'});
+ if(!env.db)return reply(503,{error:'Almacenamiento no configurado'});
  if(request.method==='GET'){
-  const saved=await env.NOTES_KV.get(key,'json');
-  return reply(200,saved??{total:0,tareas:[],sincronizado_en:null});
+  const rows=await env.db.prepare('SELECT payload, synced_at FROM anytype_tasks ORDER BY id LIMIT 2001').all();
+  if(rows.results.length>2000)return reply(503,{error:'Límite de consulta alcanzado'});
+  const tareas=rows.results.map(r=>JSON.parse(r.payload));
+  const sincronizado_en=rows.results.reduce((a,r)=>!a||r.synced_at>a?r.synced_at:a,null);
+  return reply(200,{total:tareas.length,tareas,sincronizado_en});
  }
  if(request.method!=='POST')return reply(405,{error:'Método no permitido'});
  if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply(415,{error:'Se requiere JSON'});
@@ -20,11 +23,10 @@ export async function anytypeApi(request,env,reply){
   const due=date(t.fecha_vencimiento),modified=date(t.fecha_modificacion);if(due===undefined||modified===undefined)return reply(400,{error:'Fecha inválida'});
   map.set(t.id,{id:t.id,titulo:t.titulo.trim().replace(/\bES(?:\s?\d){22}\b/gi,'[IBAN oculto]'),estado:t.estado,fecha_vencimiento:due,fecha_modificacion:modified,origen:'anytype',activa:['pendiente','hoy','en_curso','en_espera'].includes(t.estado)});
  }
- const previous=await env.NOTES_KV.get(key,'json');
- const merged=new Map((previous?.tareas??[]).map(t=>[t.id,t]));
- for(const [id,t] of map){const old=merged.get(id);if(!old?.fecha_modificacion||!t.fecha_modificacion||Date.parse(t.fecha_modificacion)>=Date.parse(old.fecha_modificacion))merged.set(id,t);}
- if(merged.size>2000)return reply(409,{error:'Límite de almacenamiento alcanzado'});
- const snapshot={origen:'anytype',sincronizado_en:new Date().toISOString(),total:merged.size,tareas:[...merged.values()]};
- await env.NOTES_KV.put(key,JSON.stringify(snapshot));
- return reply(200,{ok:true,total:snapshot.total,recibidas:map.size});
+ const now=new Date().toISOString();
+ const statements=[...map.values()].map(t=>env.db.prepare(
+  'INSERT INTO anytype_tasks (id,payload,modified_at,synced_at) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,modified_at=excluded.modified_at,synced_at=excluded.synced_at WHERE anytype_tasks.modified_at IS NULL OR (excluded.modified_at IS NOT NULL AND excluded.modified_at>=anytype_tasks.modified_at)'
+ ).bind(t.id,JSON.stringify(t),t.fecha_modificacion?new Date(t.fecha_modificacion).toISOString():null,now));
+ await env.db.batch(statements);
+ return reply(200,{ok:true,recibidas:map.size});
 }
