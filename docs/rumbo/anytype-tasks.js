@@ -3,7 +3,7 @@
 const root=document.getElementById('productividad'),session=window.RumboSession;
 if(!root||!session)return;
 const endpoint='https://rumbo-entrenador.jose-arial.workers.dev/anytype/tasks';
-const card=document.createElement('section');card.className='assistant-card';
+const card=document.createElement('section');card.className='assistant-card';card.id='rumbo-anytype-tasks';
 card.innerHTML='<h3>Tareas de Anytype</h3><p role="status" aria-live="polite"></p><label>Mostrar <select><option value="active">Activas</option><option value="por_revisar">Por revisar</option><option value="completada">Completadas</option><option value="archivada">Archivadas</option><option value="all">Todas</option></select></label> <button type="button" class="button secondary">Actualizar</button><ul></ul>';
 root.append(card);
 const status=card.querySelector('p'),filter=card.querySelector('select'),button=card.querySelector('button'),list=card.querySelector('ul');

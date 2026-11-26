@@ -15,3 +15,15 @@ assert.match(js,/noopener noreferrer/);
 assert.match(js,/localStorage\.setItem\(key,url\)/);
 assert.doesNotMatch(html+mobile+js,/bafyreigzx4fwpdfnni4waf5w3lsqlcsyfqk3uplzilrepymw5ni4oscp4y/);
 console.log('PASS: enlaces escritorio/móvil, validación HTTPS, aislamiento del enlace personal.');
+
+assert.match(html,/src="anytype-tasks\.js"/);
+assert.ok(html.indexOf('src="asistente.js"') < html.indexOf('src="anytype-tasks.js"'), 'El módulo de tareas debe cargarse después de construir Productividad');
+console.log('PASS: orden de inicialización del listado Anytype.');
+
+const tasks=fs.readFileSync(path.join(root,'anytype-tasks.js'),'utf8');
+assert.match(tasks,/card\.id='rumbo-anytype-tasks'/);
+assert.match(js,/a\.href='#productividad'/);
+assert.match(js,/const menu=event\.target\.closest\?\.\('\.rumbo-anytype-link'\)/);
+assert.match(js,/const link=event\.target\.closest\?\.\('\.rumbo-anytype-external'\)/);
+assert.ok(js.indexOf('if(menu)') < js.indexOf('window.prompt'));
+console.log('PASS: menú interno y enlace externo opcional.');
