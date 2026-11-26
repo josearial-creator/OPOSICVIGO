@@ -39,6 +39,8 @@ await page.locator('#assistant-manual [name=area]').selectOption('Estudio y opos
 await page.locator('#assistant-manual [name=mins]').fill('30');
 await page.locator('#assistant-manual button').click();
 assert.match(await page.locator('#assistant-total').innerText(),/30 min/);
+assert.equal(await page.locator('#rumbo-time-chart').evaluate(el=>el.open),false);
+await page.locator('#rumbo-time-chart > summary').click();
 assert.match(await page.locator('#assistant-chart').innerText(),/Estudio y oposiciones/);
 await page.locator('#rumbo-settings-open').click();await page.locator('.rumbo-settings-more summary').click();
 const exportEvent=page.waitForEvent('download');
