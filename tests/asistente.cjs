@@ -32,6 +32,8 @@ await page.locator('#stop-park').click();
 const parked=await page.evaluate(()=>JSON.parse(localStorage.getItem('rumbo-asistente-v1')));
 assert.equal(parked.timer,null);
 assert.equal(parked.items[0].nextStep,'Repasar las respuestas y continuar mañana');
+assert.equal(await page.locator('#rumbo-manual-time').evaluate(el=>el.open),false);
+await page.locator('#rumbo-manual-time > summary').click();
 await page.locator('#assistant-manual [name=title]').fill('Repaso de oposiciones');
 await page.locator('#assistant-manual [name=area]').selectOption('Estudio y oposiciones');
 await page.locator('#assistant-manual [name=mins]').fill('30');
