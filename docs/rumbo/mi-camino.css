@@ -1,0 +1,11 @@
+/* Panel compacto, adaptable y sin animaciones obligatorias. */
+#mi-camino{margin:0 0 14px;padding:16px;min-width:0;border:1px solid #dce8e8;border-radius:16px;background:var(--card,#fff);color:var(--text,#183940)}
+#mi-camino .camino-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#mi-camino .camino-head h3{margin:3px 0;font-size:1.1rem}#mi-camino p{margin:6px 0}#mi-camino .camino-kicker{font-size:.72rem;letter-spacing:.12em;font-weight:750;color:#367d80}
+#mi-camino #camino-today{font-size:.9rem;color:#367d80}#mi-camino progress{display:block;width:100%;height:10px;accent-color:#377f79;margin:10px 0}
+#mi-camino .camino-muted{font-size:.8rem;opacity:.8}#mi-camino details{border-top:1px solid #dce8e8;padding:10px 0}#mi-camino summary{cursor:pointer;font-weight:650;min-height:34px;line-height:1.6}#mi-camino summary span{font-size:.78rem;font-weight:500;opacity:.8}
+#mi-camino form,#mi-camino #camino-buttons{display:grid;gap:8px;margin:8px 0}#mi-camino label{display:grid;gap:4px;font-size:.85rem}#mi-camino input{width:100%;box-sizing:border-box;min-height:42px}
+#mi-camino .button{white-space:normal;min-height:44px;text-align:left}#mi-camino .button:disabled{opacity:.55;cursor:default}
+#mi-camino .camino-badge{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #dce8e8;font-size:.88rem}#mi-camino .camino-history-row{padding:6px 0;font-size:.84rem}
+#mi-camino #camino-msg{font-size:.85rem;min-height:1em;overflow-wrap:anywhere}#mi-camino button:focus-visible,#mi-camino summary:focus-visible{outline:3px solid #499ca1;outline-offset:3px}
+@media(min-width:700px){#mi-camino #camino-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
