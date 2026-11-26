@@ -3,23 +3,23 @@
  const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RumboPsychEngine=api;
 })(typeof globalThis==='object'?globalThis:this,function(){
 'use strict';
-const VERSION='reglas-contextuales-1.0';
+const VERSION='reglas-contextuales-1.1';
 /* Etiquetas de lo referido, no valencia clínica ni puntuación. */
 const RULES=[
  ['animo','malestar','emoción',/\b(?:estoy triste|me siento (?:triste|vac[ií][oa]|desanimad[oa]|hundid[oa])|estoy desanimad[oa]|no tengo [aá]nimo)\b/iu],
  ['animo','recurso','emoción',/\b(?:me siento bien|estoy de buen humor|me siento animad[oa])\b/iu],
- ['ansiedad','malestar','emoción',/\b(?:tengo ansiedad|estoy ansios[oa]|tengo miedo|estoy nervios[oa]|me siento agobiad[oa])\b/iu],
+ ['ansiedad','malestar','emoción',/\b(?:tengo ansiedad|estoy ansios[oa]|tengo miedo|estoy nervios[oa]|me siento agobiad[oa]|me siento desbordad[oa])\b/iu],
  ['ansiedad','ausencia referida','emoción',/\b(?:no tengo ansiedad|no tengo miedo|no estoy nervios[oa])\b/iu],
  ['frustracion','malestar','emoción',/\b(?:estoy frustrad[oa]|me enfada|siento rabia|me siento frustrad[oa])\b/iu],
- ['disfrute','dificultad','emoción',/\b(?:no disfruto|no me apetece nada|no disfruto de nada|no tengo ganas de nada)\b/iu],
+ ['disfrute','dificultad','emoción',/\b(?:no disfruto|no me apetece nada|no disfruto de nada|no tengo ganas de nada|me cuesta disfrutar)\b/iu],
  ['disfrute','recurso','emoción',/\b(?:disfruto|he disfrutado|me he sentido a gusto|me gusta hacerlo)\b/iu],
  ['ilusion','dificultad','emoción',/\b(?:no tengo ilusi[oó]n|no me hace ilusi[oó]n|no estoy ilusionad[oa])\b/iu],
  ['ilusion','recurso','emoción',/\b(?:estoy ilusionad[oa]|tengo ilusi[oó]n|me hace ilusi[oó]n)\b/iu],
  ['indefension','malestar','pensamiento',/\b(?:me siento derrotad[oa]|me siento indefens[oa]|no puedo cambiar nada|siento que no puedo hacer nada)\b/iu],
- ['urgencia','dificultad','pensamiento',/\b(?:necesito resolverlo ya|urgencia por terminar|necesito hacerlo inmediatamente|tengo que terminar ya|me urge terminar|me cuesta dejarlo sin terminar)\b/iu],
- ['rumiacion','dificultad','pensamiento',/\b(?:le doy vueltas|no puedo dejar de pensar|no consigo dejar de pensar|tengo pensamientos repetitivos)\b/iu],
+ ['urgencia','dificultad','pensamiento',/\b(?:necesito resolverlo ya|urgencia por terminar|necesito hacerlo inmediatamente|tengo que terminar ya|me urge terminar|me cuesta dejarlo sin terminar|siento prisa por terminar|tengo prisa por acabar)\b/iu],
+ ['rumiacion','dificultad','pensamiento',/\b(?:le doy vueltas|no puedo dejar de pensar|no consigo dejar de pensar|me cuesta dejar de darle vueltas|tengo pensamientos repetitivos)\b/iu],
  ['incertidumbre','dificultad','pensamiento',/\b(?:no tolero la incertidumbre|necesito tener certeza|no soporto no saber|necesito estar segur[oa])\b/iu],
- ['atencion','dificultad','conducta',/\b(?:no consigo concentrarme|me cuesta concentrarme|pierdo la atenci[oó]n|me distraigo|me he distra[ií]do)\b/iu],
+ ['atencion','dificultad','conducta',/\b(?:no consigo concentrarme|me cuesta concentrarme|me cuesta mantener la concentraci[oó]n|pierdo la atenci[oó]n|me distraigo|me he distra[ií]do)\b/iu],
  ['atencion','recurso','conducta',/\b(?:me he concentrado|he conseguido concentrarme|he logrado concentrarme)\b/iu],
  ['flexibilidad','dificultad','conducta',/\b(?:no consigo cambiar de estrategia|me cuesta cambiar de tarea|no logro cambiar de actividad)\b/iu],
  ['flexibilidad','recurso','conducta',/\b(?:cambi[eé] de estrategia|he vuelto al estudio|he retomado el estudio|he logrado cambiar de tarea)\b/iu],

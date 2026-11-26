@@ -140,7 +140,7 @@ async function unlock(){
 function classify(text){return engine?.uniqueByDimension(text)||[];}
 function metadata(hit,dateBasis){return {method:hit.method,direction:hit.direction,kind:hit.kind,temporal:hit.temporal,dateBasis,index:hit.index,end:hit.end,match:hit.match,additionalEvidence:hit.additionalEvidence||null};}
 function analysisLabel(a){return a?a.kind+' · '+a.direction+' · '+a.temporal+' · '+a.method:'Sin análisis contextual (registro anterior)';}
-function validAnalysis(a){return a===undefined||(a&&a.method==='reglas-contextuales-1.0'&&['malestar','dificultad','recurso','ausencia referida','mixto'].includes(a.direction)&&['emoción','pensamiento','conducta','funcionamiento'].includes(a.kind)&&['pasado referido','hoy referido','no especificado'].includes(a.temporal)&&['registro original','fecha de registro','fecha de anotación'].includes(a.dateBasis)&&Number.isInteger(a.index)&&a.index>=0&&Number.isInteger(a.end)&&a.end>a.index&&a.end<=12000&&typeof a.match==='string'&&a.match.length===a.end-a.index&&(a.additionalEvidence===null||(a.additionalEvidence&&Number.isInteger(a.additionalEvidence.index)&&a.additionalEvidence.index>=0&&Number.isInteger(a.additionalEvidence.end)&&a.additionalEvidence.end>a.additionalEvidence.index&&a.additionalEvidence.end<=12000&&typeof a.additionalEvidence.match==='string'&&a.additionalEvidence.match.length===a.additionalEvidence.end-a.additionalEvidence.index)));}
+function validAnalysis(a){return a===undefined||(a&&['reglas-contextuales-1.0','reglas-contextuales-1.1'].includes(a.method)&&['malestar','dificultad','recurso','ausencia referida','mixto'].includes(a.direction)&&['emoción','pensamiento','conducta','funcionamiento'].includes(a.kind)&&['pasado referido','hoy referido','no especificado'].includes(a.temporal)&&['registro original','fecha de registro','fecha de anotación'].includes(a.dateBasis)&&Number.isInteger(a.index)&&a.index>=0&&Number.isInteger(a.end)&&a.end>a.index&&a.end<=12000&&typeof a.match==='string'&&a.match.length===a.end-a.index&&(a.additionalEvidence===null||(a.additionalEvidence&&Number.isInteger(a.additionalEvidence.index)&&a.additionalEvidence.index>=0&&Number.isInteger(a.additionalEvidence.end)&&a.additionalEvidence.end>a.additionalEvidence.index&&a.additionalEvidence.end<=12000&&typeof a.additionalEvidence.match==='string'&&a.additionalEvidence.match.length===a.additionalEvidence.end-a.additionalEvidence.index)));}
 function series(id,all=records.entries){
  const days=new Map();
  for(const e of all){
@@ -209,7 +209,11 @@ function render(){
  $('obs-count').textContent=records.entries.length+' indicadores · '+records.questionnaires.length+' cuestionarios · '+records.hypotheses.length+' hipótesis';
  const cards=$('obs-metrics');cards.replaceChildren();
  for(const id of PRIOR){
-  const points=series(id),estimated=textualSeries(id),card=node('article','obs-metric');
+  const period=Number($('obs-metrics-period').value)||30;
+  const cutoff=new Date(day()+'T12:00:00Z');cutoff.setUTCDate(cutoff.getUTCDate()-(period-1));
+  const from=cutoff.toISOString().slice(0,10);
+  const subset=records.entries.filter(x=>x.date>=from&&x.date<=day());
+  const points=series(id,subset),estimated=textualSeries(id,subset),card=node('article','obs-metric');
   card.append(node('strong','',title(id)));
   if(estimated.length){
    const latest=estimated[estimated.length-1];
@@ -281,7 +285,7 @@ root.innerHTML=[
 '<label for="obs-password">Contraseña de la bóveda</label><div class="obs-inline"><input type="password" id="obs-password" autocomplete="off" placeholder="Contraseña privada"><button type="button" class="button primary" id="obs-open">Abrir observatorio</button></div><label><input type="checkbox" id="obs-remember" checked> Recordar este dispositivo</label><p>Solo en dispositivos personales. Cualquier persona con acceso a este perfil del navegador podrá abrir el observatorio hasta que cierres la bóveda.</p></div>',
 '<div id="obs-private" hidden>',
 '<div class="obs-toolbar"><span id="obs-count"></span><button type="button" class="button secondary" id="obs-lock">Cerrar bóveda</button><button type="button" class="button secondary" id="obs-backup">Exportar copia cifrada</button></div>',
-'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
+'<section class="obs-block"><h3>Seis indicadores prioritarios</h3><div class="obs-inline"><label for="obs-metrics-period">Periodo de las gráficas</label><select id="obs-metrics-period"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="365">1 año</option></select></div><p>Ámbar: índice textual exploratorio, calculado por reglas locales; verde: autovaloraciones declaradas (escala de intensidad). No se mezclan. Para ánimo, atención, autoeficacia y disfrute: 1 dificultad, 3 recurso. Para ansiedad y urgencia: 1 recurso o ausencia expresada, 3 dificultad. 2 evidencia mixta; sin evidencia, sin dato. No mide gravedad clínica. Las fechas son las del registro, no necesariamente las del suceso.</p><div id="obs-metrics" class="obs-metrics"></div></section>',
 '<section class="obs-block"><h3>Registrar cómo me encuentro</h3><p>Escala ordinal: 0 significa ausencia expresamente indicada; 1 leve, 2 moderada, 3 alta, 4 muy alta. Sin dato no es cero.</p>',
 '<form id="obs-self-form" class="obs-form"><label>Fecha<input name="day" type="date" required></label>',
 '<label>Dimensión<select name="dimension"></select></label>',
@@ -306,6 +310,7 @@ root.innerHTML=[
 '<form class="obs-form" id="obs-h-form"><label>Hipótesis<input name="text" maxlength="300" required placeholder="El ejercicio se relaciona con un mejor estado de ánimo"></label>',
 '<label>Cómo probarla<textarea name="plan" rows="3" maxlength="500" required placeholder="Registrar antes/después, contrastar con días sin ejercicio y controlar sueño."></textarea></label><button type="submit" class="button secondary">Guardar hipótesis</button></form><div id="obs-hypotheses"></div></section>',
 '<section class="obs-block"><h3>Informe para la consulta</h3><p>Selecciona el periodo desde tu última consulta. Revisa y edita el informe antes de compartirlo. No se envía automáticamente ni sustituye una valoración clínica.</p>',
+'<div class="obs-inline"><button type="button" class="button secondary" data-obs-period="7">Últimos 7 días</button><button type="button" class="button secondary" data-obs-period="30">Últimos 30 días</button><button type="button" class="button secondary" data-obs-period="365">Últimos 365 días</button></div>',
 '<div class="obs-form"><label>Desde<input id="obs-report-from" type="date"></label><label>Hasta<input id="obs-report-to" type="date"></label>',
 '<label><input type="checkbox" id="obs-report-evidence"> Incluir frases originales y contexto (opcional)</label><label><input type="checkbox" id="obs-report-hypotheses"> Incluir hipótesis y planes sin fecha (opcional)</label></div>',
 '<div class="obs-inline"><button id="obs-report" class="button primary" type="button">Preparar informe</button><button id="obs-report-download" class="button secondary" type="button" hidden>Exportar texto revisado</button></div>',
@@ -483,8 +488,16 @@ $('obs-history-save').addEventListener('click',async()=>{
 });
 
 const reportStart=new Date();reportStart.setDate(reportStart.getDate()-29);
+$('obs-metrics-period').addEventListener('change',()=>{if(!locked)render();});
 $('obs-report-from').value=reportStart.toLocaleDateString('sv-SE');
 $('obs-report-to').value=day();
+for(const button of root.querySelectorAll('[data-obs-period]'))button.addEventListener('click',()=>{
+ if(locked)return;
+ const days=Number(button.dataset.obsPeriod);if(![7,30,365].includes(days))return;
+ const end=day(),start=new Date(end+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-(days-1));
+ $('obs-report-from').value=start.toISOString().slice(0,10);$('obs-report-to').value=end;clearReport();
+ say('Periodo de '+days+' días seleccionado. Pulsa Preparar informe.');
+});
 function clearReport(){
  $('obs-report-text').value='';$('obs-report-text').hidden=true;$('obs-report-download').hidden=true;
 }
@@ -498,12 +511,15 @@ $('obs-report').addEventListener('click',()=>{
  const e=records.entries.filter(inPeriod);
  const self=e.filter(x=>x.source==='autovaloracion'),observed=e.filter(x=>x.source==='texto');
  const distinct=new Set(e.map(x=>x.date)).size;
+ const periodDays=Math.round((Date.parse(to+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000)+1;
+ const coverage=(100*distinct/periodDays).toFixed(1).replace('.',',');
  const lines=['RUMBO · INFORME DESCRIPTIVO PARA CONSULTA','Periodo: '+from+' a '+to+' (inclusive)',
  'Elaborado a partir de registros personales; no constituye diagnóstico ni seguimiento sanitario permanente.',
  '', '1. COBERTURA DE LOS DATOS',
- 'Días con algún registro: '+distinct,'Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
+ 'Días con algún registro: '+distinct+' de '+periodDays+' ('+coverage+'% de cobertura de registros; no de síntomas)','Autovaloraciones: '+self.length+' (incluyen '+self.filter(x=>x.value===null).length+' sin puntuación)',
  'Observaciones textuales (sin intensidad declarada): '+observed.length,
  'Los días sin registro no equivalen a ausencia de síntomas.',
+ 'Cobertura limitada: las conclusiones describen únicamente los días registrados; la clasificación textual no mide intensidad, frecuencia ni prevalencia.',
  '', '2. EVOLUCIÓN DECLARADA (escala ordinal 0–4, intensidad; no siempre una subida es mejoría)'];
  for(const [id,label] of DIM){
   const p=series(id,e);if(!p.length)continue;
