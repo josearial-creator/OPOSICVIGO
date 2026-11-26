@@ -3,12 +3,12 @@
  const tools=document.querySelector('.topbar-tools');
  if(!tools||!window.RumboNavigation)return;
  const routes=[
-  ['inicio','Portada','Inicio'],['mi-dia','Mi día','Organización'],
+  ['inicio','Portada','Inicio'],['mi-dia','Mi día · tareas y agenda','Organización','crear tarea citas calendario prioridades pendientes'],
   ['panel-hoy','Mi radar','Organización'],['convocatorias','Convocatorias','Oposiciones'],
   ['favoritos','Favoritas','Oposiciones'],['apuntes-estudio','Apuntes de estudio','Oposiciones'],
-  ['mi-espacio','Mi espacio','Diario'],['ev-diary','Diario','Diario'],
-  ['historial-rumbo','Historial recuperado','Diario'],['mi-evolucion','Mis prácticas','Diario'],['observatorio-personal','Observatorio emocional','Diario'],
-  ['ev-training','Entrenamiento','Diario'],['productividad','Productividad','Herramientas'],
+  ['mi-espacio','Mi espacio','Diario','escribir nota anotación reflexión'],['ev-diary','Diario','Diario'],
+  ['historial-rumbo','Historial recuperado','Diario'],['mi-evolucion','Mis prácticas','Diario','parada parar pausa ejercicios'],['observatorio-personal','Observatorio emocional','Diario','informe evolución gráficas psicología'],
+  ['ev-training','Entrenamiento','Diario'],['productividad','Productividad','Herramientas','estudiar estudio foco concentración pomodoro temporizador'],
   ['proyectos','Proyectos','Herramientas'],['metricas-personales','Métricas','Herramientas']
  ];
  const norm=text=>String(text).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -43,7 +43,7 @@
  };
  function draw(){
   const query=norm(input.value);
-  matched=routes.filter(([,label,group])=>norm(label+' '+group).includes(query));
+  matched=routes.filter(([,label,group,keywords=''])=>query.split(/\s+/).every(word=>norm(label+' '+group+' '+keywords).includes(word)));
   highlight=0;list.replaceChildren();empty.hidden=matched.length>0;
   matched.forEach(([id,label,group],i)=>{
    const item=document.createElement('button');item.type='button';item.className='rumbo-quick-nav-result';
