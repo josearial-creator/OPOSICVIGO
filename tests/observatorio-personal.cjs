@@ -84,6 +84,7 @@ const assert=require('node:assert/strict');
    await page.locator('#obs-history-save').click();
    await page.waitForFunction(()=>document.getElementById('obs-count').textContent.startsWith('3 indicadores'));
    assert.match(await page.locator('#obs-entries').innerText(),/Historial recuperado/);
+   await page.locator('#rumbo-obs-evidence > summary').click();
    const historical=page.locator('#obs-entries article').filter({hasText:'2026-01-15'});
    page.once('dialog',d=>d.accept());
    await historical.getByRole('button',{name:'Eliminar'}).click();
