@@ -116,10 +116,7 @@
     }
     renderNav(group,route);
     daily.hidden=route!=='inicio'&&route!=='mi-dia';
-    // En escritorio, mantener desplegado el grupo activo en lugar de todos.
-    for(const tree of document.querySelectorAll('.sidebar nav details.ev-nav-tree')){
-      tree.open=Boolean(tree.querySelector('[data-nav="'+route+'"]'));
-    }
+
     // Una sola pantalla también al entrar sin fragmento desde un ordenador.
     document.body.classList.add('rumbo-separated');
     const label=labels.get(route)||'Portada';
