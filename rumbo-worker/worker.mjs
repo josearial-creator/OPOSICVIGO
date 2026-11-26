@@ -1,3 +1,4 @@
+import {syncCalendar} from './calendar-sync.mjs';
 import {anytypeApi} from './anytype-api.mjs';
 import {notesApi} from './notes-api.mjs';
 import {trainingApi} from './training-api.mjs';
@@ -15,6 +16,7 @@ export default {async fetch(request,env){
  const allowed=origins.includes(origin)?origin:null;
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
  const reply=(status,value)=>new Response(JSON.stringify(value),{status,headers});
+ if(new URL(request.url).pathname==='/calendar/sync'&&!request.headers.has('Origin'))return syncCalendar(request,env,reply,equalSecret);
  const anytypeRoute=new URL(request.url).pathname==='/anytype/tasks';
  if(anytypeRoute&&request.method==='POST'){
   if(!env.ANYTYPE_SYNC_TOKEN||env.ANYTYPE_SYNC_TOKEN.length<32)return reply(503,{error:'Sincronización no configurada'});
