@@ -25,14 +25,32 @@ function render(){
   const end=e.all_day?plus(e.end,-1):dayOf(new Date(Math.max(Date.parse(e.start),Date.parse(e.end)-1)));
   if(a>last||end<start)continue;
   const day=a<start?start:a;
-  rows.push({day,hour:e.all_day?'Todo el día':a<start?'En curso':clock.format(new Date(e.start)),title:e.title,sort:e.all_day?'':e.start});
+  rows.push({day,hour:e.all_day?'Todo el día':a<start?'En curso':clock.format(new Date(e.start)),title:e.title,sort:e.all_day?-Infinity:Date.parse(e.start)});
  }
- rows.sort((a,b)=>a.day.localeCompare(b.day)||a.sort.localeCompare(b.sort)||a.title.localeCompare(b.title));
- const ul=document.createElement('ul');
- for(const r of rows){const li=document.createElement('li'),time=document.createElement('time'),hour=document.createElement('strong'),title=document.createElement('span');time.dateTime=r.day;time.textContent=formatDay(r.day);hour.textContent=r.hour;title.textContent=r.title;li.append(time,' ',hour,' ',title);ul.append(li);}
- if(rows.length)list.append(ul);
+ rows.sort((a,b)=>a.day.localeCompare(b.day)||(a.sort-b.sort)||a.title.localeCompare(b.title));
+ let previousDay, group;
+ for (const row of rows) {
+   if (row.day !== previousDay) {
+     const heading = document.createElement('h4');
+     const date = document.createElement('time');
+     const prefix = row.day === start ? 'Hoy · ' : row.day === plus(start, 1) ? 'Mañana · ' : '';
+     date.dateTime = row.day;
+     date.textContent = prefix + formatDay(row.day);
+     heading.append(date);
+     group = document.createElement('ul');
+     list.append(heading, group);
+     previousDay = row.day;
+   }
+   const item = document.createElement('li');
+   const hour = document.createElement('strong');
+   const title = document.createElement('span');
+   hour.textContent = row.hour;
+   title.textContent = row.title;
+   item.append(hour, title);
+   group.append(item);
+ }
  const age=Date.now()-Date.parse(snapshot.captured_at);
- status.textContent='Del '+formatDay(start)+' al '+formatDay(last)+' · '+(rows.length?rows.length+' citas':'Sin citas en la última copia')+' · Última sincronización: '+new Date(snapshot.captured_at).toLocaleString('es-ES',{timeZone:zone})+(failure?' · Error de consulta; mostrando última copia':age>16*3600000?' · La sincronización está atrasada':'');
+ status.textContent='Del '+formatDay(start)+' al '+formatDay(last)+' · '+(rows.length?rows.length+(rows.length===1?' cita':' citas'):'Sin citas en la última copia')+' · Última sincronización: '+new Date(snapshot.captured_at).toLocaleString('es-ES',{timeZone:zone})+(failure?' · Error de consulta; mostrando última copia':age>16*3600000?' · La sincronización está atrasada':'');
 }
 async function refresh(){
  const session=window.RumboSession,id=++gen;
