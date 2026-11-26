@@ -10,6 +10,8 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.locator('#dialog-done').click();
  await page.reload();
  await page.locator('.sidebar .study-nav').getByRole('link',{name:'Apuntes de estudio',exact:true}).click();
+ assert.equal(await page.locator('#rumbo-study-notes').evaluate(el=>el.open),false);
+ await page.locator('#rumbo-study-notes > summary').click();
  await page.locator('#study-list').getByText('Apunte anterior',{exact:true}).waitFor();
  await page.locator('#study-list').getByRole('button',{name:'Abrir apuntes'}).click();
  assert.equal(await page.locator('#study-text').inputValue(),'Apunte anterior');
