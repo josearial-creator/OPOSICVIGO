@@ -6,8 +6,10 @@
   function valid(value){
     try {
       const url=new URL(value);
-      return url.protocol==='https:' && url.hostname==='object.any.coop'
-        && !url.username && !url.password ? url.href : null;
+      if(url.username||url.password||url.port)return null;
+      if(url.protocol==='https:' && url.hostname==='object.any.coop')return url.href;
+      if(url.protocol==='anytype:' && url.hostname==='object' && url.pathname.length>1)return url.href;
+      return null;
     } catch { return null; }
   }
   function saved(){
@@ -27,19 +29,20 @@
     const link=event.target.closest?.('.rumbo-anytype-link');
     if(!link)return;
     const configured=saved();
-    if(configured){link.href=configured;return;}
+    if(configured){link.href=configured;if(configured.startsWith('anytype:')){event.preventDefault();window.location.href=configured;}return;}
     event.preventDefault();
-    const entered=window.prompt('Pega aquí el enlace de tu página publicada en Anytype. Solo se guardará en este navegador:');
+    const entered=window.prompt('Pega el enlace de tu objeto privado de Anytype (Copiar enlace o Copiar enlace directo). No tienes que publicarlo. Se guarda solo en este navegador:');
     if(entered===null)return;
     const url=valid(entered.trim());
     if(!url){
-      window.alert('El enlace debe ser HTTPS y pertenecer a object.any.coop.');
+      window.alert('Copia un enlace de objeto de Anytype: https://object.any.coop/… o anytype://object/…');
       return;
     }
     try {localStorage.setItem(key,url);}
     catch {window.alert('No se pudo guardar el enlace en este navegador.');return;}
     refresh();
-    window.open(url,'_blank','noopener,noreferrer');
+    if(url.startsWith('anytype:'))window.location.href=url;
+    else window.open(url,'_blank','noopener,noreferrer');
   });
   refresh();
 })();
