@@ -40,6 +40,42 @@ const RULES=[
  ['autocuidado','dificultad','conducta',/\b(?:duermo mal|he dormido mal|no he hecho deporte)\b/iu],
  ['autocuidado','recurso','conducta',/\b(?:he dormido bien|he salido a correr|he hecho deporte)\b/iu]
 ];
+
+const RATED=[['ansiedad','ansiedad'],['urgencia','urgencia(?: por terminar)?'],['rumiacion','rumiaci[oó]n'],['frustracion','frustraci[oó]n'],['incertidumbre','incertidumbre']];
+for(const [dimension,label] of RATED){
+ const start='^\\s*(?:hoy\\s*:?\\s*|mi\\s+)?'+label+'\\s*(?::|=|de)?\\s*';
+ const end='(?=\\s*(?:[.!;,]|$))';
+ RULES.push([dimension,'ausencia referida','emoción',new RegExp(start+'0\\s*(?:/|sobre\\s+)(?:10|4)'+end,'iu')]);
+ RULES.push([dimension,'dificultad','emoción',new RegExp(start+'(?:(?:10|[1-9])\\s*(?:/|sobre\\s+)10|[1-4]\\s*(?:/|sobre\\s+)4)'+end,'iu')]);
+}
+const IMPACT=[
+ ['ansiedad',/\b(?:por la ansiedad (?:no pude (?:trabajar|estudiar|salir|dormir)|dej[eé] de (?:trabajar|estudiar|salir))|la ansiedad me impidi[oó] (?:trabajar|estudiar|salir|dormir))\b/iu],
+ ['urgencia',/\b(?:por la urgencia (?:no pude (?:trabajar|estudiar|descansar)|dej[eé] de (?:trabajar|estudiar|descansar))|la urgencia me impidi[oó] (?:trabajar|estudiar|descansar))\b/iu],
+ ['atencion',/\b(?:por distraerme (?:no pude terminar|dej[eé] sin terminar)|por no concentrarme no pude (?:estudiar|trabajar|terminar))\b/iu]
+];
+for(const [dimension,re] of IMPACT)RULES.push([dimension,'dificultad','funcionamiento',re]);
+const INTENSITY=[
+ ['ansiedad',/\b(?:tengo (?:mucha|poca) ansiedad|tengo ansiedad (?:muy intensa|leve|moderada|intensa))\b/iu],
+ ['urgencia',/\b(?:siento (?:mucha|poca) urgencia(?: por terminar)?|siento una urgencia (?:muy intensa|leve|moderada|intensa))\b/iu]
+];
+for(const [dimension,re] of INTENSITY)RULES.push([dimension,'dificultad','emoción',re]);
+function declaredRating(hit){
+ const match=hit?.match?.trim().match(/(?:^|\s|:|=)(\d{1,2})\s*(?:\/|sobre\s+)(10|4)$/iu);
+ if(!match||!RATED.some(([id])=>id===hit.dimension))return null;
+ const value=Number(match[1]),max=Number(match[2]);return value<=max?{value,max}:null;
+}
+function evidenceAssessment(hit){
+ if(!hit||!['malestar','dificultad','recurso','ausencia referida','mixto'].includes(hit.direction)||typeof hit.match!=='string'||!hit.match.trim())return null;
+ if(hit.direction==='mixto')return {level:null,rating:null,reason:'Expresiones contrapuestas; conservar ambas sin resumirlas en una intensidad.'};
+ const rating=declaredRating(hit);
+ const other=hit.additionalEvidence?declaredRating({...hit,match:hit.additionalEvidence.match}):null;
+ if(rating&&other&&(rating.value!==other.value||rating.max!==other.max))return {level:2,rating:null,reason:'Puntuaciones declaradas diferentes; no seleccionar una arbitrariamente.'};
+ if(IMPACT.some(([id,re])=>id===hit.dimension&&re.test(hit.match)))return {level:3,rating:null,reason:'Consecuencia funcional vinculada explícitamente en la frase.'};
+ if(rating||INTENSITY.some(([id,re])=>id===hit.dimension&&re.test(hit.match)))return {level:2,rating,reason:rating?'Puntuación declarada en el texto; escala original.':'Magnitud descrita expresamente, sin convertirla a un número.'};
+ if(hit.kind==='conducta'&&/\b(?:he (?:conseguido|logrado|vuelto|retomado|evitado|salido|hecho)|consegu[ií]|cambi[eé]|me contuve|actu[eé]|no he (?:conseguido|logrado|hecho))\b/iu.test(hit.match))return {level:2,rating:null,reason:'Conducta o resultado concreto referido.'};
+ return {level:1,rating:null,reason:'Estado o dificultad/recurso expresado; magnitud no establecida.'};
+}
+
 function analyze(input){
  if(typeof input!=='string')return {observations:[],abstained:0};
  const text=input.slice(0,12000),observations=[];let abstained=0;
@@ -83,6 +119,13 @@ function uniqueByDimension(input){
  for(const hit of analyze(input).observations){
   const old=grouped.get(hit.dimension);
   if(!old){grouped.set(hit.dimension,hit);continue;}
+  if(old.direction===hit.direction&&old.direction!=='mixto'){
+   const before=evidenceAssessment(old),after=evidenceAssessment(hit),a=declaredRating(old),b=declaredRating(hit);
+   if(a&&b&&(a.value!==b.value||a.max!==b.max)){grouped.set(hit.dimension,{...old,additionalEvidence:{index:hit.index,end:hit.end,match:hit.match}});continue;}
+   if(old.additionalEvidence)continue;
+   if((b&&!a)||(!a&&!b&&(after?.level||0)>(before?.level||0)))grouped.set(hit.dimension,hit);
+   continue;
+  }
   if(old.direction!==hit.direction&&old.direction!=='mixto'){
    // Mantener ambas expresiones; nunca elegir arbitrariamente una.
    grouped.set(hit.dimension,{...old,direction:'mixto',additionalEvidence:{index:hit.index,end:hit.end,match:hit.match}});
@@ -109,5 +152,5 @@ function patterns(entries){
   return {a,b,question,both,onlyA,onlyB,days:days.size,examples:examples.sort().slice(-6)};
  }).filter(x=>x.both>=3);
 }
-return Object.freeze({VERSION,analyze,uniqueByDimension,patterns});
+return Object.freeze({VERSION,ASSESSMENT_VERSION:'evidencia-1.0',analyze,uniqueByDimension,patterns,evidenceAssessment});
 });
