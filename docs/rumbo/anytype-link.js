@@ -18,15 +18,29 @@
   function refresh(){
     const url=saved()||fallback;
     document.querySelectorAll('.rumbo-anytype-link').forEach(a=>{
+      a.href='#productividad';a.removeAttribute('target');a.removeAttribute('rel');
+      a.title='Consultar tareas sincronizadas';a.setAttribute('aria-label','Consultar tareas de Anytype en Rumbo');
+      if(!a.querySelector('svg'))a.textContent='Anytype';
+    });
+    document.querySelectorAll('.rumbo-anytype-external').forEach(a=>{
       a.href=url;
       a.target='_blank';
       a.rel='noopener noreferrer';
       a.title=saved()?'Abrir mi página de Anytype':'Configurar enlace personal de Anytype';
+      a.textContent=saved()?'Abrir en Anytype ↗':'Configurar enlace externo a Anytype (opcional)';
     });
   }
   window.RumboAnytypeRefresh=refresh;
   document.addEventListener('click',event=>{
-    const link=event.target.closest?.('.rumbo-anytype-link');
+    const menu=event.target.closest?.('.rumbo-anytype-link');
+    if(menu){
+      event.preventDefault();
+      const scroll=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('rumbo-anytype-tasks')?.scrollIntoView({block:'start'})));
+      if(location.hash==='#productividad'){scroll();}
+      else {window.addEventListener('rumbo:route-changed',scroll,{once:true});location.hash='productividad';}
+      return;
+    }
+    const link=event.target.closest?.('.rumbo-anytype-external');
     if(!link)return;
     const configured=saved();
     if(configured){link.href=configured;if(configured.startsWith('anytype:')){event.preventDefault();window.location.href=configured;}return;}
@@ -44,5 +58,7 @@
     if(url.startsWith('anytype:'))window.location.href=url;
     else window.open(url,'_blank','noopener,noreferrer');
   });
+  const card=document.getElementById('rumbo-anytype-tasks');
+  if(card){const external=document.createElement('a');external.className='rumbo-anytype-external';card.append(external);}
   refresh();
 })();
