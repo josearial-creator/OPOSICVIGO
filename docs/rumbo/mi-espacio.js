@@ -51,9 +51,11 @@ root.innerHTML=`
  <p class="assistant-muted" id="esp-draft-status">El borrador se conserva cifrado en este navegador.</p>
  </section>
  <div id="esp-mood" hidden><span>Si quieres, ¿cómo te encuentras?</span><div class="esp-actions"><button type="button" data-mood="bien" class="button secondary">Bien</button><button type="button" data-mood="regular" class="button secondary">Regular</button><button type="button" data-mood="mal" class="button secondary">Mal</button><button type="button" data-mood="" class="button secondary">Omitir</button></div></div>
- <div class="esp-list-heading"><h3>Anotaciones recientes</h3><span id="esp-count" aria-live="polite">0 anotaciones</span></div>
- <div id="esp-list"></div>
- <div class="esp-actions"><button id="esp-export" type="button" class="button secondary">Exportar mis anotaciones</button><button id="esp-delete-all" type="button" class="button secondary">Eliminar todas mis anotaciones</button></div>
+ <details id="esp-recent" class="esp-recent">
+  <summary class="esp-list-heading"><span class="esp-recent-title">Anotaciones recientes</span><span id="esp-count" aria-live="polite">0 anotaciones</span><span class="esp-recent-chevron" aria-hidden="true"></span></summary>
+  <div id="esp-list"></div>
+  <div class="esp-actions"><button id="esp-export" type="button" class="button secondary">Exportar mis anotaciones</button><button id="esp-delete-all" type="button" class="button secondary">Eliminar todas mis anotaciones</button></div>
+ </details>
 </div>
 <p id="esp-status" role="status" aria-live="polite"></p>`;
 const endpoint=(()=>{try{const s=localStorage.getItem('rumbo-ai-endpoint')||endpointDefault;const u=new URL(s);return u.protocol==='https:'?u.origin:endpointDefault;}catch{return endpointDefault;}
@@ -148,6 +150,7 @@ async function enterPrivate(pass,share){
  token=pass;lock(true);
  try{
   await load();await unlockDraft();
+  $('esp-recent').open=false;
   $('esp-private').hidden=false;$('esp-session').hidden=false;$('esp-login-form').hidden=true;
   $('esp-disconnect').hidden=false;$('esp-password').value='';
   if(draftWritable)mark('Acceso autorizado.');
@@ -164,7 +167,7 @@ async function leavePrivate(share=true){
  catch{mark('No se pudo conservar el borrador. Copia el texto antes de salir.');lock(false);return false;}
  token='';if(share)window.RumboSession?.lock();
  key=null;draftWritable=false;notes=[];editing=null;createId=null;dirty=false;
- $('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
+ $('esp-recent').open=false;$('esp-list').replaceChildren();$('esp-private').hidden=true;$('esp-session').hidden=true;
  $('esp-login-form').hidden=false;$('esp-disconnect').hidden=true;$('esp-text').value='';
  mark('Sesión cerrada.');lock(false);window.dispatchEvent(new Event('rumbo:diario-cerrado'));return true;
 }

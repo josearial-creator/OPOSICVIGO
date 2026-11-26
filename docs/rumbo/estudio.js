@@ -7,7 +7,7 @@
  <label for="study-topic">Convocatoria</label><select id="study-topic"><option value="estudio:general">Estudio general</option></select>
  <label for="study-text">Mis apuntes</label><textarea id="study-text" rows="7" maxlength="20000" placeholder="Anota una duda, un tema para repasar o lo que has estudiado…"></textarea>
  <div class="study-actions"><button type="button" class="button primary" id="study-save">Guardar apuntes</button><button type="button" class="button secondary" id="study-export">Exportar apuntes</button></div>
- <p id="study-status" role="status" aria-live="polite"></p><h3>Apuntes guardados</h3><div id="study-list"></div>`;
+ <p id="study-status" role="status" aria-live="polite"></p><details id="rumbo-study-notes" class="rumbo-fold"><summary>Apuntes guardados <span id="study-count" class="rumbo-fold-count"></span></summary><div id="study-list"></div></details>`;
  const topic=root.querySelector('#study-topic'),text=root.querySelector('#study-text'),status=root.querySelector('#study-status');
  let selected=general;
  const store=()=>window.RumboStudyStore;
@@ -22,6 +22,7 @@
   topic.replaceChildren(...keys.map(key=>{const opt=document.createElement('option');opt.value=key;opt.textContent=label(key,snapshot);return opt;}));topic.value=selected;
   const list=root.querySelector('#study-list');list.replaceChildren();
   const entries=Object.entries(snapshot.notes).filter(([,value])=>typeof value==='string'&&value.trim());
+  root.querySelector('#study-count').textContent=String(entries.length);
   if(!entries.length){const p=document.createElement('p');p.textContent='Todavía no hay apuntes. Elige una convocatoria y escribe.';list.append(p);}
   for(const [key,value] of entries){
    const card=document.createElement('article');card.className='study-note';
