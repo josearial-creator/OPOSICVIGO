@@ -235,12 +235,13 @@ function render(){
   if(estimated.length){
    const latest=estimated[estimated.length-1];
    card.append(node('strong','obs-estimated-value',dayEvidenceLabel(latest)),node('small','',latest.day+' · '+estimated.length+' días con evidencia textual'));
-  }else card.append(node('small','','Sin evidencia textual puntuable'));
+  }else card.append(node('small','','Sin datos textuales; no equivale a cero'));
   for(const max of [4,10]){
    const rated=ratingPoints(estimated,max);
    if(rated.length)card.append(node('small','','Conversaciones · escala 0–'+max+' · '+rated.length+' días con valor explícito · último '+rated[rated.length-1].value+'/'+max),ratingChart(rated,max));
   }
-  card.append(node('small','',points.length+' días con autovaloración declarada'));
+  card.append(node('small','',points.length?points.length+' días con autovaloración declarada':'Sin autovaloración declarada'));
+   if(estimated.length){const daily=node('details','obs-daily-evidence');daily.append(node('summary','','Valoración por día ('+estimated.length+')'));for(const d of [...estimated].reverse())daily.append(node('p','',d.day+' · '+dayEvidenceLabel(d)));card.append(daily);}
   if(points.length)card.append(node('span','obs-trend',trend(points)),miniChart(points));
   cards.append(card);
  }
@@ -465,7 +466,7 @@ async function scanHistory(mode='imported'){
   const coverage=sources.join('; ')+(unavailable.length?' | No incluido: '+unavailable.join('; '):'');
   const seen=new Set([...(records.historySeen||[]),...records.entries.map(e=>e.id)]);
   if(!engine)throw Error('El motor no está disponible. Recarga la aplicación.');
-  const proposed=[],limit=200;let missing=0,matched=0;
+  const proposed=[],limit=200;let missing=0,matched=0,reviewed=0,withoutMatches=0,outside=0,already=0;
   for(const item of [...items].sort((a,b)=>b.date.localeCompare(a.date))){
    const p=item.payload;
    // No usar el resumen de IA como si fueran palabras del usuario.
@@ -475,12 +476,14 @@ async function scanHistory(mode='imported'){
    const original=item.kind==='reflection'?historicalDate(p.date):historicalDate(item.date);
    const date=original||(item.kind==='reflection'?historicalDate(p.recordedAt):'');
    if(typeof text!=='string'||!text.trim()||!date){missing++;continue;}
-   if((from&&date<from)||(to&&date>to))continue;
+   if((from&&date<from)||(to&&date>to)){outside++;continue;}
+    reviewed++;
    const source=item.kind==='reflection'&&typeof p.sourceReference==='string'&&p.sourceReference.trim()?'reflection:'+p.sourceReference:item.id;
-   for(const hit of classify(text.slice(0,12000))){
+   const hits=classify(text.slice(0,12000));if(!hits.length)withoutMatches++;
+    for(const hit of hits){
     const id=await historyId(source,hit.dimension);
-    if(seen.has(id))continue;
-    seen.add(id);matched++;
+    if(seen.has(id)){already++;continue;}
+     seen.add(id);matched++;
     if(proposed.length>=limit)continue;
     proposed.push({id,date,dimension:hit.dimension,source:'texto',value:null,evidence:hit.evidence,context:item.kind==='diary'?'Diario privado · fecha de creación; autoría y fecha del suceso sin verificar':original?'Historial recuperado · palabras atribuidas al usuario':'Historial recuperado · fecha del registro, no necesariamente del suceso',analysis:metadata(hit,item.kind==='diary'?'fecha de anotación':original?'registro original':'fecha de registro')});
    }
@@ -497,7 +500,7 @@ async function scanHistory(mode='imported'){
    $('obs-history-list').append(card);
   }
   $('obs-history-save').hidden=!proposed.length;$('obs-history-select-all').disabled=!proposed.length;
-  historyStatus(coverage+'. '+matched+' propuestas nuevas; '+proposed.length+' visibles. '+missing+' registros sin texto atribuible o fecha válida (no clasificados). '+(matched>limit?'Acota las fechas para revisar las restantes. ':'')+'Usa Seleccionar todos para marcar las propuestas visibles o elige las que consideres pertinentes.');
+  historyStatus(coverage+'. '+reviewed+' registros analizados; '+withoutMatches+' sin coincidencias; '+already+' observaciones ya incorporadas o repetidas; '+missing+' sin texto o fecha válida; '+outside+' fuera del periodo. '+matched+' propuestas nuevas; '+proposed.length+' visibles. '+(matched>limit?'Tras guardar, vuelve a revisar para incorporar las siguientes. ':'')+'Selecciona las propuestas pertinentes. Sin evidencia no equivale a cero.');
  }catch(e){if(!locked&&key===active&&generation===historyGeneration)historyStatus(e.message||'No se pudo revisar el historial.');}
  finally{historyBusy=false;$('obs-history-scan').disabled=false;$('obs-diary-scan').disabled=false;$('obs-all-scan').disabled=false;}
 }
