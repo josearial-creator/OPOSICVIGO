@@ -24,7 +24,7 @@ const title=id=>DIM.find(x=>x[0]===id)?.[1]||id;
 const say=text=>{$('obs-status').textContent=text;};
 const dateOK=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x+'T12:00:00'));
 const exerciseDay=(start,days)=>{const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days-1);return d.toISOString().slice(0,10);};
-const exerciseState=(h,today)=>!h.exercise?'legacy':(h.outcomes||[]).some(o=>o.rating==='peor')?'stopped':today>exerciseDay(h.exercise.start,h.exercise.days)?'review':'active';
+const exerciseState=(h,today)=>!h.exercise?'legacy':(h.outcomes||[]).some(o=>o.rating==='peor')?'stopped':(h.outcomes||[]).some(o=>o.date>exerciseDay(h.exercise.start,h.exercise.days))?'completed':today>exerciseDay(h.exercise.start,h.exercise.days)?'review':'active';
 const empty=()=>({version:1,entries:[],questionnaires:[],hypotheses:[]});
 function valid(d){
  return d&&d.version===1&&Array.isArray(d.entries)&&d.entries.length<=2000&&d.entries.every(e=>
@@ -289,10 +289,11 @@ function render(){
   if(item.exercise){
    const end=exerciseDay(item.exercise.start,item.exercise.days),observed=new Set((item.outcomes||[]).filter(o=>o.date>=item.exercise.start&&o.date<=end).map(o=>o.date)).size;
    box.append(node('p','',item.exercise.start+' a '+end+' · '+observed+'/'+item.exercise.days+' días con registro (no equivale a cumplimiento)'),
-    node('strong','',state==='stopped'?'Suspendido por malestar':state==='review'?'Periodo finalizado · revisar resultados':'En seguimiento'));
+    node('strong','',state==='stopped'?'Suspendido por malestar':state==='completed'?'Revisión final registrada':state==='review'?'Periodo finalizado · revisar resultados':'En seguimiento'));
    if(state==='review')box.append(node('p','','Revisa qué cambió y qué más pudo influir. Los días sin datos no cuentan como éxitos ni fallos.'));
   }
   for(const o of item.outcomes||[]){box.append(node('small','',o.date+' · '+o.rating+' (resultado percibido; no causalidad)'),node('p','',o.note));}
+  if(state==='completed'){h.append(box);continue;}
   if(state==='stopped'){box.append(node('p','','No continúes por obligación. Puedes comentar el resultado con tu profesional.'));h.append(box);continue;}
   if(state==='active'&&(item.outcomes||[]).some(o=>o.date===day())){box.append(node('small','','Ya hay un resultado registrado hoy.'));h.append(box);continue;}
   const form=node('form','obs-form'),label=node('label','',state==='review'?'Valoración final':'Resultado observado (opcional)'),select=node('select','');
@@ -301,7 +302,7 @@ function render(){
   const submit=node('button','button secondary','Guardar resultado');submit.type='submit';form.append(label,noteLabel,submit);
   form.addEventListener('submit',async e=>{e.preventDefault();if(locked||!select.value)return;const rating=select.value;if(!['util','sin cambio','peor','incierto'].includes(rating))return;
    const current=records.hypotheses.find(x=>x.id===item.id);if(!current)return;
-   const currentState=exerciseState(current,day());if(currentState==='stopped'||(currentState==='active'&&(current.outcomes||[]).some(o=>o.date===day())))return;if((current.outcomes||[]).length>=30){say('Límite de 30 resultados para esta hipótesis.');return;}
+   const currentState=exerciseState(current,day());if(currentState==='completed'||currentState==='stopped'||(currentState==='active'&&(current.outcomes||[]).some(o=>o.date===day())))return;if((current.outcomes||[]).length>=30){say('Límite de 30 resultados para esta hipótesis.');return;}
    const next={...current,outcomes:[...(current.outcomes||[]),{date:day(),rating,note:note.value.trim().slice(0,500)}]};
    try{await save({...records,hypotheses:records.hypotheses.map(x=>x.id===item.id?next:x)});say(rating==='peor'?'Resultado guardado. No insistas en la actuación; revísala con tu profesional.':'Resultado guardado. No demuestra por sí solo que la actuación causó el cambio.');}catch{say('No se pudo guardar el resultado.');}
   });box.append(form);h.append(box);
