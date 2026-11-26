@@ -42,3 +42,16 @@
  #mi-espacio .esp-session .button{margin-left:auto}
  #mi-espacio textarea{min-height:175px}
 }
+
+/* Diario: historial plegado de forma predeterminada, con acceso táctil. */
+#mi-espacio .esp-recent{margin-top:20px;border:1px solid #d5e3dc;border-radius:14px;background:#fff;padding:0 14px}
+#mi-espacio .esp-recent > summary.esp-list-heading{display:flex;align-items:center;gap:10px;min-height:56px;margin:0;padding:12px 0;border:0;cursor:pointer;list-style:none}
+#mi-espacio .esp-recent > summary::-webkit-details-marker{display:none}
+#mi-espacio .esp-recent > summary::marker{content:""}
+#mi-espacio .esp-recent-title{font-size:15px;line-height:1.3;font-weight:750;color:#17483d;flex:1;min-width:0}
+#mi-espacio .esp-recent #esp-count{font-size:12px;white-space:nowrap}
+#mi-espacio .esp-recent-chevron{width:8px;height:8px;border-right:2px solid #48675d;border-bottom:2px solid #48675d;transform:rotate(45deg);margin:0 4px 4px;flex:none}
+#mi-espacio .esp-recent[open] .esp-recent-chevron{transform:rotate(225deg);margin-bottom:0}
+#mi-espacio .esp-recent[open] > summary{border-bottom:1px solid #e2e7e8}
+#mi-espacio .esp-recent > summary:focus-visible{outline:3px solid #095c53;outline-offset:3px;border-radius:8px}
+@media(max-width:360px){#mi-espacio .esp-recent{padding:0 10px}#mi-espacio .esp-recent > summary.esp-list-heading{gap:6px}#mi-espacio .esp-recent-title{font-size:14px}}
