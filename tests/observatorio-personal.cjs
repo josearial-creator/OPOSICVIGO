@@ -32,7 +32,7 @@ const assert=require('node:assert/strict');
    await page.locator('.obs-suggestion').first().getByRole('button',{name:'Guardar observación'}).click();
    assert.match(await page.locator('#obs-count').innerText(),/2 indicadores/);
    const entries=await page.locator('#obs-entries .obs-entry').allInnerTexts();
-   assert.ok(entries.some(x=>x.includes('sin puntuación')));
+   assert.ok(entries.some(x=>x.includes('Observación textual')));
    stored=await page.evaluate(()=>localStorage.getItem('rumbo-observatorio-encrypted-v1'));
    assert.ok(!stored.includes('derrotado'));
    await page.getByRole('button',{name:'Preparar informe',exact:true}).click();
