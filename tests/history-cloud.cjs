@@ -63,7 +63,7 @@ const password='clave-demo-historial-cifrado-de-32-caracteres',expected='Rumbo '
   assert.equal(saved.archived,132,'Bóveda local conserva la copia restaurada');
   await restored.locator('#rumbo-access-open').click();
   await restored.locator('#rumbo-access-logout').click();
-  assert.equal(await restored.evaluate(()=>window.RumboSession.available()),false);
+  await restored.waitForFunction(()=>window.RumboSession.available()===false,{timeout:15000});
   assert.equal(archives.size,1,'Salir no elimina la copia remota');
   assert.deepEqual(errors,[],'Sin errores de JavaScript');
   console.log('PASS: 132 registros cifrados, comprobación remota, recuperación en otro navegador, no duplicación, logout.');
