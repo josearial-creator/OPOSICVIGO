@@ -530,9 +530,10 @@
                             </label>
                         </div>
                         <div class="result-row">
-                            <span id="result-label">Cargando…</span>
+                            <span id="result-label" role="status" aria-live="polite" aria-atomic="true">Cargando…</span>
                             <button class="plain" type="button" id="clear" aria-label="Limpiar filtros de búsqueda de convocatorias">Limpiar filtros</button>
                         </div>
+                        <div id="rumbo-active-filters" class="rumbo-active-filters" role="group" aria-label="Filtros activos de convocatorias" hidden></div>
                         <div class="table-scroll">
                             <table>
                                 <thead>

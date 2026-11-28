@@ -202,6 +202,28 @@ function showAllFollowed(){
   render();
   $('result-label').scrollIntoView({block:'center',behavior:'auto'});
 }
+function renderFilterChips() {
+  const container=$('rumbo-active-filters');if(!container)return;
+  container.replaceChildren();
+  const definitions=[['search','Búsqueda'],['source','Organismo'],['status-filter','Situación'],['disability-filter','Discapacidad'],['priority-filter','Prioridad'],['only-favs','Solo favoritas']];
+  for(const [id,label] of definitions){
+    const control=$(id),checked=control.type==='checkbox';
+    if(checked?!control.checked:!control.value)continue;
+    const value=checked?'':(control.tagName==='SELECT'?control.selectedOptions[0]?.textContent:control.value);
+    const text=checked?label:label+': '+value;
+    const chip=node('button','rumbo-filter-chip',text+' ×');chip.type='button';
+    chip.setAttribute('aria-label','Quitar filtro '+text);
+    chip.addEventListener('click',()=>{
+      const index=[...container.children].indexOf(chip);
+      if(checked)control.checked=false;else control.value='';
+      render();
+      const next=container.children[Math.min(index,container.children.length-1)];
+      if(next)next.focus({preventScroll:true});else control.focus({preventScroll:true});
+    });
+    container.append(chip);
+  }
+  container.hidden=!container.children.length;
+}
 function render() {
   // Las actualizaciones del feed también reconstruyen las filas. Si el usuario
   // tiene enfocado un favorito, no debe perder el teclado ni saltar al inicio.
@@ -210,6 +232,7 @@ function render() {
     ?oldFocus.closest('tr[data-record-key]')?.dataset.recordKey:null;
   updateStats(); updateSourceOptions();
   renderFollowup();
+  renderFilterChips();
   window.dispatchEvent(new Event('rumbo:study-updated'));
   const data=filtered(); $('result-label').textContent = `${data.length} convocatoria${data.length===1?'':'s'} encontrada${data.length===1?'':'s'}`; $('rows').replaceChildren(); $('empty').classList.toggle('hidden', Boolean(data.length));
   const fragment=document.createDocumentFragment();

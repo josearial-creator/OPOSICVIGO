@@ -79,3 +79,11 @@
   #copias-rumbo{padding:16px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Filtros visibles y eliminables sin cambiar los datos guardados. */
+.rumbo-active-filters{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 16px}
+.rumbo-active-filters[hidden]{display:none}
+.rumbo-filter-chip{display:inline-flex;align-items:center;min-height:44px;max-width:100%;padding:8px 12px;border:1px solid #a7cbc1;border-radius:20px;background:#edf7f2;color:#173e39;font:inherit;font-size:13px;cursor:pointer;overflow-wrap:anywhere;text-align:left;white-space:normal}
+.rumbo-filter-chip:hover{background:#deefe6}.rumbo-filter-chip:focus-visible{outline:3px solid #08776b;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.filters .search-wrap>span{top:50%;transform:translateY(-50%);line-height:1;pointer-events:none}

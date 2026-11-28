@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', 'scripts/activate-notes-20261114.mjs', '.github/workflows/activar-diario-20261114.yml', 'actualizar.py', 'actualizar_feed.py', 'fuentes_adicionales.py', 'requirements.txt', '.github/workflows/comprobar-rumbo.yml']
   push:
-    branches: ['implementar-evolucion-gratis', 'corregir-perdida-convocatorias-20261111']
+    branches: ['implementar-evolucion-gratis', 'corregir-perdida-convocatorias-20261111', 'mejorar-experiencia-rumbo']
     paths: ['docs/rumbo/**', 'rumbo-worker/**', 'tests/**', 'scripts/activate-notes-20261114.mjs', '.github/workflows/activar-diario-20261114.yml', 'actualizar.py', 'actualizar_feed.py', 'fuentes_adicionales.py', 'requirements.txt', '.github/workflows/comprobar-rumbo.yml']
 permissions:
   contents: read
